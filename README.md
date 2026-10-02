@@ -47,7 +47,7 @@ In your project, open **Repos → New repository**. Name it `azure-pipelines-spl
 **Add a README**. Then push this repo to it:
 
 ```sh
-git clone https://github.com/<you>/azure-pipelines-splunk-apps.git   # or download this repo
+git clone https://github.com/dryvist/azure-pipelines-splunk-apps.git
 cd azure-pipelines-splunk-apps
 git remote set-url origin https://dev.azure.com/<organization>/<project>/_git/azure-pipelines-splunk-apps
 git push -u origin HEAD:main
