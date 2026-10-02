@@ -213,3 +213,7 @@ python <path-to>/azure-pipelines-splunk-apps/test_release.py      # self-check
 | `HTTP 404` from `admin.splunk.com` | The `SPLUNK_STACK` name is wrong, or `SPLUNK_EXPERIENCE` doesn't match the stack. |
 | `HTTP 4xx` listing AppInspect failures | Fix what the response lists. The run log prints the whole response. |
 | Run waits on "needs permission" | Step 7.3: permit the resources. |
+
+## License
+
+[Apache License 2.0](LICENSE)
