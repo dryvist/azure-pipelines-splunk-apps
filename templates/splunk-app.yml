@@ -1,0 +1,58 @@
+# Shared release pipeline for every Splunk app repo. App repos only `extends` this file
+# (see example/azure-pipelines.yml); everything app-specific is derived from the repo itself.
+parameters:
+  - name: pool # any job pool definition
+    type: object
+    default:
+      vmImage: ubuntu-latest # Microsoft-hosted; for a self-hosted pool use `name: <pool>`
+  - name: environments # deployed in order; each needs Environment + variable group `splunk-<env>`
+    type: object
+    default: [dev, prod]
+  - name: setup # shared by every job: release.py + Python
+    type: stepList
+    default:
+      - checkout: tools
+        path: tools
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.13"
+
+stages:
+  - stage: build
+    jobs:
+      - job: build
+        pool: ${{ parameters.pool }}
+        steps:
+          - checkout: self
+            path: app
+            persistCredentials: true # bump pushes the release commit back
+          - ${{ parameters.setup }}
+          - script: python -m pip install --quiet splunk-packaging-toolkit
+            displayName: Install slim
+          - script: python ../tools/release.py bump && python ../tools/release.py package
+            workingDirectory: $(Pipeline.Workspace)/app
+            displayName: Bump, manifest, commit, package
+          - publish: $(Pipeline.Workspace)/app/dist
+            artifact: dist
+
+  - ${{ each env in parameters.environments }}:
+      - stage: ${{ env }}
+        jobs:
+          - deployment: deploy
+            pool: ${{ parameters.pool }}
+            environment: splunk-${{ env }}
+            variables:
+              - group: splunk-appinspect
+              - group: splunk-${{ env }}
+            strategy:
+              runOnce:
+                deploy:
+                  steps:
+                    - ${{ parameters.setup }}
+                    - download: current
+                      artifact: dist
+                    - script: python $(Pipeline.Workspace)/tools/release.py deploy $(Pipeline.Workspace)/dist
+                      displayName: Deploy to ${{ env }} via ACS
+                      env: # secrets are never exposed to scripts unless mapped
+                        SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
+                        ACS_TOKEN: $(ACS_TOKEN)

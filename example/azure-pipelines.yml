@@ -1,0 +1,15 @@
+# Identical in every Splunk app repo. All logic lives in azure-pipelines-splunk-apps.
+trigger:
+  batch: "true"
+  branches:
+    include: [main]
+pr: none
+
+resources:
+  repositories:
+    - repository: tools
+      type: git
+      name: azure-pipelines-splunk-apps # another project in the org: <project>/azure-pipelines-splunk-apps
+
+extends:
+  template: templates/splunk-app.yml@tools
