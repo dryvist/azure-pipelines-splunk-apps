@@ -8,6 +8,7 @@ release.py deploy <dir>    install the one .tar.gz in <dir> via ACS (SPLUNK_STAC
 """
 
 import base64
+import configparser
 import json
 import os
 import re
@@ -20,9 +21,22 @@ import urllib.request
 import uuid
 from pathlib import Path
 
-APP = os.environ.get("BUILD_REPOSITORY_NAME") or Path.cwd().name
 SRC = Path("package")
 CONF = SRC / "default" / "app.conf"
+
+
+def app_id():
+    """[id] name in app.conf is the app id slim enforces; fall back to the repo name."""
+    conf = configparser.ConfigParser(interpolation=None, strict=False)
+    conf.read(CONF, encoding="utf-8")
+    return (
+        conf.get("id", "name", fallback=None)
+        or os.environ.get("BUILD_REPOSITORY_NAME")
+        or Path.cwd().name
+    )
+
+
+APP = app_id()
 MANIFEST = SRC / "app.manifest"
 STAGE = Path("build") / APP
 DIST = Path("dist")
