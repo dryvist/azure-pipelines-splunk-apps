@@ -1,11 +1,12 @@
 """python test_release.py — self-check for release.py (version bump, Classic multipart body)."""
 
+import os
 import tempfile
 from email.parser import BytesParser
 from email.policy import default
 from pathlib import Path
 
-from release import bump_conf, bump_level, multipart
+from release import app_id, bump_conf, bump_level, multipart
 
 CONF = """# keep me
 [install]
@@ -53,5 +54,17 @@ with tempfile.TemporaryDirectory() as tmp:
     assert parts["token"].get_content() == "abc", parts["token"]
     assert parts["package"].get_filename() == pkg.name
     assert parts["package"].get_content() == pkg.read_bytes()
+
+with tempfile.TemporaryDirectory() as tmp:
+    cwd = Path.cwd()
+    os.chdir(tmp)
+    try:
+        os.environ.pop("BUILD_REPOSITORY_NAME", None)
+        assert app_id() == Path.cwd().name, app_id()
+        Path("package/default").mkdir(parents=True)
+        Path("package/default/app.conf").write_text(CONF)
+        assert app_id() == "my_ta", app_id()
+    finally:
+        os.chdir(cwd)
 
 print("ok")

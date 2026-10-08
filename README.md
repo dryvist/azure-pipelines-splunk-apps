@@ -130,13 +130,13 @@ permissions to **`Project Collection Build Service (<organization>)`**.
 The repo must look like this:
 
 ```text
-<repo-name>/                 # repo name == app id, e.g. my_custom_app
+<repo-name>/                 # any name; the app id comes from app.conf
 ├── azure-pipelines.yml      # copied from example/, unchanged
 └── package/                 # raw app contents: default/, bin/, metadata/, ...
     └── default/app.conf
 ```
 
-`package/default/app.conf` needs these keys. `[id] name` must equal the repo name, and the two `version`
+`package/default/app.conf` needs these keys. `[id] name` is the app id, and the two `version`
 values must match:
 
 ```ini
@@ -206,7 +206,6 @@ python <path-to>/azure-pipelines-splunk-apps/test_release.py      # self-check
 | Symptom | Fix |
 | --- | --- |
 | `[launcher] and [id] need the same version` | Set both `version` values in `app.conf` to the same `x.y.z`. |
-| slim: `must equal the name of the app folder` | Set `[id] name` in `app.conf` to the repo name. |
 | `git push` fails (`TF401027` / `TF402455`) | Step 6 permissions are missing on that repo. |
 | `HTTP 401` from `api.splunk.com` | The `splunk-appinspect` username or password is wrong. |
 | `HTTP 401`/`403` from `admin.splunk.com` | The ACS token expired, has the wrong audience, or belongs to a user without `sc_admin`. |
