@@ -297,8 +297,9 @@ run and **Artifacts**.
 
 1. Create a pull request from an app branch into `main`.
 2. Confirm `build` packages the app and publishes `dist`.
-3. Confirm `appinspect` passes. It reads the `private_victoria` result and
-   needs 0 failures, 0 errors and 0 manual checks.
+3. Confirm `appinspect` passes. It reads the `private_victoria` and `future`
+   results and needs 0 failures, 0 errors and 0 manual checks. A
+   `future_failure` count above 0 shows as a warning on the run.
 4. Confirm `nonprod` installs the package on the nonprod stack, then
    `proddiff` exports production and creates a diff.
 5. Open the run's **Artifacts**. Check `appinspect-report` for the HTML and

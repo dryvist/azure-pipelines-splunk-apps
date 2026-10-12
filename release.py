@@ -53,8 +53,9 @@ TEXT = {
     "newline": "",
 }  # Preserve app.conf bytes except for version values.
 VERSION_STANZAS = {"launcher", "id"}
-# Splunk Cloud (Victoria) uses this AppInspect result view to approve private apps.
-APPINSPECT_TAGS = "private_victoria"
+# AppInspect result views: private_victoria approves Splunk Cloud (Victoria) private apps;
+# future reports checks scheduled to become cloud vetting failures.
+APPINSPECT_TAGS = "private_victoria,future"
 # AppInspect rejects hidden files and compiled Python. Tests are excluded from the package.
 EXCLUDE = shutil.ignore_patterns(".*", "__pycache__", "*.pyc", "*.pyo", "tests")
 
@@ -293,6 +294,11 @@ def appinspect(artifact_dir):
     print(
         f"AppInspect {status}: {json.dumps(summary, separators=(',', ':'), sort_keys=True)}"
     )
+    if summary.get("future_failure"):
+        print(
+            "##vso[task.logissue type=warning]AppInspect future_failure: "
+            f"{summary['future_failure']} checks will become cloud vetting failures"
+        )
     if not appinspect_passed(status, report):
         sys.exit("AppInspect did not pass")
 
