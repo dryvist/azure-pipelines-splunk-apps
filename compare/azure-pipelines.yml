@@ -1,0 +1,45 @@
+# Manual run: export the listed apps from nonprod and prod, then report every
+# change a deploy from nonprod to prod would make.
+trigger: none
+pr: none
+
+parameters:
+  - name: apps
+    type: string
+    displayName: App IDs, separated by spaces
+
+pool:
+  vmImage: ubuntu-latest
+
+jobs:
+  - ${{ each env in split('nonprod,prod', ',') }}:
+      - job: ${{ env }}
+        variables:
+          - group: splunk-${{ env }}
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "3.13"
+          - template: ../templates/acs-cli.yml
+          - script: python release.py export $(Pipeline.Workspace)/${{ env }}-export ${{ parameters.apps }}
+            displayName: Export apps from ${{ env }} via ACS
+            env:
+              SPLUNK_STACK: $(SPLUNK_STACK)
+              STACK_TOKEN: $(ACS_TOKEN)
+          - publish: $(Pipeline.Workspace)/${{ env }}-export
+            artifact: ${{ env }}-export
+
+  - job: compare
+    dependsOn: [nonprod, prod]
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.13"
+      - download: current
+      - script: >-
+          python release.py diff
+          $(Pipeline.Workspace)/prod-export $(Pipeline.Workspace)/nonprod-export
+          $(Pipeline.Workspace)/compare
+        displayName: Compare prod with nonprod
+      - publish: $(Pipeline.Workspace)/compare
+        artifact: compare

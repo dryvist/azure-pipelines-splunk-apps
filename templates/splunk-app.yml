@@ -88,13 +88,16 @@ stages:
                 - ${{ parameters.setup }}
                 - download: current
                   artifact: dist
+                - template: acs-cli.yml
                 - script: >-
                     python $(Pipeline.Workspace)/tools/release.py deploy
                     $(Pipeline.Workspace)/dist
                   displayName: Deploy to nonprod via ACS
                   env:
+                    SPLUNK_USERNAME: $(SPLUNK_USERNAME)
                     SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
-                    ACS_TOKEN: $(ACS_TOKEN)
+                    SPLUNK_STACK: $(SPLUNK_STACK)
+                    STACK_TOKEN: $(ACS_TOKEN)
 
   - stage: proddiff
     dependsOn: nonprod
@@ -104,19 +107,22 @@ stages:
       - job: proddiff
         pool: ${{ parameters.pool }}
         steps:
+          - checkout: self
+            path: app
           - ${{ parameters.setup }}
           - download: current
             artifact: dist
-          - script: >-
-              python $(Pipeline.Workspace)/tools/release.py export
-              $(Pipeline.Workspace)/prod-diff
+          - template: acs-cli.yml
+          - script: python ../tools/release.py export $(Pipeline.Workspace)/prod-export
+            workingDirectory: $(Pipeline.Workspace)/app
             displayName: Export the app from production via ACS
-            continueOnError: true # an app not yet in production has nothing to export
             env:
-              ACS_TOKEN: $(ACS_TOKEN)
+              SPLUNK_STACK: $(SPLUNK_STACK)
+              STACK_TOKEN: $(ACS_TOKEN)
           - script: >-
               python $(Pipeline.Workspace)/tools/release.py diff
-              $(Pipeline.Workspace)/dist $(Pipeline.Workspace)/prod-diff
+              $(Pipeline.Workspace)/prod-export $(Pipeline.Workspace)/dist
+              $(Pipeline.Workspace)/prod-diff
             displayName: Diff production against this package
           - publish: $(Pipeline.Workspace)/prod-diff
             artifact: prod-diff
@@ -165,10 +171,13 @@ stages:
                     - ${{ parameters.setup }}
                     - download: current
                       artifact: dist
+                    - template: acs-cli.yml
                     - script: >-
                         python $(Pipeline.Workspace)/tools/release.py deploy
                         $(Pipeline.Workspace)/dist
                       displayName: Deploy to prod via ACS
                       env:
+                        SPLUNK_USERNAME: $(SPLUNK_USERNAME)
                         SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
-                        ACS_TOKEN: $(ACS_TOKEN)
+                        SPLUNK_STACK: $(SPLUNK_STACK)
+                        STACK_TOKEN: $(ACS_TOKEN)
