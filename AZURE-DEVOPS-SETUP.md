@@ -10,7 +10,7 @@ Set up the shared Splunk app pipeline in an Azure DevOps project.
 | Step 2 | Create the package feed and grant publish access. |
 | Step 3 | Create the three variable groups. |
 | Step 4 | Create deployment environments. |
-| Step 5 | Create ACS tokens and grant production export access. |
+| Step 5 | Create ACS tokens and grant export access. |
 | Step 6 | Create an app repository and add its pipeline files. |
 | Step 7 | Grant the Build Service app repository permissions. |
 | Step 8 | Create a pipeline from the existing YAML file. |
@@ -20,19 +20,20 @@ Set up the shared Splunk app pipeline in an Azure DevOps project.
 | Step 12 | Check the first release after merging. |
 | Step 13 | Optionally enable production deployment. |
 | Step 14 | Publish the repository wiki. |
+| Step 15 | Create the nonprod and prod compare pipeline. |
 
 ## Before you start
 
 - Project Administrator access to an Azure DevOps project in `<org>`.
 - A Splunk account for AppInspect, with its username and password.
 - The Splunk Cloud (Victoria) nonprod and prod stack names.
-- Access to create ACS tokens for both stacks. The prod token's account needs
+- Access to create ACS tokens for both stacks. Both token accounts need
   `export_apps`; `sc_admin` can grant this capability to itself.
 - Apps installed this way are private apps. A copy of a Splunkbase app needs
   its own app id in `[id] name`, different from the Splunkbase app id.
 - Outbound HTTPS from Azure Pipelines agents to `pypi.org`, `api.splunk.com`,
-  `appinspect.splunk.com`, and `admin.splunk.com`. Access to `github.com` is
-  needed only for the copy step.
+  `appinspect.splunk.com`, `admin.splunk.com`, and `github.com`. Pipelines
+  download the ACS CLI from `github.com`.
 
 Select the target project, `<project>`, in the Azure DevOps organization,
 `<org>`.
@@ -173,12 +174,12 @@ use **Settings → Roles**.
    Keep both variables marked secret.
 3. Both token accounts need the `install_apps` and `edit_local_apps`
    capabilities to install apps.
-4. For the prod token's account, open its role in **Settings → Roles** and
-   grant the `export_apps` capability. `sc_admin` can grant this capability
-   to itself.
+4. For both token accounts, open the role in **Settings → Roles** and grant
+   the `export_apps` capability. `sc_admin` can grant this capability to
+   itself.
 
-**Verify:** One token exists for each stack, `install_apps` and
-`edit_local_apps` on both accounts, and `export_apps` on the prod account.
+**Verify:** One token exists for each stack. Both accounts have
+`install_apps`, `edit_local_apps`, and `export_apps`.
 
 ## Step 6 — Create an app repository and add its files
 
@@ -304,10 +305,11 @@ run and **Artifacts**.
    `proddiff` exports production and creates a diff.
 5. Open the run's **Artifacts**. Check `appinspect-report` for the HTML and
    JSON reports when AppInspect produced them. Check `prod-diff` for
-   `prod-diff.patch` and the exported `<app-id>-prod.tgz` when present.
+   `<app-id>.patch` and `<app-id>-summary.md`.
 
-The production export can return 404 if the app is not installed there yet.
-The stage continues; the patch then shows package files as additions.
+If the app is not installed in production yet, the export log shows
+`NOT INSTALLED <app-id>`. The stage continues, and the summary lists every
+package file as added.
 
 **Verify:** `build`, `appinspect`, `nonprod`, and `proddiff` succeed, with
 `dist`, `appinspect-report`, and `prod-diff` artifacts on the run.
@@ -363,12 +365,32 @@ to production.
 **Verify:** The repository pages appear in the Azure DevOps project
 wiki, starting at `Home`.
 
+## Step 15 — Create the compare pipeline
+
+**Where:** **Pipelines → New pipeline → Azure Repos Git**
+
+**Do:**
+
+1. Select repository `azure-pipelines-splunk-apps`.
+2. Choose **Existing Azure Pipelines YAML file** and select
+   `/compare/azure-pipelines.yml`.
+3. Save the pipeline as `compare-nonprod-prod`.
+4. Select **Run pipeline**. In **App IDs, separated by spaces**, enter the
+   app ids to compare, for example `my_app other_app`. Use the app folder
+   names from `[id] name`, not the display labels.
+5. Select **Permit** for the `splunk-nonprod` and `splunk-prod` groups when
+   asked.
+
+**Verify:** The `nonprod`, `prod`, and `compare` jobs succeed. The `compare`
+artifact holds `<app-id>.patch` and `<app-id>-summary.md` for each app. The
+`compare` job log prints each summary.
+
 ## If a step fails
 
 | Symptom | Fix |
 | --- | --- |
 | ACS returns 401 or 403 | Check stack, token, `acs` audience, capabilities. |
-| Export 404; app absent | Expected; review added files in `prod-diff`. |
+| `NOT INSTALLED <app-id>` | Expected for a new app; files show as added. |
 | Push denied | Allow Build Service **Contribute** and **Create tag**. |
 | AppInspect fails | Check `appinspect-report` and fix its findings. |
 | Permission prompt | Select **Permit** for the repo, groups, environments. |

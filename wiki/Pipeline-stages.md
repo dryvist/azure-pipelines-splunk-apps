@@ -32,12 +32,12 @@
 
 - **When:** After the pull request's `nonprod` stage succeeds.
 - **Needs:** The `dist` artifact and the `splunk-prod` variable group.
-- **Does:** Exports the installed production app through ACS when available,
-  then compares it with the package. An export error is allowed; without an
-  export archive, the diff lists package files as additions.
-- **Leaves:** The `prod-diff` artifact with `prod-diff.patch` and, when
-  exported, `<app-id>-prod.tgz`. Find it under **Artifacts** in the pull
-  request run.
+- **Does:** Exports the installed production app through the ACS CLI, then
+  compares it with the package. If the app is not in production, the summary
+  lists every package file as added.
+- **Leaves:** The `prod-diff` artifact with `<app-id>.patch` and
+  `<app-id>-summary.md`. Find it under **Artifacts** in the pull request
+  run.
 
 ## release
 

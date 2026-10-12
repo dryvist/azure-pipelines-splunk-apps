@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
-"""Release a Splunk app stored in ./package.
+"""Release, compare, and tag the Splunk app stored in ./package.
 
-release.py bump            update app.conf, regenerate app.manifest, commit and push (CI only)
-release.py package         write dist/<app>-<version>.tar.gz
-release.py deploy <dir>    install the single .tar.gz in <dir> via ACS (SPLUNK_STACK, ACS_TOKEN,
-                           SPLUNK_USERNAME, SPLUNK_PASSWORD from env)
-release.py export <dir>    save the installed app (default, local, users) from the stack
-                           as <dir>/<app>-prod.tgz via the ACS app export (SPLUNK_STACK,
-                           ACS_TOKEN from environment variables)
-release.py diff <pkg-dir> <dir>
-                           compare the export in <dir> (if any) with the package and write
-                           <dir>/prod-diff.patch
-release.py tag             tag HEAD as v<version>, push the tag, and set APP_ID/APP_VERSION (CI only)
+release.py bump                         update app.conf and app.manifest, then push the PR version (CI only)
+release.py package                      stage package/ and write dist/<app-id>-<version>.tar.gz
+release.py appinspect <dir>             submit the package in <dir> to AppInspect
+release.py deploy <dir>                 install the single .tar.gz in <dir> with the ACS CLI
+release.py export <out-dir> [app-id...] export default, local, and users data for each app (default: this app) as <app-id>.tgz
+release.py diff <target> <source> <out> compare archives and write per-app patches and Markdown summaries
+release.py tag                          tag HEAD as v<version>, push the tag, and set APP_ID/APP_VERSION (CI only)
+
+The ACS CLI reads STACK_TOKEN. Azure Pipelines maps ACS_TOKEN to STACK_TOKEN.
 """
 
 import base64
 import configparser
+import filecmp
 import json
 import os
 import re
@@ -23,10 +22,12 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 import urllib.error
 import urllib.request
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 
 SRC = Path("package")
@@ -122,7 +123,7 @@ def slim(*args):
     # slim loads this environment into a case-insensitive ConfigParser and fails when keys
     # differ only by case, such as SHELL and shell. Pass one entry per case-folded key.
     env = dict({k.lower(): (k, v) for k, v in os.environ.items()}.values())
-    subprocess.run([sys.executable, "-m", "slim", *args], check=True, env=env)
+    subprocess.run(["slim", *args], check=True, env=env)
 
 
 def git(*args):
@@ -185,21 +186,10 @@ def bump():
     print(f"{APP} bumped to {new}")
 
 
-def normalize(info):
-    """Set deterministic, non-world-writable archive entries across agent OSes."""
-    info.mode = 0o755 if info.isdir() or info.mode & 0o100 else 0o644
-    info.uid = info.gid = 0
-    info.uname = info.gname = ""
-    return info
-
-
 def package():
     stage()
-    DIST.mkdir(exist_ok=True)
-    out = DIST / f"{APP}-{app_conf_version(CONF.read_text(**TEXT))}.tar.gz"
-    with tarfile.open(out, "w:gz", format=tarfile.GNU_FORMAT) as tar:
-        tar.add(STAGE, arcname=APP, filter=normalize)
-    print(out)
+    DIST.mkdir(parents=True, exist_ok=True)
+    slim("package", str(STAGE), "-o", str(DIST))
 
 
 def tag():
@@ -303,57 +293,121 @@ def appinspect(artifact_dir):
         sys.exit("AppInspect did not pass")
 
 
+@contextmanager
+def acs_session():
+    """Select SPLUNK_STACK and log in with STACK_TOKEN in a temporary ACS CLI config."""
+    stack = os.environ["SPLUNK_STACK"]
+    with tempfile.TemporaryDirectory() as home:
+        env = {**os.environ, "HOME": home}
+        subprocess.run(["acs", "config", "add-stack", stack, "--use"], check=True, env=env)
+        subprocess.run(["acs", "login"], check=True, env=env)
+        yield env
+
+
 def deploy(artifact_dir):
     (pkg,) = Path(artifact_dir).glob("*.tar.gz")
-    token = appinspect_token()
-    url = f"https://admin.splunk.com/{os.environ['SPLUNK_STACK']}/adminconfig/v2/apps/victoria"
-    headers = {
-        "Authorization": f"Bearer {os.environ['ACS_TOKEN']}",
-        "X-Splunk-Authorization": token,
-        "ACS-Legal-Ack": "Y",
-    }
-    print(http(url, headers, pkg.read_bytes()).decode())
+    with acs_session() as env:
+        cmd = ["acs", "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(pkg)]
+        subprocess.run(cmd, check=True, env=env)
 
 
-def export(out_dir):
-    """Save the app installed on SPLUNK_STACK with default, local, and users content."""
-    url = (
-        f"https://admin.splunk.com/{os.environ['SPLUNK_STACK']}/adminconfig/v2/apps/victoria/"
-        f"export/download/{APP}?default=true&local=true&users=true&confs_only=false"
-    )
-    body = http(url, {"Authorization": f"Bearer {os.environ['ACS_TOKEN']}"})
-    Path(out_dir).mkdir(parents=True, exist_ok=True)
-    Path(out_dir, f"{APP}-prod.tgz").write_bytes(body)
-
-
-def diff(pkg_dir, out_dir):
+def export(out_dir, *app_ids):
+    """Save each app as <out_dir>/<app-id>.tgz with default, local and users content."""
     out = Path(out_dir)
-    trees = out / "trees"
-    archives = {
-        "prod": out / f"{APP}-prod.tgz",
-        "new": next(Path(pkg_dir).glob("*.tar.gz")),
-    }
-    for name, archive in archives.items():
-        (trees / name).mkdir(parents=True)
-        # The export root is assumed to match the app id, as in the package. Otherwise,
-        # every path differs by that folder. Strip it here if an export confirms another root.
-        if archive.exists():
-            with tarfile.open(archive) as tar:
-                tar.extractall(trees / name, filter="data")
-    # diff exits 1 when the trees differ, 2 on error.
-    patch = subprocess.run(
-        ["diff", "-ruN", "prod", "new"],
-        cwd=trees,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if patch.returncode > 1:
-        sys.exit(f"diff failed: {patch.stderr}")
-    (out / "prod-diff.patch").write_text(patch.stdout, encoding="utf-8")
-    print("Changed files:", flush=True)
-    subprocess.run(["diff", "-rq", "prod", "new"], cwd=trees, check=False)
-    shutil.rmtree(trees)
+    out.mkdir(parents=True, exist_ok=True)
+    apps_file = out / "apps.json"
+    with acs_session() as env:
+        for app in app_ids or [APP]:
+            apps_file.write_text(json.dumps({"Apps": [app]}))
+            cmd = ["acs", "apps", "export", f"--file={apps_file}", "--default=true", "--local=true",
+                   "--users=true", "--confs-only=false", f"--export-dir={out}"]
+            subprocess.run(cmd, check=False, env=env)
+            if not (out / f"{app}.tgz").exists():
+                print(f"NOT INSTALLED {app}")
+    apps_file.unlink()
+
+
+def archives(directory):
+    """Map app id to archive: <app-id>.tgz (export) or <app-id>-<version>.tar.gz (package)."""
+    found = {}
+    for archive in Path(directory).glob("*gz"):
+        name = archive.name
+        app = name.removesuffix(".tgz") if name.endswith(".tgz") else name.rsplit("-", 1)[0]
+        found[app] = archive
+    return found
+
+
+def extract(archive, dest):
+    """Extract archive into dest without its top folder; an empty dest when archive is None."""
+    raw = dest.with_name(dest.name + "-raw")
+    raw.mkdir()
+    if archive:
+        with tarfile.open(archive) as tar:
+            tar.extractall(raw, filter="data")
+    entries = list(raw.iterdir())
+    (entries[0] if len(entries) == 1 and entries[0].is_dir() else raw).rename(dest)
+
+
+def files(root):
+    return {p.relative_to(root) for p in root.rglob("*") if p.is_file()}
+
+
+def kept(path):
+    """Files a deploy does not replace: local/, metadata/local.meta and users/."""
+    return path.parts[0] in ("local", "users") or path.parts[:2] == ("metadata", "local.meta")
+
+
+def listed(paths):
+    return [f"- {p.as_posix()}" for p in sorted(paths)] or ["- None"]
+
+
+def summary(target, source):
+    t, s = files(target), files(source)
+    changes = []
+    for p in sorted((t | s) - {p for p in t | s if kept(p)}):
+        if p not in t:
+            changes.append(f"- Added: {p.as_posix()}")
+        elif p not in s:
+            changes.append(f"- Removed: {p.as_posix()}")
+        elif not filecmp.cmp(target / p, source / p, shallow=False):
+            changes.append(f"- Changed: {p.as_posix()}")
+    return "\n".join([
+        "## Deployed changes", *(changes or ["- None"]),
+        "## Target local files (kept, not backed up)",
+        "These files stay on the target after a deploy, override the deployed defaults, and are not backed up.",
+        *listed(p for p in t if p.parts[0] != "users" and kept(p)),
+        "## Source local files (not deployed)",
+        "These files exist only in the source environment and are not part of the deploy.",
+        *listed(p for p in s if p.parts[0] != "users" and kept(p)),
+        "## User files",
+        "Target:", *listed(p for p in t if p.parts[0] == "users"),
+        "Source:", *listed(p for p in s if p.parts[0] == "users"),
+    ]) + "\n"
+
+
+def diff(target_dir, source_dir, out_dir):
+    """Write <app-id>.patch and <app-id>-summary.md for every app in either directory."""
+    targets, sources = archives(target_dir), archives(source_dir)
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    for app in sorted(targets.keys() | sources.keys()):
+        with tempfile.TemporaryDirectory() as tmp:
+            target, source = Path(tmp, "target"), Path(tmp, "source")
+            extract(targets.get(app), target)
+            extract(sources.get(app), source)
+            text = summary(target, source)
+            for root in (target, source):
+                for p in files(root):
+                    if kept(p):
+                        (root / p).unlink()
+            # diff exits 1 when the trees differ, 2 on error.
+            patch = subprocess.run(["diff", "-ruN", "target", "source"], cwd=tmp,
+                                   capture_output=True, text=True, check=False)
+            if patch.returncode > 1:
+                sys.exit(f"diff failed for {app}: {patch.stderr}")
+        (out / f"{app}.patch").write_text(patch.stdout, encoding="utf-8")
+        (out / f"{app}-summary.md").write_text(text, encoding="utf-8")
+        print(text, end="")
 
 
 def multipart(pkg):
