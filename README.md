@@ -1,6 +1,6 @@
 # azure-pipelines-splunk-apps
 
-This repository provides a shared Azure Repos and Azure Pipelines release
+This repository contains a shared Azure Repos and Azure Pipelines release
 pipeline for Splunk Cloud apps. It validates app packages, compares pull
 request packages with production, and publishes versioned releases.
 

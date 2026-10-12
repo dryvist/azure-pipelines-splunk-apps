@@ -1,7 +1,6 @@
 # Azure DevOps setup
 
-Follow these steps to set up the shared Splunk app pipeline in an Azure DevOps
-project.
+Set up the shared Splunk app pipeline in an Azure DevOps project.
 
 ## Checklist
 
@@ -35,8 +34,8 @@ project.
   `appinspect.splunk.com`, and `admin.splunk.com`. Access to `github.com` is
   needed only for the copy step.
 
-The paths below assume you selected the target project, named `<project>`, in
-your Azure DevOps organization, named `<org>`.
+Select the target project, `<project>`, in the Azure DevOps organization,
+`<org>`.
 
 ## Step 1 — Copy the shared pipeline repository
 
@@ -75,7 +74,7 @@ git push \
   main --tags
 ```
 
-**You should see:** `azure-pipelines-splunk-apps` on the `main` branch in
+**Verify:** `azure-pipelines-splunk-apps` is on the `main` branch in
 **Repos → Files**.
 
 ## Step 2 — Create the package feed
@@ -89,7 +88,7 @@ git push \
 3. Add `<project> Build Service (<org>)` with the **Feed Publisher
    (Contributor)** role.
 
-**You should see:** `splunk-apps` in Artifacts and the Build Service listed as
+**Verify:** `splunk-apps` appears in Artifacts. The Build Service is listed as
 a Feed Publisher (Contributor).
 
 ## Step 3 — Create the variable groups
@@ -98,20 +97,54 @@ a Feed Publisher (Contributor).
 
 **Do:**
 
-1. Create each group and variable using the names and secret settings below.
-2. Enter the AppInspect username and each stack name. Add the passwords and
-   ACS tokens in their matching rows; create the tokens in Step 5.
+1. Create the three groups below. Enter each **Description** in the group's
+   Description field.
+2. Add each variable. Select the lock icon for every variable marked
+   **Secret: Yes**.
+3. Leave `ACS_TOKEN` empty until Step 5 creates the tokens.
 
-| Variable group | Variable | Secret? |
-| --- | --- | --- |
-| `splunk-appinspect` | `SPLUNK_USERNAME` | No |
-| `splunk-appinspect` | `SPLUNK_PASSWORD` | Yes |
-| `splunk-nonprod` | `SPLUNK_STACK` | No |
-| `splunk-nonprod` | `ACS_TOKEN` | Yes |
-| `splunk-prod` | `SPLUNK_STACK` | No |
-| `splunk-prod` | `ACS_TOKEN` | Yes |
+### Group `splunk-appinspect`
 
-**You should see:** All three groups in Library. Secret values are masked
+Description: `Splunk.com account for AppInspect validation and ACS installs`
+
+- `SPLUNK_USERNAME` (Secret: No)
+  - Value: user name of a splunk.com account.
+  - Source: the account used to sign in at splunk.com and Splunkbase.
+  - Used by: `appinspect`; `nonprod` and `prod` send its AppInspect token to
+    ACS as proof of validation.
+- `SPLUNK_PASSWORD` (Secret: Yes)
+  - Value: password of the same splunk.com account.
+  - Used by: the same stages as `SPLUNK_USERNAME`.
+
+### Group `splunk-nonprod`
+
+Description: `Nonprod Splunk Cloud stack for pull request installs`
+
+- `SPLUNK_STACK` (Secret: No)
+  - Value: the stack name, the `<stack>` part of
+    `https://<stack>.splunkcloud.com`.
+  - Used by: `nonprod`.
+- `ACS_TOKEN` (Secret: Yes)
+  - Value: a Splunk Cloud authentication token with audience `acs`.
+  - Source: Splunk Web on the nonprod stack, Step 5.
+  - Used by: `nonprod`.
+
+### Group `splunk-prod`
+
+Description: `Production Splunk Cloud stack for export, diff and deploy`
+
+- `SPLUNK_STACK` (Secret: No)
+  - Value: the production stack name, the `<stack>` part of
+    `https://<stack>.splunkcloud.com`.
+  - Used by: `proddiff` and `prod`.
+- `ACS_TOKEN` (Secret: Yes)
+  - Value: a Splunk Cloud authentication token with audience `acs`. The
+    token's account needs `export_apps`, `install_apps` and
+    `edit_local_apps`.
+  - Source: Splunk Web on the production stack, Step 5.
+  - Used by: `proddiff` and `prod`.
+
+**Verify:** All three groups appear in Library. Secret values are masked
 after they are saved.
 
 ## Step 4 — Create deployment environments
@@ -124,7 +157,7 @@ after they are saved.
 2. To require approval before production deployment, open `splunk-prod`, then
    **Approvals and checks → Approvals → +** and add the approvers.
 
-**You should see:** Both environments in the environments list. If configured,
+**Verify:** Both environments appear in the environments list. If configured,
 the prod environment shows its approval check.
 
 ## Step 5 — Create ACS tokens and grant export access
@@ -144,7 +177,7 @@ use **Settings → Roles**.
    grant the `export_apps` capability. `sc_admin` can grant this capability
    to itself.
 
-**You should see:** One token for each stack, `install_apps` and
+**Verify:** One token exists for each stack, `install_apps` and
 `edit_local_apps` on both accounts, and `export_apps` on the prod account.
 
 ## Step 6 — Create an app repository and add its files
@@ -168,9 +201,9 @@ use **Settings → Roles**.
 3. Add `azure-pipelines.yml` at the repository root with this content:
 
    ```yaml
-   # Identical in every Splunk app repo. All logic lives in
-   # azure-pipelines-splunk-apps. Azure Repos PR runs come from a main branch
-   # policy "Build validation"; YAML `pr:` is ignored for Azure Repos.
+   # Keep this file identical across Splunk app repos. Shared logic is in
+   # azure-pipelines-splunk-apps. Azure Repos queues PR validation through a
+   # main branch Build validation policy and ignores YAML `pr:` triggers.
    trigger:
      batch: true
      branches:
@@ -180,7 +213,8 @@ use **Settings → Roles**.
      repositories:
        - repository: tools
          type: git
-         # From another project in the org: <project>/azure-pipelines-splunk-apps
+         # For another project in the org, set the name to
+         # <project>/azure-pipelines-splunk-apps.
          name: azure-pipelines-splunk-apps
 
    extends:
@@ -190,7 +224,7 @@ use **Settings → Roles**.
 4. If the shared repository is in another project, set `name` to
    `<project>/azure-pipelines-splunk-apps`.
 
-**You should see:** The app repository contains `azure-pipelines.yml` and
+**Verify:** The app repository contains `azure-pipelines.yml` and
 `package/default/app.conf` on `main`.
 
 ## Step 7 — Grant Build Service permissions on the app repository
@@ -204,7 +238,7 @@ use **Settings → Roles**.
    branch.
 3. Allow **Create tag** so the release stage can push `v<version>`.
 
-**You should see:** Both permissions show **Allow** for the app repository's
+**Verify:** Both permissions show **Allow** for the app repository's
 Build Service identity.
 
 ## Step 8 — Create a pipeline from the YAML file
@@ -219,7 +253,7 @@ Build Service identity.
 3. Save the pipeline with the suggested name or a name that identifies the
    app.
 
-**You should see:** The pipeline page shows the app repository and its
+**Verify:** The pipeline page shows the app repository and its
 `azure-pipelines.yml` file.
 
 ## Step 9 — Permit the pipeline to use its resources
@@ -235,7 +269,7 @@ Build Service identity.
 3. If needed, open each group at **Pipelines → Library → `<group>` → Pipeline
    permissions** and authorize this pipeline.
 
-**You should see:** The run proceeds past resource authorization and the
+**Verify:** The run proceeds past resource authorization and the
 pipeline is listed as authorized for the shared repository, groups, and
 environments.
 
@@ -251,7 +285,7 @@ environments.
 Azure Repos uses this branch policy to queue pull request validation. The YAML
 `trigger` queues runs for commits to `main`; Azure Repos ignores YAML `pr:`.
 
-**You should see:** The Build validation policy for `main` lists the app
+**Verify:** The Build validation policy for `main` lists the app
 pipeline and requires it to pass.
 
 ## Step 11 — Check the first pull request run
@@ -274,9 +308,8 @@ run and **Artifacts**.
 The production export can return 404 if the app is not installed there yet.
 The stage continues; the patch then shows package files as additions.
 
-**You should see:** Successful `build`, `appinspect`, `nonprod`, and
-`proddiff` stages, with `dist`, `appinspect-report`, and `prod-diff` artifacts
-on the run.
+**Verify:** `build`, `appinspect`, `nonprod`, and `proddiff` succeed, with
+`dist`, `appinspect-report`, and `prod-diff` artifacts on the run.
 
 ## Step 12 — Check the first release after merging
 
@@ -291,7 +324,7 @@ on the run.
 4. Open **Artifacts → splunk-apps** and find the package named with the
    lowercase app id and version from `app.conf`.
 
-**You should see:** The tag points to the release commit and the feed contains
+**Verify:** The tag points to the release commit and the feed contains
 the matching Universal Package version.
 
 ## Step 13 — Optionally enable production deployment
@@ -312,7 +345,7 @@ the matching Universal Package version.
 2. Commit the change to `main`. Confirm the `splunk-prod` environment has an
    approval check if production approval is required.
 
-**You should see:** A `prod` stage after a successful `main` release. It uses
+**Verify:** A `prod` stage follows a successful `main` release. It uses
 the prod stack and `splunk-prod` environment. Pull request runs do not deploy
 to production.
 
@@ -326,7 +359,7 @@ to production.
 2. Select branch `main` and folder `/wiki`.
 3. Publish the code as the wiki.
 
-**You should see:** The repository pages appear in the Azure DevOps project
+**Verify:** The repository pages appear in the Azure DevOps project
 wiki, starting at `Home`.
 
 ## If a step fails

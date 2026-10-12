@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Bump, package and deploy a Splunk app whose raw contents live in ./package.
+"""Release a Splunk app stored in ./package.
 
-release.py bump            bump app.conf, regenerate app.manifest, commit + push (CI only)
+release.py bump            update app.conf, regenerate app.manifest, commit and push (CI only)
 release.py package         write dist/<app>-<version>.tar.gz
-release.py deploy <dir>    install the one .tar.gz in <dir> via ACS (SPLUNK_STACK, ACS_TOKEN,
+release.py deploy <dir>    install the single .tar.gz in <dir> via ACS (SPLUNK_STACK, ACS_TOKEN,
                            SPLUNK_USERNAME, SPLUNK_PASSWORD from env)
-release.py export <dir>    save the stack's installed app (default, local, users) as <dir>/<app>-prod.tgz
-                           via the ACS app export (SPLUNK_STACK, ACS_TOKEN from env)
+release.py export <dir>    save the installed app (default, local, users) from the stack
+                           as <dir>/<app>-prod.tgz via the ACS app export (SPLUNK_STACK,
+                           ACS_TOKEN from environment variables)
 release.py diff <pkg-dir> <dir>
-                           write <dir>/prod-diff.patch: the export in <dir> (if any) against the package
-release.py tag             tag HEAD v<version>, push the tag and set APP_ID/APP_VERSION (CI only)
+                           compare the export in <dir> (if any) with the package and write
+                           <dir>/prod-diff.patch
+release.py tag             tag HEAD as v<version>, push the tag, and set APP_ID/APP_VERSION (CI only)
 """
 
 import base64
@@ -32,7 +34,7 @@ CONF = SRC / "default" / "app.conf"
 
 
 def app_id():
-    """[id] name in app.conf is the app id slim enforces; fall back to the repo name."""
+    """Read the app id required by slim from app.conf [id] name; fall back to BUILD_REPOSITORY_NAME, then cwd."""
     conf = configparser.ConfigParser(interpolation=None, strict=False)
     conf.read(CONF, encoding="utf-8")
     return (
@@ -49,16 +51,16 @@ DIST = Path("dist")
 TEXT = {
     "encoding": "utf-8",
     "newline": "",
-}  # keep app.conf byte-for-byte except the versions
+}  # Preserve app.conf bytes except for version values.
 VERSION_STANZAS = {"launcher", "id"}
-# AppInspect result view that Splunk Cloud (Victoria) uses to approve private apps.
+# Splunk Cloud (Victoria) uses this AppInspect result view to approve private apps.
 APPINSPECT_TAGS = "private_victoria"
-# AppInspect rejects hidden files and compiled Python; tests never ship.
+# AppInspect rejects hidden files and compiled Python. Tests are excluded from the package.
 EXCLUDE = shutil.ignore_patterns(".*", "__pycache__", "*.pyc", "*.pyo", "tests")
 
 
 def bump_level(message):
-    """[major] or [minor] anywhere in the commit message picks the level; patch otherwise."""
+    """Set the bump level from [major] or [minor] in the message; use patch otherwise."""
     message = message.lower()
     if "[major]" in message:
         return "major"
@@ -77,7 +79,7 @@ def bumped(version, level):
 
 
 def version_rows(lines):
-    """{stanza: (line index, match)} for the [launcher] and [id] version rows, which must match."""
+    """Return {stanza: (line index, match)}; the [launcher] and [id] versions must match."""
     rows, section = {}, None
     for i, line in enumerate(lines):
         stanza = re.match(r"\s*\[(.+)\]", line)
@@ -101,7 +103,7 @@ def app_conf_version(text):
 
 
 def bump_conf(text, level):
-    """Return (text, new_version) with both versions bumped; everything else, comments included, untouched."""
+    """Return updated text and version; preserve other text, including comments."""
     lines = text.splitlines(keepends=True)
     new = bumped(app_conf_version(text), level)
     for i, match in version_rows(lines).values():
@@ -110,14 +112,14 @@ def bump_conf(text, level):
 
 
 def stage():
-    """Copy package/ to build/<app>/: slim requires the folder name to equal the app id, and the tarball root must too."""
+    """Copy package/ to build/<app>; slim requires the folder and tarball root to match the app id."""
     shutil.rmtree(STAGE.parent, ignore_errors=True)
     shutil.copytree(SRC, STAGE, ignore=EXCLUDE)
 
 
 def slim(*args):
-    # slim loads the environment into a case-insensitive ConfigParser and crashes on keys that
-    # differ only by case (e.g. SHELL and shell). Hand it one entry per case-folded name.
+    # slim loads this environment into a case-insensitive ConfigParser and fails when keys
+    # differ only by case, such as SHELL and shell. Pass one entry per case-folded key.
     env = dict({k.lower(): (k, v) for k, v in os.environ.items()}.values())
     subprocess.run([sys.executable, "-m", "slim", *args], check=True, env=env)
 
@@ -154,7 +156,7 @@ def bump():
         f"+refs/heads/{target}:refs/remotes/origin/{target}",
         f"+refs/heads/{source}:refs/remotes/origin/{source}",
     )
-    # PR builds check out a detached merge commit; bump and push the PR branch itself.
+    # PR builds use a detached merge commit. The bump updates and pushes the PR source branch.
     git("checkout", "-B", source, f"origin/{source}")
     try:
         target_text = subprocess.check_output(
@@ -172,7 +174,7 @@ def bump():
     )
     CONF.write_text(text, **TEXT)
     stage()
-    # A fresh manifest ends in commented-out template lines (not valid JSON); --update output is pure JSON.
+    # A new manifest ends with commented template lines and is invalid JSON. --update writes valid JSON.
     if not (STAGE / MANIFEST.name).exists():
         slim("generate-manifest", str(STAGE), "-o", str(STAGE / MANIFEST.name))
     slim("generate-manifest", "--update", str(STAGE), "-o", str(MANIFEST))
@@ -183,7 +185,7 @@ def bump():
 
 
 def normalize(info):
-    """Deterministic, non-world-writable entries regardless of the agent OS."""
+    """Set deterministic, non-world-writable archive entries across agent OSes."""
     info.mode = 0o755 if info.isdir() or info.mode & 0o100 else 0o644
     info.uid = info.gid = 0
     info.uname = info.gname = ""
@@ -200,7 +202,7 @@ def package():
 
 
 def tag():
-    """Tag HEAD v<version>; git refuses the push when that tag already points at another commit."""
+    """Tag HEAD as v<version>; git refuses a push if the tag points to another commit."""
     version = app_conf_version(CONF.read_text(**TEXT))
     git("tag", "--force", f"v{version}")
     git("push", "origin", f"refs/tags/v{version}")
@@ -233,7 +235,7 @@ def appinspect_token():
 
 
 def appinspect_passed(status, report):
-    """AppInspect is green only with SUCCESS and zero failures, errors and manual checks."""
+    """Return true only for SUCCESS with zero failures, errors, and manual checks."""
     summary = report.get("summary", {})
     return (
         status == "SUCCESS"
@@ -308,7 +310,7 @@ def deploy(artifact_dir):
 
 
 def export(out_dir):
-    """Save the app as installed on SPLUNK_STACK, including local and users content."""
+    """Save the app installed on SPLUNK_STACK with default, local, and users content."""
     url = (
         f"https://admin.splunk.com/{os.environ['SPLUNK_STACK']}/adminconfig/v2/apps/victoria/"
         f"export/download/{APP}?default=true&local=true&users=true&confs_only=false"
@@ -327,8 +329,8 @@ def diff(pkg_dir, out_dir):
     }
     for name, archive in archives.items():
         (trees / name).mkdir(parents=True)
-        # shortcut: assumes the export's root folder is the app id, like the package; if not,
-        # every path differs by that folder. Strip it here once a real export shows otherwise.
+        # The export root is assumed to match the app id, as in the package. Otherwise,
+        # every path differs by that folder. Strip it here if an export confirms another root.
         if archive.exists():
             with tarfile.open(archive) as tar:
                 tar.extractall(trees / name, filter="data")
@@ -349,7 +351,7 @@ def diff(pkg_dir, out_dir):
 
 
 def multipart(pkg):
-    """(content_type, body) for a multipart/form-data POST of the package as app_package."""
+    """Build (content_type, body) for a multipart/form-data POST with app_package."""
     boundary = uuid.uuid4().hex
     head = (
         f'--{boundary}\r\nContent-Disposition: form-data; name="app_package"; '
