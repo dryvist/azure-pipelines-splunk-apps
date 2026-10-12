@@ -245,12 +245,12 @@ def save_appinspect_report(artifact_dir, html, report):
 
 def appinspect(artifact_dir):
     (pkg,) = Path(artifact_dir).glob("*.tar.gz")
-    token = appinspect_token()
+    auth = {"Authorization": f"Bearer {appinspect_token()}"}
     content_type, body = multipart(pkg)
     response = json.loads(
         http(
             "https://appinspect.splunk.com/v1/app/validate",
-            {"Authorization": f"Bearer {token}", "Content-Type": content_type},
+            {**auth, "Content-Type": content_type},
             body,
         )
     )
@@ -262,18 +262,18 @@ def appinspect(artifact_dir):
         if remaining <= 0:
             sys.exit("AppInspect timed out after 30 minutes")
         status_body = http(
-            status_url, {"Accept": "application/json"}, timeout=min(900, remaining)
+            status_url, {**auth, "Accept": "application/json"}, timeout=min(900, remaining)
         )
         status = json.loads(status_body)["status"]
         if status != "PROCESSING":
             break
         time.sleep(min(15, remaining))
     report_url = f"https://appinspect.splunk.com/v1/app/report/{request_id}"
-    html = http(report_url, {"Content-Type": "text/html", "Accept": "text/html"})
+    html = http(report_url, {**auth, "Accept": "text/html"})
     report = json.loads(
         http(
             report_url,
-            {"Content-Type": "application/json", "Accept": "application/json"},
+            {**auth, "Accept": "application/json"},
         )
     )
     save_appinspect_report(artifact_dir, html, report)
