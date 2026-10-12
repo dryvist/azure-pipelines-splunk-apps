@@ -154,7 +154,7 @@ the package to a Victoria stack using ACS.
 | Symptom | Fix |
 | --- | --- |
 | `[launcher] and [id] need the same version` | Set both `version` values in `app.conf` to the same `x.y.z`. |
-| `version already changed, skipping bump` | Expected after the release commit reaches the PR branch. For a manually changed version, no automatic bump is made. |
+| `version already changed, skipping bump` | Expected after the release commit reaches the PR branch, or when the PR already set the version. |
 | `target app.conf is missing, skipping bump` | Add `package/default/app.conf` on the PR target branch. |
 | `git push` fails (`TF401027` / `TF402455`) | Grant the pipeline Build Service **Contribute** on the PR source branch. |
 | HTTP 401 from `api.splunk.com` | Check `SPLUNK_USERNAME` and `SPLUNK_PASSWORD` in `splunk-appinspect`. |
