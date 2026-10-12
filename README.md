@@ -1,5 +1,8 @@
 # azure-pipelines-splunk-apps
 
+> Branch `smoke-test`: follow [SMOKE-TEST.md](SMOKE-TEST.md) to check the
+> AppInspect account, stack names and ACS tokens with one pipeline run.
+
 This repository contains a shared Azure Repos and Azure Pipelines release
 pipeline for Splunk Cloud apps. It validates app packages, compares pull
 request packages with production, and publishes versioned releases.

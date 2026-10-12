@@ -43,3 +43,24 @@ jobs:
         env:
           SPLUNK_STACK: $(SPLUNK_STACK)
           ACS_TOKEN: $(ACS_TOKEN)
+
+  - job: result
+    dependsOn: [appinspect, nonprod, prod]
+    condition: always()
+    variables:
+      appinspectResult: $[ dependencies.appinspect.result ]
+      nonprodResult: $[ dependencies.nonprod.result ]
+      prodResult: $[ dependencies.prod.result ]
+    steps:
+      - checkout: none
+      - script: |
+          echo "appinspect: $(appinspectResult)"
+          echo "nonprod:    $(nonprodResult)"
+          echo "prod:       $(prodResult)"
+          if [ "$(appinspectResult)$(nonprodResult)$(prodResult)" = "SucceededSucceededSucceeded" ]; then
+            echo "RESULT: ALL PASS"
+          else
+            echo "RESULT: FAILED - open each failed job for its FAIL or HTTP line"
+            exit 1
+          fi
+        displayName: Result
