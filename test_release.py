@@ -35,6 +35,17 @@ assert not release.appinspect_passed("FAILURE", clean)
 assert not release.appinspect_passed("SUCCESS", {"summary": {"failure": 1, "error": 0}})
 assert not release.appinspect_passed("SUCCESS", {"summary": {"failure": 0, "error": 1}})
 
+with tempfile.TemporaryDirectory() as tmp:
+    pkg = Path(tmp, "app.tgz")
+    pkg_bytes = b"app package bytes"
+    pkg.write_bytes(pkg_bytes)
+    _, body = release.multipart(pkg)
+    tag_field = b'name="included_tags"\r\n\r\ncloud\r\n'
+    package_field = b'name="app_package"; filename="app.tgz"'
+    assert tag_field in body
+    assert package_field in body
+    assert pkg_bytes in body
+
 
 def write_tgz(path, files):
     with tarfile.open(path, "w:gz") as archive:

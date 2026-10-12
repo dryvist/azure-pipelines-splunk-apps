@@ -103,8 +103,9 @@ packages the app and publishes the `dist` artifact, which contains
 
 **appinspect** downloads `dist` and uses `splunk-appinspect` to get an
 AppInspect API token from the Splunk username and password, then submits the
-package. The stage passes only when AppInspect reports `SUCCESS` with zero
-failures and errors. It prints the JSON summary and publishes the
+package with the AppInspect `cloud` tag (the Splunk Cloud vetting checks).
+The stage passes only when AppInspect reports `SUCCESS` with zero failures and
+errors. It prints the JSON summary and publishes the
 `appinspect-report` artifact with the HTML and JSON reports when they were
 produced. Find it in the run's **Artifacts**.
 
