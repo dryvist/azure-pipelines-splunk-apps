@@ -85,16 +85,13 @@ and token values secret.
 | | `ACS_TOKEN` | yes | Admin Config Service token for `<stack>` |
 | `splunk-prod` | `SPLUNK_STACK` | no | `<stack>` |
 | | `ACS_TOKEN` | yes | Admin Config Service token for `<stack>` |
-| `splunk-prod-export` | `SPLUNK_STACK` | no | Production `<stack>` |
-| | `ACS_EXPORT_TOKEN` | yes | Admin Config Service token for an account with the `export_apps` capability |
 
 Create an Admin Config Service token for each target stack in Splunk Web under **Settings → Tokens**. Use an
 account with the `sc_admin` role, set the audience to `acs`, and track the expiration. To identify the
 experience, check **Support & Services → About** in Splunk Web.
 
-Pull request runs read `splunk-prod-export`, so give `ACS_EXPORT_TOKEN` to an account that can export apps
-but is not the account behind the production `ACS_TOKEN`. `sc_admin` lacks `export_apps` by default and can
-grant it under **Settings → Roles**.
+The `proddiff` stage exports from production with the `splunk-prod` token, so that account also needs the
+`export_apps` capability. `sc_admin` lacks it by default and can grant it under **Settings → Roles**.
 
 ### 4. Create deployment environments
 

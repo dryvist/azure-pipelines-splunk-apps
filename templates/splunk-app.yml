@@ -123,7 +123,7 @@ stages:
     dependsOn: nonprod
     condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
     variables:
-      - group: splunk-prod-export
+      - group: splunk-prod
     jobs:
       - job: proddiff
         pool: ${{ parameters.pool }}
@@ -136,7 +136,7 @@ stages:
               $(Pipeline.Workspace)/prod-export
             displayName: Export the installed app from production via ACS
             env:
-              ACS_EXPORT_TOKEN: $(ACS_EXPORT_TOKEN)
+              ACS_TOKEN: $(ACS_TOKEN)
           - publish: $(Pipeline.Workspace)/prod-export
             artifact: prod-export
           - script: >-

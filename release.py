@@ -6,7 +6,7 @@ release.py package         write dist/<app>-<version>.tar.gz
 release.py deploy <dir>    install the one .tar.gz in <dir> via ACS (SPLUNK_STACK, ACS_TOKEN,
                            SPLUNK_USERNAME, SPLUNK_PASSWORD from env)
 release.py export <dir>    save the stack's installed app (default, local, users) via ACS app export
-                           (SPLUNK_STACK, ACS_EXPORT_TOKEN from env) as <dir>/<app>-export.tgz
+                           (SPLUNK_STACK, ACS_TOKEN from env) as <dir>/<app>-export.tgz
 release.py diff <pkg-dir> <export-dir> <out-dir>
                            write a full recursive diff of the exported app against the package
 release.py tag             tag the main build commit v<version> and push the tag (CI only)
@@ -359,7 +359,7 @@ def export(out_dir):
         f"export/download/{APP}?default=true&local=true&users=true"
     )
     req = urllib.request.Request(
-        url, headers={"Authorization": f"Bearer {os.environ['ACS_EXPORT_TOKEN']}"}
+        url, headers={"Authorization": f"Bearer {os.environ['ACS_TOKEN']}"}
     )
     out = Path(out_dir) / f"{APP}-export.tgz"
     out.parent.mkdir(parents=True, exist_ok=True)
