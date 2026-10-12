@@ -69,14 +69,14 @@ and token values secret.
 | Group | Variable | Secret? | Value |
 | --- | --- | --- | --- |
 | `splunk-appinspect` | `SPLUNK_USERNAME` | no | Splunk account username |
-|  | `SPLUNK_PASSWORD` | yes | Splunk account password |
-|  | `APPINSPECT_TAGS` | no | Optional AppInspect tag, for example `private_victoria` |
+| | `SPLUNK_PASSWORD` | yes | Splunk account password |
+| | `APPINSPECT_TAGS` | no | Optional AppInspect tag, for example `private_victoria` |
 | `splunk-nonprod` | `SPLUNK_STACK` | no | `<stack>` |
-|  | `ACS_TOKEN` | yes | Admin Config Service token for `<stack>` |
-|  | `SPLUNK_EXPERIENCE` | no | `classic` for Classic; omit or leave empty for Victoria |
+| | `ACS_TOKEN` | yes | Admin Config Service token for `<stack>` |
+| | `SPLUNK_EXPERIENCE` | no | `classic` for Classic; omit or leave empty for Victoria |
 | `splunk-prod` | `SPLUNK_STACK` | no | `<stack>` |
-|  | `ACS_TOKEN` | yes | Admin Config Service token for `<stack>` |
-|  | `SPLUNK_EXPERIENCE` | no | `classic` for Classic; omit or leave empty for Victoria |
+| | `ACS_TOKEN` | yes | Admin Config Service token for `<stack>` |
+| | `SPLUNK_EXPERIENCE` | no | `classic` for Classic; omit or leave empty for Victoria |
 
 Create an Admin Config Service token for each target stack in Splunk Web under **Settings → Tokens**. Use an
 account with the `sc_admin` role, set the audience to `acs`, and track the expiration. To identify the
