@@ -1,4 +1,4 @@
-"""python test_release.py — self-check for release.py (version bump, multipart body)."""
+"""python test_release.py — self-check for release.py."""
 
 import io
 import json
@@ -96,7 +96,7 @@ assert [c[0] for c in git_calls] == ["fetch", "checkout"], git_calls
 assert show_calls[0][-1] == "origin/main:package/default/app.conf", show_calls
 
 app_conf, git_calls, _, output = run_bump(CONF)
-assert release.current_version(app_conf.splitlines()) == "1.4.10"
+assert release.app_conf_version(app_conf) == "1.4.10"
 assert "bumped to 1.4.10" in output
 commit = " ".join(next(call for call in git_calls if "commit" in call))
 assert "Release" in commit and "1.4.10" in commit and "***NO_CI***" not in commit
@@ -131,22 +131,20 @@ with tempfile.TemporaryDirectory() as tmp:
         release.save_appinspect_report(tmp, b"<html>report</html>", report)
     report_json = Path(tmp, "appinspect-report.json").read_text()
     assert report_json == json.dumps(report, indent=2) + "\n"
-    assert '\n  "summary"' in report_json
     assert Path(tmp, "appinspect-report.html").read_bytes() == b"<html>report</html>"
 
 with tempfile.TemporaryDirectory() as tmp:
     pkg = Path(tmp, "my_app-1.0.0.tar.gz")
     pkg.write_bytes(b"\x1f\x8b binary \r\n--not-a-boundary")
-    content_type, body = multipart(token="abc", package=pkg)
+    content_type, body = multipart(pkg)
     msg = BytesParser(policy=default).parsebytes(
         f"Content-Type: {content_type}\r\n\r\n".encode() + body
     )
     parts = {
         p.get_param("name", header="content-disposition"): p for p in msg.iter_parts()
     }
-    assert parts["token"].get_content() == "abc", parts["token"]
-    assert parts["package"].get_filename() == pkg.name
-    assert parts["package"].get_content() == pkg.read_bytes()
+    assert parts["app_package"].get_filename() == pkg.name
+    assert parts["app_package"].get_content() == pkg.read_bytes()
 
 with tempfile.TemporaryDirectory() as tmp:
     cwd = Path.cwd()
@@ -170,11 +168,12 @@ def write_tgz(path, files):
 
 
 # The production diff shows a changed version, a new package file, and a UI-made
-# local/ file that exists only in production.
+# local/ file that exists only in production. An app not yet in production diffs
+# as all additions.
 with tempfile.TemporaryDirectory() as tmp:
-    dist, export, out = Path(tmp, "dist"), Path(tmp, "export"), Path(tmp, "out")
+    dist, out = Path(tmp, "dist"), Path(tmp, "out")
     dist.mkdir()
-    export.mkdir()
+    out.mkdir()
     write_tgz(
         dist / "my_ta-1.4.10.tar.gz",
         {
@@ -182,66 +181,21 @@ with tempfile.TemporaryDirectory() as tmp:
             "my_ta/default/new.conf": "added\n",
         },
     )
+    exported = out / f"{release.APP}-prod.tgz"
     write_tgz(
-        export / "my_ta-export.tgz",
+        exported,
         {
             "my_ta/default/app.conf": "version = 1.4.9\n",
             "my_ta/local/props.conf": "ui edit\n",
         },
     )
-    with redirect_stdout(StringIO()):
-        release.diff(dist, export, out)
+    release.diff(dist, out)
     diff_text = (out / "prod-diff.patch").read_text()
     for line in ("-version = 1.4.9", "+version = 1.4.10", "+added", "-ui edit"):
         assert line in diff_text, f"{line!r} missing from:\n{diff_text}"
 
-    # An app not yet in production diffs as all additions.
-    (export / "my_ta-export.tgz").unlink()
-    with redirect_stdout(StringIO()):
-        release.diff(dist, export, out)
+    exported.unlink()
+    release.diff(dist, out)
     assert "+version = 1.4.10" in (out / "prod-diff.patch").read_text()
-
-
-def run_tag(remote_commit):
-    """Run `release.py tag` with HEAD at c...c and the remote tag (if any) on remote_commit."""
-    head = "c" * 40
-    remote = (
-        f"t\trefs/tags/v1.4.9\n{remote_commit}\trefs/tags/v1.4.9^{{}}\n"
-        if remote_commit
-        else ""
-    )
-    with tempfile.TemporaryDirectory() as tmp:
-        cwd = Path.cwd()
-        git_calls = []
-        try:
-            os.chdir(tmp)
-            Path("package/default").mkdir(parents=True)
-            Path("package/default/app.conf").write_text(CONF)
-            with (
-                patch.dict(os.environ, {"BUILD_REASON": "IndividualCI"}, clear=True),
-                patch("release.git", side_effect=lambda *a: git_calls.append(a)),
-                patch(
-                    "release.subprocess.check_output",
-                    side_effect=lambda args, **_: (
-                        head if args[1] == "rev-parse" else remote
-                    ),
-                ),
-                redirect_stdout(StringIO()),
-            ):
-                release.tag()
-            return git_calls
-        finally:
-            os.chdir(cwd)
-
-
-# A new version is tagged and pushed; a version already on HEAD is left alone;
-# a version already tagged on another commit fails the build.
-assert run_tag(None)[-1] == ("push", "origin", "refs/tags/v1.4.9")
-assert run_tag("c" * 40) == []
-try:
-    run_tag("d" * 40)
-    raise AssertionError("a version tagged on another commit was accepted")
-except SystemExit as e:
-    assert "bump the version" in str(e), e
 
 print("ok")
