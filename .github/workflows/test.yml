@@ -1,0 +1,80 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: python test_release.py
+
+  yaml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: |
+          pip install --quiet pyyaml
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          files = sorted(
+              path
+              for directory in ("templates", "compare", "example")
+              for path in Path(directory).rglob("*.yml")
+          )
+          for path in files:
+              yaml.safe_load(path.read_text(encoding="utf-8"))
+          print(f"Parsed {len(files)} YAML files")
+          PY
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: |
+          pip install --quiet splunk-packaging-toolkit
+          sample="$(mktemp -d)"
+          app_id=workflow_test_app
+          version=1.0.0
+          mkdir -p "$sample/package/default"
+          cat > "$sample/package/default/app.conf" <<EOF
+          [id]
+          name = $app_id
+          version = $version
+
+          [launcher]
+          version = $version
+
+          [package]
+          id = $app_id
+          EOF
+          (cd "$sample" && python "$GITHUB_WORKSPACE/release.py" package)
+          test -f "$sample/dist/$app_id-$version.tar.gz"
+
+  acs-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          asset=acs_v2.26.0_linux_amd64.tar.gz
+          curl -fsSLO "https://github.com/splunk/acs-cli/releases/download/v2.26.0/$asset"
+          echo "9450ee04be42c633af4b0db932d28139232815704bc4410c0908ea8ee38a8e49  $asset" | sha256sum -c -
+          tar -xzf "$asset"
+          ./acs version
