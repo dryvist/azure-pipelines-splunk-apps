@@ -9,10 +9,6 @@ parameters:
   - name: prod
     type: boolean
     default: false
-  # Azure Artifacts feed (in this project) that holds every released package version.
-  - name: feed
-    type: string
-    default: splunk-apps
   - name: setup
     type: stepList
     default:
@@ -43,25 +39,6 @@ stages:
             displayName: Package app
           - publish: $(Pipeline.Workspace)/app/dist
             artifact: dist
-          - script: python ../tools/release.py tag
-            workingDirectory: $(Pipeline.Workspace)/app
-            displayName: Tag the release version
-            condition: >-
-              and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'),
-              eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-          - task: UniversalPackages@0
-            displayName: Publish the package to ${{ parameters.feed }}
-            condition: >-
-              and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'),
-              eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-            inputs:
-              command: publish
-              publishDirectory: $(Pipeline.Workspace)/app/dist
-              feedsToUsePublish: internal
-              vstsFeedPublish: $(System.TeamProject)/${{ parameters.feed }}
-              vstsFeedPackagePublish: $(APP_ID)
-              versionOption: custom
-              versionPublish: $(APP_VERSION)
 
   - stage: appinspect
     dependsOn: build
@@ -121,7 +98,6 @@ stages:
 
   - stage: proddiff
     dependsOn: nonprod
-    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
     variables:
       - group: splunk-prod
     jobs:
@@ -133,26 +109,48 @@ stages:
             artifact: dist
           - script: >-
               python $(Pipeline.Workspace)/tools/release.py export
-              $(Pipeline.Workspace)/prod-export
-            displayName: Export the installed app from production via ACS
+              $(Pipeline.Workspace)/prod-diff
+            displayName: Export the app from production via ACS
+            continueOnError: true # an app not yet in production has nothing to export
             env:
               ACS_TOKEN: $(ACS_TOKEN)
-          - publish: $(Pipeline.Workspace)/prod-export
-            artifact: prod-export
           - script: >-
               python $(Pipeline.Workspace)/tools/release.py diff
-              $(Pipeline.Workspace)/dist $(Pipeline.Workspace)/prod-export
-              $(Pipeline.Workspace)/prod-diff
+              $(Pipeline.Workspace)/dist $(Pipeline.Workspace)/prod-diff
             displayName: Diff production against this package
           - publish: $(Pipeline.Workspace)/prod-diff
             artifact: prod-diff
 
+  - stage: release
+    dependsOn: appinspect
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: release
+        pool: ${{ parameters.pool }}
+        steps:
+          - checkout: self
+            path: app
+            persistCredentials: true
+          - ${{ parameters.setup }}
+          - download: current
+            artifact: dist
+          - script: python ../tools/release.py tag
+            workingDirectory: $(Pipeline.Workspace)/app
+            displayName: Tag the release version
+          - task: UniversalPackages@0
+            displayName: Publish the package to the splunk-apps feed
+            inputs:
+              command: publish
+              publishDirectory: $(Pipeline.Workspace)/dist
+              feedsToUsePublish: internal
+              vstsFeedPublish: $(System.TeamProject)/splunk-apps
+              vstsFeedPackagePublish: $(APP_ID)
+              versionOption: custom
+              versionPublish: $(APP_VERSION)
+
   - ${{ if eq(parameters.prod, true) }}:
       - stage: prod
-        dependsOn: appinspect
-        condition: >-
-          and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'),
-          eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        dependsOn: release
         jobs:
           - deployment: deploy
             pool: ${{ parameters.pool }}

@@ -18,15 +18,15 @@ For a pull request targeting `main`, the pipeline:
 4. Installs the package on the configured nonproduction stack after AppInspect passes.
 5. Exports the app as installed on the production stack with the ACS app export (`default`, `local` and
    `users` content, so changes made in Splunk Web are included) and diffs it against the new package. The
-   `prod-export` artifact holds the raw export and the `prod-diff` artifact holds `prod-diff.patch` (full
-   `diff -ruN`) and `prod-diff-summary.txt`; the summary is also printed in the job log. Files under
-   `local/` and `users/` appear as present only in production. When the app is not installed in production,
-   `prod-export` holds `NOT-INSTALLED.txt` and every package file shows as added.
+   `prod-diff` artifact holds the export (`<app>-prod.tgz`) and the full diff (`prod-diff.patch`); the job
+   log lists the changed files. Files under `local/` and `users/` show as present only in production. When
+   the export fails, for example because the app is not in production yet, the step shows a warning and
+   every package file shows as added.
 
-Every `main` build packages and runs AppInspect, tags the commit `v<version>` (failing when that version
-already tags another commit) and publishes the package to the Azure Artifacts feed named by the `feed`
-parameter (default `splunk-apps`) as `<app id>` version `<version>`. Compare any two releases under
-**Repos → Tags** or **Repos → Files → Compare**, and download any released package from **Artifacts**.
+After AppInspect passes on `main`, the release stage tags the commit `v<version>` and publishes the package
+to the `splunk-apps` Azure Artifacts feed as `<app id>` version `<version>`. The tag push fails when that
+version already tags another commit. Compare any two releases under **Repos → Tags** or **Repos → Files →
+Compare**, and download any released package from **Artifacts**.
 
 Set the template parameter `prod: true` to enable production
 deployment from `main`; the `splunk-prod` environment can require approval. Pull request builds never deploy
@@ -42,7 +42,7 @@ values and `app.manifest`.
 | `release.py` | Standard-library `bump`, `package`, `appinspect`, `deploy`, `export`, `diff` and `tag` commands; `slim` builds the manifest. |
 | `templates/splunk-app.yml` | Shared build, AppInspect, and deployment stages. |
 | `example/azure-pipelines.yml` | Example pipeline definition for each app repository. |
-| `test_release.py` | Self-checks for version bumps, reports, the AppInspect upload, the production diff and release tags. |
+| `test_release.py` | Self-checks for version bumps, reports, the AppInspect upload and the production diff. |
 | `.env.example` | Names and placeholder values for the environment variables read by `release.py`. |
 
 ## Setup
@@ -115,9 +115,8 @@ repository.
 
 ### 6. Create the release feed
 
-Open **Artifacts → Create Feed**, name it `splunk-apps` (or the value passed as the `feed` parameter) and
-scope it to the project. Under **Feed settings → Permissions**, give the Build Service identity the **Feed
-Publisher (Contributor)** role.
+Open **Artifacts → Create Feed**, name it `splunk-apps` and scope it to the project. Under **Feed settings →
+Permissions**, give the Build Service identity the **Feed Publisher (Contributor)** role.
 
 ### 7. Add the main branch build validation policy
 
@@ -154,8 +153,8 @@ id = <app-id>
 Copy `example/azure-pipelines.yml` to the app repository. Then create a pipeline using
 **Pipelines → New pipeline → Azure Repos Git → Existing Azure Pipelines YAML file → `/azure-pipelines.yml`**.
 Permit access to the shared repository, variable groups, and environments when prompted. A pull request runs
-**build → appinspect → nonprod → proddiff**; a `main` build runs **build → appinspect**, and also **prod** when
-enabled.
+**build → appinspect → nonprod → proddiff**; a `main` build runs **build → appinspect → release**, and also
+**prod** when enabled.
 
 For another target branch, change the `main` values in both the `trigger` and branch policy configuration.
 
@@ -172,7 +171,7 @@ python <path-to>/azure-pipelines-splunk-apps/test_release.py
 `release.py bump` is intended for PR validation builds. `release.py appinspect <dir>` writes
 `appinspect-report.html` and `appinspect-report.json` alongside the package. `release.py deploy <dir>` uploads
 the package to a Victoria stack using ACS. `release.py export <dir>` saves the installed app from the stack in
-`SPLUNK_STACK`, and `release.py diff <pkg-dir> <export-dir> <out-dir>` writes the diff against a package.
+`SPLUNK_STACK`, and `release.py diff <pkg-dir> <dir>` writes the diff against a package.
 `release.py tag` is intended for `main` builds.
 
 ## Troubleshooting
