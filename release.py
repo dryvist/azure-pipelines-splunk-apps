@@ -51,8 +51,8 @@ TEXT = {
     "newline": "",
 }  # keep app.conf byte-for-byte except the versions
 VERSION_STANZAS = {"launcher", "id"}
-# AppInspect check set sent with every package.
-APPINSPECT_TAGS = "cloud"
+# AppInspect result view that Splunk Cloud (Victoria) uses to approve private apps.
+APPINSPECT_TAGS = "private_victoria"
 # AppInspect rejects hidden files and compiled Python; tests never ship.
 EXCLUDE = shutil.ignore_patterns(".*", "__pycache__", "*.pyc", "*.pyo", "tests")
 
@@ -233,12 +233,13 @@ def appinspect_token():
 
 
 def appinspect_passed(status, report):
-    """AppInspect is green only when the job and its failure/error counts pass."""
+    """AppInspect is green only with SUCCESS and zero failures, errors and manual checks."""
     summary = report.get("summary", {})
     return (
         status == "SUCCESS"
         and summary.get("failure") == 0
         and summary.get("error") == 0
+        and summary.get("manual_check") == 0
     )
 
 
@@ -263,7 +264,8 @@ def appinspect(artifact_dir):
         )
     )
     request_id = response["request_id"]
-    status_url = f"https://appinspect.splunk.com/v1/app/validate/status/{request_id}"
+    tags = f"?included_tags={APPINSPECT_TAGS}"
+    status_url = f"https://appinspect.splunk.com/v1/app/validate/status/{request_id}{tags}"
     deadline = time.monotonic() + 30 * 60
     while True:
         remaining = deadline - time.monotonic()
@@ -276,7 +278,7 @@ def appinspect(artifact_dir):
         if status != "PROCESSING":
             break
         time.sleep(min(15, remaining))
-    report_url = f"https://appinspect.splunk.com/v1/app/report/{request_id}"
+    report_url = f"https://appinspect.splunk.com/v1/app/report/{request_id}{tags}"
     html = http(report_url, {**auth, "Accept": "text/html"})
     report = json.loads(
         http(
@@ -309,7 +311,7 @@ def export(out_dir):
     """Save the app as installed on SPLUNK_STACK, including local and users content."""
     url = (
         f"https://admin.splunk.com/{os.environ['SPLUNK_STACK']}/adminconfig/v2/apps/victoria/"
-        f"export/download/{APP}?default=true&local=true&users=true"
+        f"export/download/{APP}?default=true&local=true&users=true&confs_only=false"
     )
     body = http(url, {"Authorization": f"Bearer {os.environ['ACS_TOKEN']}"})
     Path(out_dir).mkdir(parents=True, exist_ok=True)
@@ -350,9 +352,7 @@ def multipart(pkg):
     """(content_type, body) for a multipart/form-data POST of the package as app_package."""
     boundary = uuid.uuid4().hex
     head = (
-        f'--{boundary}\r\nContent-Disposition: form-data; name="included_tags"\r\n\r\n'
-        f'{APPINSPECT_TAGS}\r\n--{boundary}\r\n'
-        f'Content-Disposition: form-data; name="app_package"; '
+        f'--{boundary}\r\nContent-Disposition: form-data; name="app_package"; '
         f'filename="{pkg.name}"\r\nContent-Type: application/gzip\r\n\r\n'
     )
     body = head.encode() + pkg.read_bytes() + f"\r\n--{boundary}--\r\n".encode()

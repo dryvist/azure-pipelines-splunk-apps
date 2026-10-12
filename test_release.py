@@ -1,6 +1,7 @@
 """python test_release.py — checks the release helpers."""
 
 import io
+import os
 import tarfile
 import tempfile
 from contextlib import redirect_stdout
@@ -29,21 +30,18 @@ assert text == CONF.replace("1.4.9", "1.4.10")
 assert bump_conf(CONF, "minor")[1] == "1.5.0"
 assert bump_conf(CONF, "major")[1] == "2.0.0"
 
-clean = {"summary": {"failure": 0, "error": 0}}
+clean = {"summary": {"failure": 0, "error": 0, "manual_check": 0}}
 assert release.appinspect_passed("SUCCESS", clean)
 assert not release.appinspect_passed("FAILURE", clean)
-assert not release.appinspect_passed("SUCCESS", {"summary": {"failure": 1, "error": 0}})
-assert not release.appinspect_passed("SUCCESS", {"summary": {"failure": 0, "error": 1}})
+for count in ("failure", "error", "manual_check"):
+    assert not release.appinspect_passed("SUCCESS", {"summary": {**clean["summary"], count: 1}})
 
 with tempfile.TemporaryDirectory() as tmp:
     pkg = Path(tmp, "app.tgz")
     pkg_bytes = b"app package bytes"
     pkg.write_bytes(pkg_bytes)
     _, body = release.multipart(pkg)
-    tag_field = b'name="included_tags"\r\n\r\ncloud\r\n'
-    package_field = b'name="app_package"; filename="app.tgz"'
-    assert tag_field in body
-    assert package_field in body
+    assert b'name="app_package"; filename="app.tgz"' in body
     assert pkg_bytes in body
 
 
@@ -106,5 +104,19 @@ with tempfile.TemporaryDirectory() as tmp:
         "##vso[task.setvariable variable=APP_ID]my_ta",
         "##vso[task.setvariable variable=APP_VERSION]1.4.9",
     ]
+
+with tempfile.TemporaryDirectory() as tmp:
+    urls = []
+    with (
+        patch("release.http", side_effect=lambda url, *args: urls.append(url) or b""),
+        patch.dict(os.environ, {"SPLUNK_STACK": "example-stack", "ACS_TOKEN": "x"}),
+    ):
+        release.export(tmp)
+    url = urls[0]
+    assert url.startswith(
+        "https://admin.splunk.com/example-stack/adminconfig/v2/apps/victoria/export/download/"
+    )
+    for parameter in ("default=true", "local=true", "users=true", "confs_only=false"):
+        assert parameter in url
 
 print("ok")
