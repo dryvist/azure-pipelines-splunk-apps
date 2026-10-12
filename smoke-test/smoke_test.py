@@ -3,7 +3,9 @@
 
 import json
 import os
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -23,39 +25,24 @@ def appinspect():
     print("PASS AppInspect login")
 
 
-def acs_apps():
-    url = (
-        f"https://admin.splunk.com/{os.environ['SPLUNK_STACK']}"
-        "/adminconfig/v2/apps/victoria"
-    )
-    data = release.http(
-        url,
-        {"Authorization": f"Bearer {os.environ['ACS_TOKEN']}"},
-    )
-    return len(json.loads(data)["apps"])
-
-
-def nonprod():
-    require("splunk-nonprod", "SPLUNK_STACK", "ACS_TOKEN")
-    print(f"PASS nonprod ACS: {acs_apps()} apps")
-
-
-def prod():
-    require("splunk-prod", "SPLUNK_STACK", "ACS_TOKEN")
-    print(f"PASS prod ACS: {acs_apps()} apps")
-    url = (
-        f"https://admin.splunk.com/{os.environ['SPLUNK_STACK']}"
-        "/adminconfig/v2/apps/victoria/export/download/search"
-        "?default=false&local=true&users=true"
-    )
-    body = release.http(url, {"Authorization": f"Bearer {os.environ['ACS_TOKEN']}"})
-    print(f"PASS prod export_apps: {len(body)} bytes")
+def stack(group):
+    """List apps and export the built-in search app's local and user files with the ACS CLI."""
+    require(group, "SPLUNK_STACK", "ACS_TOKEN")
+    os.environ["STACK_TOKEN"] = os.environ["ACS_TOKEN"]
+    with tempfile.TemporaryDirectory() as out, release.acs_session() as env:
+        subprocess.run(["acs", "apps", "list"], check=True, env=env, capture_output=True)
+        print(f"PASS {group} ACS login and app list")
+        Path(out, "apps.json").write_text(json.dumps({"Apps": ["search"]}))
+        cmd = ["acs", "apps", "export", f"--file={out}/apps.json", "--default=false", "--local=true",
+               "--users=true", "--confs-only=false", f"--export-dir={out}"]
+        subprocess.run(cmd, check=True, env=env)
+        print(f"PASS {group} export_apps: {Path(out, 'search.tgz').stat().st_size} bytes")
 
 
 checks = {
     "appinspect": appinspect,
-    "nonprod": nonprod,
-    "prod": prod,
+    "nonprod": lambda: stack("splunk-nonprod"),
+    "prod": lambda: stack("splunk-prod"),
 }
 
 

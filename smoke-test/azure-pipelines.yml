@@ -25,8 +25,9 @@ jobs:
       - task: UsePythonVersion@0
         inputs:
           versionSpec: "3.13"
+      - template: ../templates/acs-cli.yml
       - script: python smoke-test/smoke_test.py nonprod
-        displayName: Check nonprod ACS access
+        displayName: Check nonprod ACS access and export
         env:
           SPLUNK_STACK: $(SPLUNK_STACK)
           ACS_TOKEN: $(ACS_TOKEN)
@@ -38,6 +39,7 @@ jobs:
       - task: UsePythonVersion@0
         inputs:
           versionSpec: "3.13"
+      - template: ../templates/acs-cli.yml
       - script: python smoke-test/smoke_test.py prod
         displayName: Check prod ACS access and export
         env:
@@ -60,7 +62,7 @@ jobs:
           if [ "$(appinspectResult)$(nonprodResult)$(prodResult)" = "SucceededSucceededSucceeded" ]; then
             echo "RESULT: ALL PASS"
           else
-            echo "RESULT: FAILED - open each failed job for its FAIL or HTTP line"
+            echo "RESULT: FAILED - open each failed job for its FAIL or Error line"
             exit 1
           fi
         displayName: Result
