@@ -16,8 +16,19 @@ For a pull request targeting `main`, the pipeline:
 3. Packages the app and runs AppInspect. The `appinspect-report` artifact contains the HTML and JSON reports;
    the JSON report is also printed in the job log.
 4. Installs the package on the configured nonproduction stack after AppInspect passes.
+5. Exports the app as installed on the production stack with the ACS app export (`default`, `local` and
+   `users` content, so changes made in Splunk Web are included) and diffs it against the new package. The
+   `prod-export` artifact holds the raw export and the `prod-diff` artifact holds `prod-diff.patch` (full
+   `diff -ruN`) and `prod-diff-summary.txt`; the summary is also printed in the job log. Files under
+   `local/` and `users/` appear as present only in production. When the app is not installed in production,
+   `prod-export` holds `NOT-INSTALLED.txt` and every package file shows as added.
 
-Every `main` build packages and runs AppInspect. Set the template parameter `prod: true` to enable production
+Every `main` build packages and runs AppInspect, tags the commit `v<version>` (failing when that version
+already tags another commit) and publishes the package to the Azure Artifacts feed named by the `feed`
+parameter (default `splunk-apps`) as `<app id>` version `<version>`. Compare any two releases under
+**Repos → Tags** or **Repos → Files → Compare**, and download any released package from **Artifacts**.
+
+Set the template parameter `prod: true` to enable production
 deployment from `main`; the `splunk-prod` environment can require approval. Pull request builds never deploy
 to production. The template defaults to a Microsoft-hosted `ubuntu-latest` agent.
 
@@ -28,10 +39,10 @@ values and `app.manifest`.
 
 | File | Purpose |
 | --- | --- |
-| `release.py` | Standard-library `bump`, `package`, `appinspect`, and `deploy` commands; `slim` is used to generate the manifest. |
+| `release.py` | Standard-library `bump`, `package`, `appinspect`, `deploy`, `export`, `diff` and `tag` commands; `slim` builds the manifest. |
 | `templates/splunk-app.yml` | Shared build, AppInspect, and deployment stages. |
 | `example/azure-pipelines.yml` | Example pipeline definition for each app repository. |
-| `test_release.py` | Self-checks for version bump decisions, reports, and the AppInspect multipart upload. |
+| `test_release.py` | Self-checks for version bumps, reports, the AppInspect upload, the production diff and release tags. |
 | `.env.example` | Names and placeholder values for the environment variables read by `release.py`. |
 
 ## Setup
@@ -74,10 +85,16 @@ and token values secret.
 | | `ACS_TOKEN` | yes | Admin Config Service token for `<stack>` |
 | `splunk-prod` | `SPLUNK_STACK` | no | `<stack>` |
 | | `ACS_TOKEN` | yes | Admin Config Service token for `<stack>` |
+| `splunk-prod-export` | `SPLUNK_STACK` | no | Production `<stack>` |
+| | `ACS_EXPORT_TOKEN` | yes | Admin Config Service token for an account with the `export_apps` capability |
 
 Create an Admin Config Service token for each target stack in Splunk Web under **Settings → Tokens**. Use an
 account with the `sc_admin` role, set the audience to `acs`, and track the expiration. To identify the
 experience, check **Support & Services → About** in Splunk Web.
+
+Pull request runs read `splunk-prod-export`, so give `ACS_EXPORT_TOKEN` to an account that can export apps
+but is not the account behind the production `ACS_TOKEN`. `sc_admin` lacks `export_apps` by default and can
+grant it under **Settings → Roles**.
 
 ### 4. Create deployment environments
 
@@ -96,14 +113,23 @@ source branch. Grant the pipeline's Build Service identity **Contribute** permis
 source branch. Use the identity named like `<project> Build Service (<organization>)`; if jobs use the
 collection identity, grant **Contribute** to `<organization> Project Collection Build Service (<organization>)`.
 
-### 6. Add the main branch build validation policy
+Each `main` build also pushes the `v<version>` tag, so grant the same identity **Create tag** on the
+repository.
+
+### 6. Create the release feed
+
+Open **Artifacts → Create Feed**, name it `splunk-apps` (or the value passed as the `feed` parameter) and
+scope it to the project. Under **Feed settings → Permissions**, give the Build Service identity the **Feed
+Publisher (Contributor)** role.
+
+### 7. Add the main branch build validation policy
 
 Azure Repos does not use YAML `pr:` triggers. In the app repository, open **Repos → Branches → main → Branch
 policies → Build validation**, add this pipeline, and configure it as required or optional with the desired
 automatic queue behavior. This policy starts the PR validation run. The example YAML separately triggers
 commits to `main`.
 
-### 7. Connect each app repository
+### 8. Connect each app repository
 
 An app repository has this shape:
 
@@ -131,7 +157,8 @@ id = <app-id>
 Copy `example/azure-pipelines.yml` to the app repository. Then create a pipeline using
 **Pipelines → New pipeline → Azure Repos Git → Existing Azure Pipelines YAML file → `/azure-pipelines.yml`**.
 Permit access to the shared repository, variable groups, and environments when prompted. A pull request runs
-**build → appinspect → nonprod**; a `main` build runs **build → appinspect**, and also **prod** when enabled.
+**build → appinspect → nonprod → proddiff**; a `main` build runs **build → appinspect**, and also **prod** when
+enabled.
 
 For another target branch, change the `main` values in both the `trigger` and branch policy configuration.
 
@@ -147,7 +174,9 @@ python <path-to>/azure-pipelines-splunk-apps/test_release.py
 
 `release.py bump` is intended for PR validation builds. `release.py appinspect <dir>` writes
 `appinspect-report.html` and `appinspect-report.json` alongside the package. `release.py deploy <dir>` uploads
-the package to a Victoria stack using ACS.
+the package to a Victoria stack using ACS. `release.py export <dir>` saves the installed app from the stack in
+`SPLUNK_STACK`, and `release.py diff <pkg-dir> <export-dir> <out-dir>` writes the diff against a package.
+`release.py tag` is intended for `main` builds.
 
 ## Troubleshooting
 

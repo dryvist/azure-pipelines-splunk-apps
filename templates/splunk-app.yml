@@ -9,6 +9,10 @@ parameters:
   - name: prod
     type: boolean
     default: false
+  # Azure Artifacts feed (in this project) that holds every released package version.
+  - name: feed
+    type: string
+    default: splunk-apps
   - name: setup
     type: stepList
     default:
@@ -39,6 +43,25 @@ stages:
             displayName: Package app
           - publish: $(Pipeline.Workspace)/app/dist
             artifact: dist
+          - script: python ../tools/release.py tag
+            workingDirectory: $(Pipeline.Workspace)/app
+            displayName: Tag the release version
+            condition: >-
+              and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'),
+              eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+          - task: UniversalPackages@0
+            displayName: Publish the package to ${{ parameters.feed }}
+            condition: >-
+              and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'),
+              eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+            inputs:
+              command: publish
+              publishDirectory: $(Pipeline.Workspace)/app/dist
+              feedsToUsePublish: internal
+              vstsFeedPublish: $(System.TeamProject)/${{ parameters.feed }}
+              vstsFeedPackagePublish: $(APP_ID)
+              versionOption: custom
+              versionPublish: $(APP_VERSION)
 
   - stage: appinspect
     dependsOn: build
@@ -95,6 +118,34 @@ stages:
                   env:
                     SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
                     ACS_TOKEN: $(ACS_TOKEN)
+
+  - stage: proddiff
+    dependsOn: nonprod
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+    variables:
+      - group: splunk-prod-export
+    jobs:
+      - job: proddiff
+        pool: ${{ parameters.pool }}
+        steps:
+          - ${{ parameters.setup }}
+          - download: current
+            artifact: dist
+          - script: >-
+              python $(Pipeline.Workspace)/tools/release.py export
+              $(Pipeline.Workspace)/prod-export
+            displayName: Export the installed app from production via ACS
+            env:
+              ACS_EXPORT_TOKEN: $(ACS_EXPORT_TOKEN)
+          - publish: $(Pipeline.Workspace)/prod-export
+            artifact: prod-export
+          - script: >-
+              python $(Pipeline.Workspace)/tools/release.py diff
+              $(Pipeline.Workspace)/dist $(Pipeline.Workspace)/prod-export
+              $(Pipeline.Workspace)/prod-diff
+            displayName: Diff production against this package
+          - publish: $(Pipeline.Workspace)/prod-diff
+            artifact: prod-diff
 
   - ${{ if eq(parameters.prod, true) }}:
       - stage: prod

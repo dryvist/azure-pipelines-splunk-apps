@@ -5,6 +5,11 @@ release.py bump            bump app.conf, regenerate app.manifest, commit + push
 release.py package         write dist/<app>-<version>.tar.gz
 release.py deploy <dir>    install the one .tar.gz in <dir> via ACS (SPLUNK_STACK, ACS_TOKEN,
                            SPLUNK_USERNAME, SPLUNK_PASSWORD from env)
+release.py export <dir>    save the stack's installed app (default, local, users) via ACS app export
+                           (SPLUNK_STACK, ACS_EXPORT_TOKEN from env) as <dir>/<app>-export.tgz
+release.py diff <pkg-dir> <export-dir> <out-dir>
+                           write a full recursive diff of the exported app against the package
+release.py tag             tag the main build commit v<version> and push the tag (CI only)
 """
 
 import base64
@@ -201,10 +206,47 @@ def normalize(info):
 def package():
     stage()
     DIST.mkdir(exist_ok=True)
-    out = DIST / f"{APP}-{current_version(CONF.read_text(**TEXT).splitlines())}.tar.gz"
+    version = current_version(CONF.read_text(**TEXT).splitlines())
+    out = DIST / f"{APP}-{version}.tar.gz"
     with tarfile.open(out, "w:gz", format=tarfile.GNU_FORMAT) as tar:
         tar.add(STAGE, arcname=APP, filter=normalize)
     print(out)
+    print(f"##vso[task.setvariable variable=APP_VERSION]{version}")
+    print(f"##vso[task.setvariable variable=APP_ID]{APP.lower()}")
+
+
+def tag():
+    """Tag the main build commit v<version>; a version already tagged on another commit fails."""
+    if os.environ.get("BUILD_REASON") == "PullRequest":
+        sys.exit("tag runs on main builds only")
+    name = f"v{current_version(CONF.read_text(**TEXT).splitlines())}"
+    head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    refs = dict(
+        reversed(line.split("\t"))
+        for line in subprocess.check_output(
+            ["git", "ls-remote", "origin", f"refs/tags/{name}*"], text=True
+        ).splitlines()
+    )
+    # An annotated tag lists the tag object and, as <tag>^{}, the commit it points to.
+    tagged = refs.get(f"refs/tags/{name}^{{}}") or refs.get(f"refs/tags/{name}")
+    if tagged:
+        if tagged != head:
+            sys.exit(f"{name} already tags {tagged}, not {head}; bump the version")
+        print(f"{name} already tags {head}")
+        return
+    git(
+        "-c",
+        "user.name=Azure Pipelines",
+        "-c",
+        "user.email=azure-pipelines@localhost",
+        "tag",
+        "-a",
+        name,
+        "-m",
+        f"{APP} {name}",
+    )
+    git("push", "origin", f"refs/tags/{name}")
+    print(f"tagged {head} as {name}")
 
 
 def http(url, headers, data=None, timeout=900):
@@ -310,6 +352,72 @@ def deploy(artifact_dir):
     print(http(url, headers, pkg.read_bytes()).decode())
 
 
+def export(out_dir):
+    """Save the installed app with default, local and users content; a missing app saves nothing."""
+    url = (
+        f"https://admin.splunk.com/{os.environ['SPLUNK_STACK']}/adminconfig/v2/apps/victoria/"
+        f"export/download/{APP}?default=true&local=true&users=true"
+    )
+    req = urllib.request.Request(
+        url, headers={"Authorization": f"Bearer {os.environ['ACS_EXPORT_TOKEN']}"}
+    )
+    out = Path(out_dir) / f"{APP}-export.tgz"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with urllib.request.urlopen(req, timeout=900) as resp:
+            out.write_bytes(resp.read())
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            (out.parent / "NOT-INSTALLED.txt").write_text(
+                f"{APP} is not installed on the stack\n", encoding="utf-8"
+            )
+            print(f"{APP} is not installed on the stack; nothing exported")
+            return
+        sys.exit(f"HTTP {e.code} from {url}\n{e.read().decode(errors='replace')}")
+    print(out)
+
+
+def unpack(archive, dest):
+    """Extract into dest; a single top-level directory is stripped so both trees line up."""
+    dest.mkdir(parents=True)
+    if archive is None:
+        return dest
+    with tarfile.open(archive) as tar:
+        tar.extractall(dest, filter="data")
+    entries = list(dest.iterdir())
+    return entries[0] if len(entries) == 1 and entries[0].is_dir() else dest
+
+
+def diff(pkg_dir, export_dir, out_dir):
+    """Write prod-diff.patch (diff -ruN) and prod-diff-summary.txt (diff -rq) for the exported app vs the package."""
+    (pkg,) = Path(pkg_dir).glob("*.tar.gz")
+    exported = next(Path(export_dir).glob("*-export.tgz"), None)
+    out = Path(out_dir)
+    shutil.rmtree(out, ignore_errors=True)
+    out.mkdir(parents=True)
+    work = out / "trees"
+    prod = unpack(exported, work / "prod").relative_to(work)
+    new = unpack(pkg, work / "new").relative_to(work)
+    reports = {}
+    for name, flags in (("prod-diff.patch", "-ruN"), ("prod-diff-summary.txt", "-rqN")):
+        result = subprocess.run(
+            ["diff", flags, str(prod), str(new)],
+            cwd=work,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode > 1:
+            sys.exit(f"diff failed: {result.stderr}")
+        (out / name).write_text(result.stdout, encoding="utf-8")
+        reports[name] = result.stdout
+    shutil.rmtree(work)
+    print(
+        f"exported app: {exported.name if exported else 'none (not installed)'}; package: {pkg.name}"
+    )
+    print(reports["prod-diff-summary.txt"] or "no differences")
+
+
 def multipart(**fields):
     """(content_type, body) for a multipart/form-data POST; Path values are sent as files."""
     boundary = uuid.uuid4().hex
@@ -336,6 +444,9 @@ if __name__ == "__main__":
         "package": package,
         "appinspect": appinspect,
         "deploy": deploy,
+        "export": export,
+        "diff": diff,
+        "tag": tag,
     }
     if len(sys.argv) < 2 or sys.argv[1] not in commands:
         sys.exit(__doc__)

@@ -1,8 +1,10 @@
 """python test_release.py — self-check for release.py (version bump, multipart body)."""
 
+import io
 import json
 import os
 import subprocess
+import tarfile
 import tempfile
 from contextlib import redirect_stdout
 from email.parser import BytesParser
@@ -157,5 +159,91 @@ with tempfile.TemporaryDirectory() as tmp:
         assert app_id() == "my_ta", app_id()
     finally:
         os.chdir(cwd)
+
+
+def write_tgz(path, files):
+    with tarfile.open(path, "w:gz") as tar:
+        for name, text in files.items():
+            data = text.encode()
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    pkg_dir, export_dir, out_dir = (Path(tmp, d) for d in ("dist", "export", "out"))
+    pkg_dir.mkdir()
+    export_dir.mkdir()
+    write_tgz(
+        pkg_dir / "my_ta-1.4.10.tar.gz",
+        {
+            "my_ta/default/app.conf": "version = 1.4.10\n",
+            "my_ta/default/new.conf": "x\n",
+        },
+    )
+    write_tgz(
+        export_dir / "my_ta-export.tgz",
+        {
+            "my_ta/default/app.conf": "version = 1.4.9\n",
+            "my_ta/local/props.conf": "ui\n",
+        },
+    )
+    with redirect_stdout(StringIO()):
+        release.diff(pkg_dir, export_dir, out_dir)
+    patch_text = (out_dir / "prod-diff.patch").read_text()
+    summary = (out_dir / "prod-diff-summary.txt").read_text()
+    assert "-version = 1.4.9" in patch_text and "+version = 1.4.10" in patch_text, (
+        patch_text
+    )
+    assert "+x" in patch_text and "-ui" in patch_text, patch_text
+    assert summary.count("differ") == 3, summary
+    assert sorted(p.name for p in out_dir.iterdir()) == [
+        "prod-diff-summary.txt",
+        "prod-diff.patch",
+    ]
+
+    # Not installed in production: every package file is an addition.
+    (export_dir / "my_ta-export.tgz").unlink()
+    with redirect_stdout(StringIO()):
+        release.diff(pkg_dir, export_dir, out_dir)
+    assert "+version = 1.4.10" in (out_dir / "prod-diff.patch").read_text()
+
+
+def run_tag(ls_remote, head="c" * 40):
+    with tempfile.TemporaryDirectory() as tmp:
+        cwd = Path.cwd()
+        git_calls = []
+        try:
+            os.chdir(tmp)
+            Path("package/default").mkdir(parents=True)
+            Path("package/default/app.conf").write_text(CONF)
+
+            def fake_output(args, **kwargs):
+                return head + "\n" if args[1] == "rev-parse" else ls_remote
+
+            with (
+                patch.dict(os.environ, {"BUILD_REASON": "IndividualCI"}, clear=True),
+                patch("release.git", side_effect=lambda *a: git_calls.append(a)),
+                patch("release.subprocess.check_output", side_effect=fake_output),
+                redirect_stdout(StringIO()),
+            ):
+                release.tag()
+            return git_calls
+        finally:
+            os.chdir(cwd)
+
+
+calls = run_tag("")
+assert calls[0][-4:] == ("-a", "v1.4.9", "-m", f"{release.APP} v1.4.9"), calls
+assert calls[-1] == ("push", "origin", "refs/tags/v1.4.9"), calls
+assert (
+    run_tag(f"{'t' * 40}\trefs/tags/v1.4.9\n{'c' * 40}\trefs/tags/v1.4.9^{{}}\n") == []
+)
+try:
+    run_tag(f"{'t' * 40}\trefs/tags/v1.4.9\n{'d' * 40}\trefs/tags/v1.4.9^{{}}\n")
+except SystemExit as e:
+    assert "bump the version" in str(e), e
+else:
+    raise AssertionError("tag accepted a version already tagged on another commit")
 
 print("ok")
