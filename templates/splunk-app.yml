@@ -1,6 +1,6 @@
-# Shared release pipeline for every Splunk app repo. App repos only `extends`
-# this file (see example/azure-pipelines.yml); everything app-specific is
-# derived from the repo itself.
+# Shared release pipeline for Splunk app repos. Each app repo extends this file
+# (see example/azure-pipelines.yml). The pipeline derives app-specific values
+# from the repo.
 parameters:
   - name: pool
     type: object

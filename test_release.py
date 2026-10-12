@@ -1,4 +1,4 @@
-"""python test_release.py — checks the release helpers."""
+"""Tests for release helpers; run with python test_release.py."""
 
 import io
 import os

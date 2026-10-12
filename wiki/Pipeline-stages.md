@@ -12,7 +12,7 @@
 
 ## appinspect
 
-- **When:** After `build` succeeds on pull request and main runs.
+- **When:** After `build` succeeds for a pull request or a main run.
 - **Needs:** The `dist` artifact, `splunk-appinspect`, and the AppInspect API.
 - **Does:** Submits the package, polls the `private_victoria` result, and
   passes only for `SUCCESS` with zero failures, errors and manual checks.

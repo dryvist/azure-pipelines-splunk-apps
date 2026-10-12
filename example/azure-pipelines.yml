@@ -1,6 +1,6 @@
-# Identical in every Splunk app repo. All logic lives in
-# azure-pipelines-splunk-apps. Azure Repos PR runs come from a main branch
-# policy "Build validation"; YAML `pr:` is ignored for Azure Repos.
+# Keep this file identical across Splunk app repos. Shared logic is in
+# azure-pipelines-splunk-apps. Azure Repos queues PR validation through a main
+# branch Build validation policy and ignores YAML `pr:` triggers.
 trigger:
   batch: true
   branches:
@@ -10,7 +10,8 @@ resources:
   repositories:
     - repository: tools
       type: git
-      # From another project in the org: <project>/azure-pipelines-splunk-apps
+      # For another project in the org, set the name to
+      # <project>/azure-pipelines-splunk-apps.
       name: azure-pipelines-splunk-apps
 
 extends:
