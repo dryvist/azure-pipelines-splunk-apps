@@ -1,15 +1,17 @@
-# Identical in every Splunk app repo. All logic lives in azure-pipelines-splunk-apps.
+# Identical in every Splunk app repo. All logic lives in
+# azure-pipelines-splunk-apps. Azure Repos PR runs come from a main branch
+# policy "Build validation"; YAML `pr:` is ignored for Azure Repos.
 trigger:
-  batch: "true"
+  batch: true
   branches:
     include: [main]
-pr: none
 
 resources:
   repositories:
     - repository: tools
       type: git
-      name: azure-pipelines-splunk-apps # another project in the org: <project>/azure-pipelines-splunk-apps
+      # From another project in the org: <project>/azure-pipelines-splunk-apps
+      name: azure-pipelines-splunk-apps
 
 extends:
   template: templates/splunk-app.yml@tools

@@ -1,14 +1,15 @@
-# Shared release pipeline for every Splunk app repo. App repos only `extends` this file
-# (see example/azure-pipelines.yml); everything app-specific is derived from the repo itself.
+# Shared release pipeline for every Splunk app repo. App repos only `extends`
+# this file (see example/azure-pipelines.yml); everything app-specific is
+# derived from the repo itself.
 parameters:
-  - name: pool # any job pool definition
+  - name: pool
     type: object
     default:
-      vmImage: ubuntu-latest # Microsoft-hosted; for a self-hosted pool use `name: <pool>`
-  - name: environments # deployed in order; each needs Environment + variable group `splunk-<env>`
-    type: object
-    default: [dev, prod]
-  - name: setup # shared by every job: release.py + Python
+      vmImage: ubuntu-latest
+  - name: prod
+    type: boolean
+    default: false
+  - name: setup
     type: stepList
     default:
       - checkout: tools
@@ -25,25 +26,89 @@ stages:
         steps:
           - checkout: self
             path: app
-            persistCredentials: true # bump pushes the release commit back
+            persistCredentials: true
           - ${{ parameters.setup }}
           - script: python -m pip install --quiet splunk-packaging-toolkit
             displayName: Install slim
-          - script: python ../tools/release.py bump && python ../tools/release.py package
+          - script: python ../tools/release.py bump
             workingDirectory: $(Pipeline.Workspace)/app
-            displayName: Bump, manifest, commit, package
+            displayName: Bump PR version and manifest
+            condition: eq(variables['Build.Reason'], 'PullRequest')
+          - script: python ../tools/release.py package
+            workingDirectory: $(Pipeline.Workspace)/app
+            displayName: Package app
           - publish: $(Pipeline.Workspace)/app/dist
             artifact: dist
 
-  - ${{ each env in parameters.environments }}:
-      - stage: ${{ env }}
+  - stage: appinspect
+    dependsOn: build
+    variables:
+      - group: splunk-appinspect
+    jobs:
+      - job: appinspect
+        pool: ${{ parameters.pool }}
+        steps:
+          - ${{ parameters.setup }}
+          - download: current
+            artifact: dist
+          - script: >-
+              python $(Pipeline.Workspace)/tools/release.py appinspect
+              $(Pipeline.Workspace)/dist
+            displayName: Run AppInspect
+            env: # secrets reach scripts only when mapped
+              SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
+          - script: |
+              mkdir -p "$(Pipeline.Workspace)/appinspect-report"
+              for ext in html json; do
+                report="$(Pipeline.Workspace)/dist/appinspect-report.$ext"
+                if [ -f "$report" ]; then
+                  cp "$report" "$(Pipeline.Workspace)/appinspect-report/"
+                fi
+              done
+            displayName: Collect AppInspect reports
+            condition: succeededOrFailed()
+          - publish: $(Pipeline.Workspace)/appinspect-report
+            artifact: appinspect-report
+            condition: succeededOrFailed()
+
+  - stage: nonprod
+    dependsOn: appinspect
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - deployment: deploy
+        pool: ${{ parameters.pool }}
+        environment: splunk-nonprod
+        variables:
+          - group: splunk-appinspect
+          - group: splunk-nonprod
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - ${{ parameters.setup }}
+                - download: current
+                  artifact: dist
+                - script: >-
+                    python $(Pipeline.Workspace)/tools/release.py deploy
+                    $(Pipeline.Workspace)/dist
+                  displayName: Deploy to nonprod via ACS
+                  env:
+                    SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
+                    ACS_TOKEN: $(ACS_TOKEN)
+
+  - ${{ if eq(parameters.prod, true) }}:
+      - stage: prod
+        dependsOn: appinspect
+        condition: >-
+          and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'),
+          eq(variables['Build.SourceBranch'], 'refs/heads/main'))
         jobs:
           - deployment: deploy
             pool: ${{ parameters.pool }}
-            environment: splunk-${{ env }}
+            environment: splunk-prod
             variables:
               - group: splunk-appinspect
-              - group: splunk-${{ env }}
+              - group: splunk-prod
             strategy:
               runOnce:
                 deploy:
@@ -51,8 +116,10 @@ stages:
                     - ${{ parameters.setup }}
                     - download: current
                       artifact: dist
-                    - script: python $(Pipeline.Workspace)/tools/release.py deploy $(Pipeline.Workspace)/dist
-                      displayName: Deploy to ${{ env }} via ACS
-                      env: # secrets are never exposed to scripts unless mapped
+                    - script: >-
+                        python $(Pipeline.Workspace)/tools/release.py deploy
+                        $(Pipeline.Workspace)/dist
+                      displayName: Deploy to prod via ACS
+                      env:
                         SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
                         ACS_TOKEN: $(ACS_TOKEN)
