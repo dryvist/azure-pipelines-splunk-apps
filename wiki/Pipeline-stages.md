@@ -14,8 +14,9 @@
 
 - **When:** After `build` succeeds for a pull request or a main run.
 - **Needs:** The `dist` artifact, `splunk-appinspect`, and the AppInspect API.
-- **Does:** Submits the package, polls the `private_victoria` result, and
-  passes only for `SUCCESS` with zero failures, errors and manual checks.
+- **Does:** Submits the package, polls the `private_victoria` and `future`
+  results, and passes only for `SUCCESS` with zero failures, errors and manual
+  checks. A `future_failure` count above 0 adds a warning to the run.
 - **Leaves:** The `appinspect-report` artifact with HTML and JSON reports
   when produced, under **Artifacts** in the run.
 
