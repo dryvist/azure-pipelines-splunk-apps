@@ -51,6 +51,8 @@ TEXT = {
     "newline": "",
 }  # keep app.conf byte-for-byte except the versions
 VERSION_STANZAS = {"launcher", "id"}
+# AppInspect check set sent with every package.
+APPINSPECT_TAGS = "cloud"
 # AppInspect rejects hidden files and compiled Python; tests never ship.
 EXCLUDE = shutil.ignore_patterns(".*", "__pycache__", "*.pyc", "*.pyo", "tests")
 
@@ -348,7 +350,9 @@ def multipart(pkg):
     """(content_type, body) for a multipart/form-data POST of the package as app_package."""
     boundary = uuid.uuid4().hex
     head = (
-        f'--{boundary}\r\nContent-Disposition: form-data; name="app_package"; '
+        f'--{boundary}\r\nContent-Disposition: form-data; name="included_tags"\r\n\r\n'
+        f'{APPINSPECT_TAGS}\r\n--{boundary}\r\n'
+        f'Content-Disposition: form-data; name="app_package"; '
         f'filename="{pkg.name}"\r\nContent-Type: application/gzip\r\n\r\n'
     )
     body = head.encode() + pkg.read_bytes() + f"\r\n--{boundary}--\r\n".encode()
