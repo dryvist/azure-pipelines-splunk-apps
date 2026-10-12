@@ -57,9 +57,12 @@ EXCLUDE = shutil.ignore_patterns(".*", "__pycache__", "*.pyc", "*.pyo", "tests")
 
 def bump_level(message):
     """[major] or [minor] anywhere in the commit message picks the level; patch otherwise."""
-    return next(
-        (lvl for lvl in ("major", "minor") if f"[{lvl}]" in message.lower()), "patch"
-    )
+    message = message.lower()
+    if "[major]" in message:
+        return "major"
+    if "[minor]" in message:
+        return "minor"
+    return "patch"
 
 
 def bumped(version, level):
@@ -73,18 +76,21 @@ def bumped(version, level):
 
 def version_rows(lines):
     """{stanza: (line index, match)} for the [launcher] and [id] version rows, which must match."""
-    hits, section = {}, None
+    rows, section = {}, None
     for i, line in enumerate(lines):
-        if m := re.match(r"\s*\[(.+)\]", line):
-            section = m[1].strip()
-        elif section in VERSION_STANZAS and (
-            m := re.match(r"(\s*version\s*=\s*)(\S+)", line)
-        ):
-            hits[section] = (i, m)
-    found = {s: m[2] for s, (_, m) in hits.items()}
-    if found.keys() != VERSION_STANZAS or len(set(found.values())) != 1:
+        stanza = re.match(r"\s*\[(.+)\]", line)
+        if stanza:
+            section = stanza[1].strip()
+            continue
+        if section not in VERSION_STANZAS:
+            continue
+        version = re.match(r"(\s*version\s*=\s*)(\S+)", line)
+        if version:
+            rows[section] = (i, version)
+    found = {section: match[2] for section, (_, match) in rows.items()}
+    if set(found) != VERSION_STANZAS or len(set(found.values())) != 1:
         sys.exit(f"{CONF}: [launcher] and [id] need the same `version`, found {found}")
-    return hits
+    return rows
 
 
 def app_conf_version(text):
@@ -96,8 +102,8 @@ def bump_conf(text, level):
     """Return (text, new_version) with both versions bumped; everything else, comments included, untouched."""
     lines = text.splitlines(keepends=True)
     new = bumped(app_conf_version(text), level)
-    for i, m in version_rows(lines).values():
-        lines[i] = m[1] + new + lines[i][m.end() :]
+    for i, match in version_rows(lines).values():
+        lines[i] = match[1] + new + lines[i][match.end() :]
     return "".join(lines), new
 
 
@@ -155,12 +161,12 @@ def bump():
     except subprocess.CalledProcessError:
         print("target app.conf is missing, skipping bump")
         return
-    if app_conf_version(CONF.read_text(**TEXT)) != app_conf_version(target_text):
+    text = CONF.read_text(**TEXT)
+    if app_conf_version(text) != app_conf_version(target_text):
         print("version already changed, skipping bump")
         return
     text, new = bump_conf(
-        CONF.read_text(**TEXT),
-        bump_level(os.environ.get("BUILD_SOURCEVERSIONMESSAGE", "")),
+        text, bump_level(os.environ.get("BUILD_SOURCEVERSIONMESSAGE", ""))
     )
     CONF.write_text(text, **TEXT)
     stage()
