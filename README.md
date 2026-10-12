@@ -31,7 +31,7 @@ values and `app.manifest`.
 | `release.py` | Standard-library `bump`, `package`, `appinspect`, and `deploy` commands; `slim` is used to generate the manifest. |
 | `templates/splunk-app.yml` | Shared build, AppInspect, and deployment stages. |
 | `example/azure-pipelines.yml` | Example pipeline definition for each app repository. |
-| `test_release.py` | Self-checks for version bump decisions, reports, and Classic multipart upload. |
+| `test_release.py` | Self-checks for version bump decisions, reports, and the AppInspect multipart upload. |
 | `.env.example` | Names and placeholder values for the environment variables read by `release.py`. |
 
 ## Setup
@@ -70,13 +70,10 @@ and token values secret.
 | --- | --- | --- | --- |
 | `splunk-appinspect` | `SPLUNK_USERNAME` | no | Splunk account username |
 | | `SPLUNK_PASSWORD` | yes | Splunk account password |
-| | `APPINSPECT_TAGS` | no | Optional AppInspect tag, for example `private_victoria` |
 | `splunk-nonprod` | `SPLUNK_STACK` | no | `<stack>` |
 | | `ACS_TOKEN` | yes | Admin Config Service token for `<stack>` |
-| | `SPLUNK_EXPERIENCE` | no | `classic` for Classic; omit or leave empty for Victoria |
 | `splunk-prod` | `SPLUNK_STACK` | no | `<stack>` |
 | | `ACS_TOKEN` | yes | Admin Config Service token for `<stack>` |
-| | `SPLUNK_EXPERIENCE` | no | `classic` for Classic; omit or leave empty for Victoria |
 
 Create an Admin Config Service token for each target stack in Splunk Web under **Settings → Tokens**. Use an
 account with the `sc_admin` role, set the audience to `acs`, and track the expiration. To identify the
@@ -150,7 +147,7 @@ python <path-to>/azure-pipelines-splunk-apps/test_release.py
 
 `release.py bump` is intended for PR validation builds. `release.py appinspect <dir>` writes
 `appinspect-report.html` and `appinspect-report.json` alongside the package. `release.py deploy <dir>` uploads
-the package using ACS; Victoria uses a raw body and Classic uses multipart form data.
+the package to a Victoria stack using ACS.
 
 ## Troubleshooting
 
@@ -163,7 +160,7 @@ the package using ACS; Victoria uses a raw body and Classic uses multipart form 
 | HTTP 401 from `api.splunk.com` | Check `SPLUNK_USERNAME` and `SPLUNK_PASSWORD` in `splunk-appinspect`. |
 | AppInspect fails | Download the `appinspect-report` artifact and review its HTML or JSON report. |
 | HTTP 401/403 from `admin.splunk.com` | Check that `ACS_TOKEN` is valid, has the `acs` audience, and belongs to an account with `sc_admin`. |
-| HTTP 404 from `admin.splunk.com` | Check `SPLUNK_STACK` and `SPLUNK_EXPERIENCE`. |
+| HTTP 404 from `admin.splunk.com` | Check `SPLUNK_STACK`. |
 | Production stage does not run | Set `prod: true`, and confirm the build came from `refs/heads/main`. |
 | Run waits on “needs permission” | Permit the shared repository, variable groups, and environments for the pipeline. |
 

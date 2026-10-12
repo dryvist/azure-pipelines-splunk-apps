@@ -1,4 +1,4 @@
-"""python test_release.py — self-check for release.py (version bump, Classic multipart body)."""
+"""python test_release.py — self-check for release.py (version bump, multipart body)."""
 
 import json
 import os

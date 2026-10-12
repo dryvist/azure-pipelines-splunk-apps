@@ -4,7 +4,7 @@
 release.py bump            bump app.conf, regenerate app.manifest, commit + push (CI only)
 release.py package         write dist/<app>-<version>.tar.gz
 release.py deploy <dir>    install the one .tar.gz in <dir> via ACS (SPLUNK_STACK, ACS_TOKEN,
-                           SPLUNK_USERNAME, SPLUNK_PASSWORD, optional SPLUNK_EXPERIENCE from env)
+                           SPLUNK_USERNAME, SPLUNK_PASSWORD from env)
 """
 
 import base64
@@ -252,10 +252,7 @@ def save_appinspect_report(artifact_dir, html, report):
 def appinspect(artifact_dir):
     (pkg,) = Path(artifact_dir).glob("*.tar.gz")
     token = appinspect_token()
-    fields = {"app_package": pkg}
-    if tags := os.environ.get("APPINSPECT_TAGS"):
-        fields["included_tags"] = tags
-    content_type, body = multipart(**fields)
+    content_type, body = multipart(app_package=pkg)
     response = json.loads(
         http(
             "https://appinspect.splunk.com/v1/app/validate",
@@ -304,19 +301,13 @@ def appinspect(artifact_dir):
 def deploy(artifact_dir):
     (pkg,) = Path(artifact_dir).glob("*.tar.gz")
     token = appinspect_token()
-    url = f"https://admin.splunk.com/{os.environ['SPLUNK_STACK']}/adminconfig/v2/apps"
+    url = f"https://admin.splunk.com/{os.environ['SPLUNK_STACK']}/adminconfig/v2/apps/victoria"
     headers = {
         "Authorization": f"Bearer {os.environ['ACS_TOKEN']}",
+        "X-Splunk-Authorization": token,
         "ACS-Legal-Ack": "Y",
     }
-    # Victoria takes the raw package plus a token header; Classic takes a multipart form.
-    if os.environ.get("SPLUNK_EXPERIENCE", "victoria").lower() == "classic":
-        headers["Content-Type"], body = multipart(token=token, package=pkg)
-    else:
-        url += "/victoria"
-        headers["X-Splunk-Authorization"] = token
-        body = pkg.read_bytes()
-    print(http(url, headers, body).decode())
+    print(http(url, headers, pkg.read_bytes()).decode())
 
 
 def multipart(**fields):
