@@ -1,133 +1,195 @@
 # azure-pipelines-splunk-apps
 
-A shared Azure Repos pipeline for building and releasing Splunk apps. App repositories extend
-`templates/splunk-app.yml`; the app source stays under `package/`.
+This repository provides a shared Azure Repos and Azure Pipelines release
+pipeline for Splunk apps. An app team keeps its source in `package/` and gets
+pull request validation, release packages, tags, and an optional production
+deploy.
 
-## Flow
+## Installation
 
-For a pull request targeting `main`, the pipeline:
+1. Open **Repos → Files → repository selector → New repository** in
+   `<project>`. Create `azure-pipelines-splunk-apps` and push this shared
+   repository to `main`.
+2. Open **Pipelines → Library → + Variable group**. Create the three groups
+   listed in Setup reference and mark passwords and tokens secret.
+3. Open **Repos → Files → repository selector → New repository**. Create an app
+   repo with `package/default/app.conf` and copy
+   `example/azure-pipelines.yml` to `/azure-pipelines.yml`.
+4. Open **Pipelines → New pipeline → Azure Repos Git** and select the app repo.
+   Choose **Existing Azure Pipelines YAML file** and `/azure-pipelines.yml`;
+   authorize the shared repo, groups, and environments.
+5. Open **Repos → Branches → main → Branch policies → Build validation → +**.
+   Choose the pipeline and set an automatic, required policy.
+6. Open **Repos → Pull requests → New pull request**. Select the app branch and
+   `main`, then create the PR.
 
-1. Reads `[launcher] version` and `[id] version` from `package/default/app.conf` and checks that they match.
-2. Fetches the target branch. If the PR version matches the target version, it bumps patch by default (or
-   minor/major when the PR commit message contains `[minor]` or `[major]`), regenerates `app.manifest`, and
-   commits the two files to the PR source branch. The validation run triggered by that push sees the changed
-   version and skips another bump. If the version already differs or the target file is missing, it skips the
-   bump.
-3. Packages the app and runs AppInspect. The `appinspect-report` artifact contains the HTML and JSON reports;
-   the JSON report is also printed in the job log.
-4. Installs the package on the configured nonproduction stack after AppInspect passes.
-5. Exports the app as installed on the production stack with the ACS app export (`default`, `local` and
-   `users` content, so changes made in Splunk Web are included) and diffs it against the new package. The
-   `prod-diff` artifact holds the export (`<app>-prod.tgz`) and the full diff (`prod-diff.patch`); the job
-   log lists the changed files. Files under `local/` and `users/` show as present only in production. When
-   the export fails, for example because the app is not in production yet, the step shows a warning and
-   every package file shows as added.
+## How it works
 
-After AppInspect passes on `main`, the release stage tags the commit `v<version>` and publishes the package
-to the `splunk-apps` Azure Artifacts feed as `<app id>` version `<version>`. The tag push fails when that
-version already tags another commit. Compare any two releases under **Repos → Tags** or **Repos → Files →
-Compare**, and download any released package from **Artifacts**.
+### The two repositories
 
-Set the template parameter `prod: true` to enable production
-deployment from `main`; the `splunk-prod` environment can require approval. Pull request builds never deploy
-to production. The template defaults to a Microsoft-hosted `ubuntu-latest` agent.
+Each app repo stores the app under `package/` and has a small
+`azure-pipelines.yml`. Its `resources.repositories` entry checks out the shared
+repo under the alias `tools`; `extends` selects
+`templates/splunk-app.yml@tools`. The shared template runs the same release
+script for every app repo.
 
-The build excludes dotfiles, `__pycache__`, `*.pyc`/`*.pyo`, and `tests/`. The pipeline owns both version
-values and `app.manifest`.
+The app id comes from `[id] name` in `package/default/app.conf`; if it is
+missing, the script uses the Azure Repos repository name, then the working
+directory name. Both `[launcher]` and `[id]` must have matching `version`
+values for packaging and release; a PR bump updates both.
 
-## Files
+### How the repositories and services connect
 
-| File | Purpose |
-| --- | --- |
-| `release.py` | Standard-library `bump`, `package`, `appinspect`, `deploy`, `export`, `diff` and `tag` commands; `slim` builds the manifest. |
-| `templates/splunk-app.yml` | Shared build, AppInspect, and deployment stages. |
-| `example/azure-pipelines.yml` | Example pipeline definition for each app repository. |
-| `test_release.py` | Self-checks for version bumps, reports, the AppInspect upload and the production diff. |
-| `.env.example` | Names and placeholder values for the environment variables read by `release.py`. |
-
-## Setup
-
-Create the shared repository and pipeline resources once per Azure DevOps project, then connect each app
-repository.
-
-### 1. Add the shared repository
-
-Create a repository named `azure-pipelines-splunk-apps` and push this project to its `main` branch. If it is
-stored in another project, update `resources.repositories[].name` in each app repository to
-`<project>/azure-pipelines-splunk-apps`.
-
-### 2. Configure the agent pool (optional)
-
-The default pool uses `ubuntu-latest`. To use a self-hosted pool, override the `pool` parameter when extending
-the template, for example:
-
-```yaml
-extends:
-  template: templates/splunk-app.yml@tools
-  parameters:
-    pool:
-      name: <agent-pool>
+```mermaid
+flowchart LR
+    App["App repo: package and YAML"] -->|"alias tools and extends"| Template
+    Tools["Shared tools repository"] --> Template["Shared template and release.py"]
+    Template --> InspectAPI["AppInspect API"]
+    InspectGroup["Variable group splunk-appinspect"] --> InspectAPI
+    Template --> Nonprod["nonprod deployment"]
+    InspectGroup --> Nonprod
+    NonprodGroup["Variable group splunk-nonprod"] --> Nonprod
+    NonprodEnv["Environment splunk-nonprod"] --> Nonprod
+    Nonprod -->|"ACS install"| NonprodStack["nonprod stack"]
+    Template --> Export["Production export and diff"]
+    ProdGroup["Variable group splunk-prod"] --> Export
+    Export -->|"ACS export default local users"| ProdStack["production stack"]
+    Export --> DiffArtifact["prod-diff artifact"]
+    Template --> ProdDeploy["optional prod deployment"]
+    InspectGroup --> ProdDeploy
+    ProdGroup --> ProdDeploy
+    ProdEnv["Environment splunk-prod"] --> ProdDeploy
+    ProdDeploy -->|"ACS install"| ProdStack
+    Template --> Release["main release stage"]
+    Release --> GitTags["Azure Repos git tags"]
+    Release --> Feed["splunk-apps feed package by version"]
 ```
 
-The agent needs Git, Python 3.13 in its tool cache, and outbound HTTPS access to `pypi.org`, `api.splunk.com`,
-`appinspect.splunk.com`, and `admin.splunk.com`.
+### Pull request and main run stages
 
-### 3. Create variable groups
+Azure Repos queues pull request validation from the target branch's build
+validation policy. The example YAML's `trigger` queues builds for commits to
+`main`; Azure Repos does not use a YAML `pr:` trigger.
 
-Open **Pipelines → Library → + Variable group**. Create these groups with the exact names shown. Mark password
-and token values secret.
+```mermaid
+flowchart TD
+    PR["PR validation"] --> Build["build: PR bump, package, artifact dist"]
+    Main["Commit to main"] --> Build
+    Build --> Inspect["appinspect stage; artifact appinspect-report"]
+    InspectGroup["Variable group splunk-appinspect"] --> Inspect
+    Inspect -->|"PR only, after pass"| Nonprod["nonprod stage"]
+    InspectGroup --> Nonprod
+    NonprodGroup["Variable group splunk-nonprod"] --> Nonprod
+    NonprodEnv["Environment splunk-nonprod"] --> Nonprod
+    Nonprod --> NonprodOutput["No pipeline artifact"]
+    Nonprod --> Diff["proddiff: group splunk-prod; artifact prod-diff"]
+    ProdGroup["Variable group splunk-prod"] --> Diff
+    Inspect -->|"main after pass"| Release["release: tag and feed package"]
+    Release -->|"when prod is true"| Prod["prod stage"]
+    InspectGroup --> Prod
+    ProdGroup --> Prod
+    ProdEnv["Environment splunk-prod"] --> Prod
+    Prod --> ProdOutput["No pipeline artifact"]
+```
 
-| Group | Variable | Secret? | Value |
-| --- | --- | --- | --- |
-| `splunk-appinspect` | `SPLUNK_USERNAME` | no | Splunk account username |
-| | `SPLUNK_PASSWORD` | yes | Splunk account password |
-| `splunk-nonprod` | `SPLUNK_STACK` | no | `<stack>` |
-| | `ACS_TOKEN` | yes | Admin Config Service token for `<stack>` |
-| `splunk-prod` | `SPLUNK_STACK` | no | `<stack>` |
-| | `ACS_TOKEN` | yes | Admin Config Service token for `<stack>` |
+**build** runs for both PR and `main`. On a PR, `release.py bump` compares
+the app version with the target branch. If they match, it bumps patch by
+default, or minor or major when the commit message contains `[minor]` or
+`[major]`, updates both version rows and regenerates `app.manifest`. It commits
+and pushes those files to the PR source branch. If the target file is missing
+or the PR already changed the version, it skips the bump. The stage then
+packages the app and publishes the `dist` artifact, which contains
+`<app-id>-<version>.tar.gz`. Find it in the pipeline run's **Artifacts**.
 
-Create an Admin Config Service token for each target stack in Splunk Web under **Settings → Tokens**. Use an
-account with the `sc_admin` role, set the audience to `acs`, and track the expiration. To identify the
-experience, check **Support & Services → About** in Splunk Web.
+**appinspect** downloads `dist` and uses `splunk-appinspect` to get an
+AppInspect API token from the Splunk username and password, then submits the
+package. The stage passes only when AppInspect reports `SUCCESS` with zero
+failures and errors. It prints the JSON summary and publishes the
+`appinspect-report` artifact with the HTML and JSON reports when they were
+produced. Find it in the run's **Artifacts**.
 
-The `proddiff` stage exports from production with the `splunk-prod` token, so that account also needs the
-`export_apps` capability. `sc_admin` lacks it by default and can grant it under **Settings → Roles**.
+**nonprod** runs on PRs after AppInspect passes. It uses the
+`splunk-appinspect` and `splunk-nonprod` variable groups and the
+`splunk-nonprod` environment. The job installs the `dist` package on the
+configured `<stack>` through ACS. It leaves deployment logs in the run and
+publishes no artifact.
 
-### 4. Create deployment environments
+**proddiff** follows a successful nonprod deployment. It uses the
+`splunk-prod` variable group to export the production app through ACS,
+including `default`, `local`, and `users` content, then compares that export
+with the package in `dist`. The `prod-diff` artifact contains
+`prod-diff.patch` and, when export succeeds, `<app-id>-prod.tgz`. Find it in
+the run's **Artifacts**. The export step can continue after an error; without
+an export archive, the diff shows package files as additions.
 
-Open **Pipelines → Environments → New environment**, choose **Resource: None**, and create:
+**release** runs on `main` after AppInspect passes. It tags the current commit
+`v<version>`, then publishes the package as a Universal Package to the
+`splunk-apps` feed. The feed package name is the lowercase app id and its
+version is the app version. The source tag and feed version identify the same
+release: use **Repos → Files → Compare** to compare two tagged releases, and
+**Artifacts → splunk-apps → `<app-id>` → `<version>`** to download a package.
+The tag push is rejected if that version already tags a different commit.
 
-- `splunk-nonprod`
-- `splunk-prod`
+**prod** is optional and only follows a successful `main` release. Set
+`prod: true` under the template parameters in the app repo to enable it. It
+uses `splunk-appinspect` and `splunk-prod` plus the `splunk-prod` environment
+to install the package on the configured production `<stack>`. It publishes
+no artifact. Pull request runs do not deploy to production.
 
-Configure **Approvals and checks** on `splunk-prod` if production releases need approval. Enable production
-deployment by setting `prod: true` in the app repository's template parameters.
+### Variable groups, environments, and targets
 
-### 5. Allow the release commit on the PR branch
+- `build` uses no variable group or environment.
+- `appinspect` uses `splunk-appinspect` and the AppInspect API.
+- `nonprod` uses `splunk-appinspect`, `splunk-nonprod`, and the
+  `splunk-nonprod` environment.
+- `proddiff` uses `splunk-prod` for the production ACS export; it has no
+  environment.
+- `release` uses no variable group or environment; it writes a Git tag and
+  publishes to `splunk-apps`.
+- Optional `prod` uses both appinspect and prod groups plus the
+  `splunk-prod` environment.
 
-The build checks out the app repository with persisted credentials and pushes the release commit to the PR
-source branch. Grant the pipeline's Build Service identity **Contribute** permission on that repository or
-source branch. Use the identity named like `<project> Build Service (<organization>)`; if jobs use the
-collection identity, grant **Contribute** to `<organization> Project Collection Build Service (<organization>)`.
+A deployment stage also uses the stack named by `SPLUNK_STACK`. This template
+does not define an Azure DevOps service connection; it reads credentials from
+variable groups.
 
-Each `main` build also pushes the `v<version>` tag, so grant the same identity **Create tag** on the
-repository.
+### release.py commands
 
-### 6. Create the release feed
+- `bump` updates matching app versions and the manifest on a PR source branch,
+  then commits and pushes them.
+- `package` copies `package/` into an app-named directory, excludes dotfiles,
+  tests, and compiled Python files, then writes a normalized tarball under
+  `dist/`.
+- `appinspect <dir>` submits a package, polls its result, and writes HTML and
+  JSON reports into `<dir>`.
+- `deploy <dir>` installs the tarball through ACS using the configured stack
+  and credentials.
+- `export <dir>` downloads the installed app with its `default`, `local`, and
+  `users` content.
+- `diff <pkg-dir> <dir>` compares a package with an optional production export
+  and writes `prod-diff.patch`.
+- `tag` pushes `v<version>` for the current commit and sets `APP_ID` and
+  `APP_VERSION` for the feed step.
 
-Open **Artifacts → Create Feed**, name it `splunk-apps` and scope it to the project. Under **Feed settings →
-Permissions**, give the Build Service identity the **Feed Publisher (Contributor)** role.
+### Why each piece exists
 
-### 7. Add the main branch build validation policy
+- The shared tools repo keeps one release pipeline and script for all app repos.
+- The app repo keeps the package content and points to the shared template.
+- The build stage creates one versioned package for validation and release.
+- AppInspect checks the package before a deployment or release can continue.
+- The nonprod stage installs the PR package on a test stack before merge.
+- The production diff exists because changes made in Splunk Web live only in
+  production.
+- Git tags identify the source commit for each release version.
+- The feed stores the package built for each release version.
+- The optional prod stage installs a released package on production after the
+  main run passes.
 
-Azure Repos does not use YAML `pr:` triggers. In the app repository, open **Repos → Branches → main → Branch
-policies → Build validation**, add this pipeline, and configure it as required or optional with the desired
-automatic queue behavior. This policy starts the PR validation run. The example YAML separately triggers
-commits to `main`.
+## Setup reference
 
-### 8. Connect each app repository
+### App repository files
 
-An app repository has this shape:
+Create this layout in each app repo:
 
 ```text
 <app-repo>/
@@ -136,7 +198,9 @@ An app repository has this shape:
     └── default/app.conf
 ```
 
-`package/default/app.conf` needs matching versions in `[launcher]` and `[id]`:
+The two version values must match for packaging and release. The id name
+becomes the package id; if omitted, the repository name is used. A PR bump
+updates both version values when they still match the target branch.
 
 ```ini
 [id]
@@ -145,50 +209,100 @@ version = 1.0.0
 
 [launcher]
 version = 1.0.0
-
-[package]
-id = <app-id>
 ```
 
-Copy `example/azure-pipelines.yml` to the app repository. Then create a pipeline using
-**Pipelines → New pipeline → Azure Repos Git → Existing Azure Pipelines YAML file → `/azure-pipelines.yml`**.
-Permit access to the shared repository, variable groups, and environments when prompted. A pull request runs
-**build → appinspect → nonprod → proddiff**; a `main` build runs **build → appinspect → release**, and also
-**prod** when enabled.
+The example YAML points to the shared repo as
+`azure-pipelines-splunk-apps`. If the shared repo is in a different project,
+set its resource name to `<project>/azure-pipelines-splunk-apps` and grant the
+pipeline Build Service read access to that repo.
 
-For another target branch, change the `main` values in both the `trigger` and branch policy configuration.
+### Variable groups
 
-## Local use
+Open **Pipelines → Library → + Variable group**. Use these exact names and
+mark passwords and tokens secret.
 
-From an app repository root:
+| Group | Variables |
+| --- | --- |
+| `splunk-appinspect` | `SPLUNK_USERNAME` (plain), `SPLUNK_PASSWORD` (secret) |
+| `splunk-nonprod` | `SPLUNK_STACK` (plain), `ACS_TOKEN` (secret) |
+| `splunk-prod` | `SPLUNK_STACK` (plain), `ACS_TOKEN` (secret) |
+
+Create an ACS token for each `<stack>` with the `acs` audience. The production
+token also needs the `export_apps` capability for the ACS export in
+`proddiff`. Authorize the pipeline to use each variable group under its
+**Pipeline permissions** tab.
+
+### Environments and feed
+
+Open **Pipelines → Environments → Create environment** and create
+`splunk-nonprod` and `splunk-prod`. Authorize the pipeline to use both. Add
+approval checks to `splunk-prod` if production deployment needs approval.
+
+Open **Artifacts → Create Feed**, create a project-scoped feed named
+`splunk-apps`, then open **Feed settings → Permissions**. Give the pipeline
+Build Service the **Feed Publisher (Contributor)** role. The release stage
+publishes Universal Packages to this feed.
+
+### Build Service permissions
+
+In **Project settings → Repositories → `<app repo>` → Security**, grant the
+pipeline Build Service **Contribute** on the app repo or PR source branches so
+`bump` can push its release commit. Grant **Create tag** on the repo so the
+`main` release can push `v<version>`.
+
+The identity is usually `<project> Build Service (<org>)`; if the pipeline uses
+the collection identity, grant the matching
+`<org> Project Collection Build Service (<org>)`. Also authorize the pipeline
+to read the shared tools repo when prompted.
+
+### Branch policy and agent
+
+Open **Repos → Branches → main → Branch policies → Build validation → +**.
+Select the pipeline and choose automatic queueing. Make the policy required or
+optional. This policy queues PR validation; the example YAML separately
+triggers builds for commits to `main`.
+
+The default pool is Microsoft-hosted `ubuntu-latest`. A self-hosted agent needs
+Git, Python 3.13, and outbound HTTPS to `pypi.org`, `api.splunk.com`,
+`appinspect.splunk.com`, and `admin.splunk.com`. The pipeline installs
+`splunk-packaging-toolkit` from PyPI.
+
+## Usage
+
+From an app repo root, install the package toolkit and build the archive:
 
 ```sh
-pip install splunk-packaging-toolkit
-python <path-to>/azure-pipelines-splunk-apps/release.py package
-python <path-to>/azure-pipelines-splunk-apps/test_release.py
+python -m pip install splunk-packaging-toolkit
+python <path-to-shared-repo>/release.py package
 ```
 
-`release.py bump` is intended for PR validation builds. `release.py appinspect <dir>` writes
-`appinspect-report.html` and `appinspect-report.json` alongside the package. `release.py deploy <dir>` uploads
-the package to a Victoria stack using ACS. `release.py export <dir>` saves the installed app from the stack in
-`SPLUNK_STACK`, and `release.py diff <pkg-dir> <dir>` writes the diff against a package.
-`release.py tag` is intended for `main` builds.
+From the shared repo root, run the self-check:
 
-## Troubleshooting
+```sh
+python test_release.py
+```
 
-| Symptom | Fix |
-| --- | --- |
-| `[launcher] and [id] need the same version` | Set both `version` values in `app.conf` to the same `x.y.z`. |
-| `version already changed, skipping bump` | Expected after the release commit reaches the PR branch, or when the PR already set the version. |
-| `target app.conf is missing, skipping bump` | Add `package/default/app.conf` on the PR target branch. |
-| `git push` fails (`TF401027` / `TF402455`) | Grant the pipeline Build Service **Contribute** on the PR source branch. |
-| HTTP 401 from `api.splunk.com` | Check `SPLUNK_USERNAME` and `SPLUNK_PASSWORD` in `splunk-appinspect`. |
-| AppInspect fails | Download the `appinspect-report` artifact and review its HTML or JSON report. |
-| HTTP 401/403 from `admin.splunk.com` | Check that `ACS_TOKEN` is valid, has the `acs` audience, and belongs to an account with `sc_admin`. |
-| HTTP 404 from `admin.splunk.com` | Check `SPLUNK_STACK`. |
-| Production stage does not run | Set `prod: true`, and confirm the build came from `refs/heads/main`. |
-| Run waits on “needs permission” | Permit the shared repository, variable groups, and environments for the pipeline. |
+`.env.example` lists environment variable names with placeholders. AppInspect
+and `deploy` need `SPLUNK_USERNAME` and `SPLUNK_PASSWORD`; `deploy` and `export`
+also need `ACS_TOKEN` and `SPLUNK_STACK`.
+
+- Version mismatch: match `[launcher]` and `[id]` versions in `app.conf`.
+- Bump skipped: the PR version differs from the target, or the target has no
+  `app.conf`.
+- Git push denied: grant the Build Service **Contribute** on the PR source
+  branch.
+- AppInspect fails: check credentials and download the `appinspect-report`
+  artifact.
+- ACS returns 401 or 403: check the ACS token, `acs` audience, and the
+  production `export_apps` capability.
+- ACS returns 404: check that `SPLUNK_STACK` names the intended stack.
+- Production stage does not run: set `prod: true` and confirm the run is from
+  `main`.
+- Pipeline needs permission: authorize the shared repo, variable groups,
+  environments, and feed.
 
 ## License
 
 [Apache License 2.0](LICENSE)
+
+Documentation: <https://docs.jacobpevans.com>
