@@ -28,7 +28,20 @@ the app id and version.
 ## Review the production diff
 
 Before merging a pull request, open its validation run and download
-`prod-diff.patch` from **Artifacts → prod-diff**. Review the file changes
-against the proposed package. The `proddiff` stage exports production content
-when available. Without an export archive, the patch shows package files as
-additions.
+**Artifacts → prod-diff**. It holds two files:
+
+- `<app-id>-summary.md` lists the changes in sections:
+  - **Deployed changes:** files the deploy adds, changes, or removes.
+  - **Target local files:** files in production `local/` and
+    `metadata/local.meta`. They stay after a deploy, override the deployed
+    defaults, and are not backed up.
+  - **Source local files:** files in the package `local/`. They are not
+    deployed.
+  - **User files:** files under `users/` on each side.
+- `<app-id>.patch` shows the line changes for the deployed files.
+
+## Compare nonprod with prod
+
+Run the `compare-nonprod-prod` pipeline with a list of app ids. It exports
+each app from both stacks and writes the same summary and patch per app to
+the `compare` artifact. Production is the target; nonprod is the source.
