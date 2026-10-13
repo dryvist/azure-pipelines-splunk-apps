@@ -17,7 +17,7 @@
 - **Does:** Submits the package, polls the `private_victoria` and `future`
   results, and passes only for `SUCCESS` with zero failures, errors and manual
   checks. A `future_failure` count above 0 adds a warning to the run.
-- **Leaves:** The `appinspect-report` artifact with HTML and JSON reports
+- **Leaves:** The `appinspect-report-<attempt>` artifact with HTML and JSON reports
   when produced, under **Artifacts** in the run.
 
 ## nonprod
@@ -35,7 +35,7 @@
 - **Does:** Exports the installed production app through the ACS CLI, then
   compares it with the package. If the app is not in production, the summary
   lists every package file as added.
-- **Leaves:** The `prod-diff` artifact with `<app-id>.patch` and
+- **Leaves:** The `prod-diff-<attempt>` artifact with `<app-id>.patch` and
   `<app-id>-summary.md`. Find it under **Artifacts** in the pull request
   run.
 

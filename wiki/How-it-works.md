@@ -25,7 +25,7 @@ flowchart LR
     Build --> Dist["artifact: dist"]
     Dist --> Inspect["appinspect stage"]
     InspectGroup["variable group: splunk-appinspect"] --> Inspect
-    Inspect --> Report["artifact: appinspect-report"]
+    Inspect --> Report["artifact: appinspect-report-N"]
     Inspect -->|"PR and success"| Nonprod["nonprod stage"]
     Dist --> Nonprod
     NonprodGroups["variable groups: splunk-appinspect, splunk-nonprod"] --> Nonprod
@@ -34,7 +34,7 @@ flowchart LR
     Nonprod -->|"success"| Proddiff["proddiff stage"]
     Dist --> Proddiff
     ProdGroup["variable group: splunk-prod"] --> Proddiff
-    Proddiff --> ProdDiffArtifact["artifact: prod-diff"]
+    Proddiff --> ProdDiffArtifact["artifact: prod-diff-N"]
     Inspect -->|"main and success"| Release["release stage"]
     Dist --> Release
     Release --> GitTag["git tag: release version"]
@@ -47,7 +47,7 @@ flowchart LR
 :::
 
 The `dist` artifact carries the package from `build` to later stages. The
-`appinspect-report` artifact contains HTML and JSON reports when AppInspect
+`appinspect-report-<attempt>` artifact contains HTML and JSON reports when AppInspect
 produces them. A pull request run reaches `proddiff` only after `nonprod`
 succeeds. A main run reaches `release` after AppInspect succeeds; the `prod`
 stage is included only when the template parameter `prod` is true.
@@ -71,7 +71,7 @@ flowchart LR
     Template --> ProdDiff["production export and diff"]
     ProdGroup["variable group: splunk-prod"] --> ProdDiff
     ProdDiff -->|"ACS export"| ProdStack["production stack"]
-    ProdDiff --> DiffArtifact["artifact: prod-diff"]
+    ProdDiff --> DiffArtifact["artifact: prod-diff-N"]
     Template --> Prod["optional prod deployment"]
     InspectGroup --> Prod
     ProdGroup --> Prod

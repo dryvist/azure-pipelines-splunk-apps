@@ -28,7 +28,7 @@ the app id and version.
 ## Review the production diff
 
 Before merging a pull request, open its validation run and download
-**Artifacts → prod-diff**. It holds two files:
+**Artifacts** → `prod-diff-<attempt>`. It holds two files:
 
 - `<app-id>-summary.md` lists the changes in sections:
   - **Deployed changes:** files the deploy adds, changes, or removes.

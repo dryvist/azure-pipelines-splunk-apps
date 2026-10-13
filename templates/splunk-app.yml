@@ -67,8 +67,16 @@ stages:
               done
             displayName: Collect AppInspect reports
             condition: succeededOrFailed()
+          # Each job attempt publishes its own artifact.
           - publish: $(Pipeline.Workspace)/appinspect-report
-            artifact: appinspect-report
+            artifact: appinspect-report-$(System.JobAttempt)
+            condition: succeededOrFailed()
+          - script: cat "$(Pipeline.Workspace)/appinspect-report/appinspect-report.json"
+            displayName: Show AppInspect JSON report
+            condition: succeededOrFailed()
+          - script: >-
+              echo "$(System.CollectionUri)$(System.TeamProjectId)/_build/results?buildId=$(Build.BuildId)&view=artifacts&pathAsName=false&type=publishedArtifacts"
+            displayName: Show AppInspect HTML report link
             condition: succeededOrFailed()
 
   - stage: nonprod
@@ -125,7 +133,7 @@ stages:
               $(Pipeline.Workspace)/prod-diff
             displayName: Diff production against this package
           - publish: $(Pipeline.Workspace)/prod-diff
-            artifact: prod-diff
+            artifact: prod-diff-$(System.JobAttempt)
 
   - stage: release
     dependsOn: appinspect

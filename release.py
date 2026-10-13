@@ -238,11 +238,9 @@ def appinspect_passed(status, report):
 
 def save_appinspect_report(artifact_dir, html, report):
     Path(artifact_dir, "appinspect-report.html").write_bytes(html)
-    report_text = json.dumps(report, indent=2)
     Path(artifact_dir, "appinspect-report.json").write_text(
-        report_text + "\n", encoding="utf-8"
+        json.dumps(report, indent=2) + "\n", encoding="utf-8"
     )
-    print(report_text)
 
 
 def appinspect(artifact_dir):
