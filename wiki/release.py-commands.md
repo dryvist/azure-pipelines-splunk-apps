@@ -1,5 +1,7 @@
 # release.py commands
 
+[[_TOC_]]
+
 The app id comes from `[id] name` in `package/default/app.conf`. If missing,
 the script uses `BUILD_REPOSITORY_NAME`, then the working directory name.
 

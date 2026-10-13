@@ -1,5 +1,7 @@
 # Releases and versions
 
+[[_TOC_]]
+
 ## Version bumps
 
 On pull request runs, `release.py bump` compares the app version with the
