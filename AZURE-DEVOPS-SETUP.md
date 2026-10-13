@@ -303,16 +303,24 @@ run and **Artifacts**.
    `future_failure` count above 0 shows as a warning on the run.
 4. Confirm `nonprod` installs the package on the nonprod stack, then
    `proddiff` exports production and creates a diff.
-5. Open the run's **Artifacts**. Check `appinspect-report` for the HTML and
-   JSON reports when AppInspect produced them. Check `prod-diff` for
+5. Open the `appinspect` job's **Show AppInspect JSON report** step. It
+   prints the full JSON report.
+6. Open the **Show AppInspect HTML report link** step and select the link.
+   It opens the run's **Artifacts** page.
+7. Open `appinspect-report-<attempt>`, the highest attempt number.
+8. Download `appinspect-report.html` and open it in a browser.
+9. Open `prod-diff-<attempt>`, the highest attempt number. It holds
    `<app-id>.patch` and `<app-id>-summary.md`.
+
+Each job attempt publishes its own artifact, so a rerun keeps earlier
+reports and adds a new one with the next attempt number.
 
 If the app is not installed in production yet, the export log shows
 `NOT INSTALLED <app-id>`. The stage continues, and the summary lists every
 package file as added.
 
 **Verify:** `build`, `appinspect`, `nonprod`, and `proddiff` succeed, with
-`dist`, `appinspect-report`, and `prod-diff` artifacts on the run.
+`dist`, `appinspect-report-1`, and `prod-diff-1` artifacts on the run.
 
 ## Step 12 — Check the first release after merging
 
@@ -392,5 +400,5 @@ artifact holds `<app-id>.patch` and `<app-id>-summary.md` for each app. The
 | ACS returns 401 or 403 | Check stack, token, `acs` audience, capabilities. |
 | `NOT INSTALLED <app-id>` | Expected for a new app; files show as added. |
 | Push denied | Allow Build Service **Contribute** and **Create tag**. |
-| AppInspect fails | Check `appinspect-report` and fix its findings. |
+| AppInspect fails | Check `appinspect-report-<attempt>` and fix its findings. |
 | Permission prompt | Select **Permit** for the repo, groups, environments. |
