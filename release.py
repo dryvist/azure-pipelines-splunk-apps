@@ -336,7 +336,10 @@ def export(out_dir, *app_ids):
             cmd = ["acs", "apps", "export", f"--file={apps_file}", "--default=true", "--local=true",
                    "--users=true", "--confs-only=false", f"--export-dir={out}"]
             subprocess.run(cmd, check=False, env=env)
-            if not (out / f"{app}.tgz").exists():
+            exported = out / f"{app}.tar.gz"
+            if exported.exists():
+                exported.rename(out / f"{app}.tgz")
+            else:
                 print(f"NOT INSTALLED {app}")
     apps_file.unlink()
 
