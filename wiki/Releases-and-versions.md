@@ -21,9 +21,15 @@ After AppInspect passes on `main`, the release stage pushes the Git tag
 Universal Package to the `splunk-apps` feed. Its name is the lowercase app id
 and its version is the app version.
 
-To compare two releases, open **Repos → Files → Compare** and select the two
-Git tags. To download a release, open **Artifacts → splunk-apps**, then select
-the app id and version.
+To compare two releases:
+
+1. Open **Repos → Files → Compare**.
+2. Select the two Git tags.
+
+To download a release:
+
+1. Open **Artifacts → splunk-apps**.
+2. Select the app id and version.
 
 ## Review the production diff
 

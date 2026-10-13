@@ -14,22 +14,6 @@ pipeline.
 
 ## Usage
 
-### Copy from GitHub into Azure Repos
-
-Replace `<org>` and `<project>` with your Azure DevOps names. Run these
-commands to copy the shared repository:
-
-```sh
-git clone https://github.com/dryvist/azure-pipelines-splunk-apps.git
-cd azure-pipelines-splunk-apps
-git push \
-  https://dev.azure.com/<org>/<project>/_git/azure-pipelines-splunk-apps \
-  main --tags
-```
-
-To update the Azure Repos copy later, run `git pull` in the cloned repository,
-then repeat the `git push` command above.
-
 ### Run the tests
 
 From the repository root, run:
@@ -46,5 +30,3 @@ wiki.
 ## License
 
 [Apache License 2.0](LICENSE)
-
-Documentation: <https://docs.jacobpevans.com>
