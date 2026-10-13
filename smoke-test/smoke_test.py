@@ -39,7 +39,7 @@ def stack(group):
         cmd = ["acs", "apps", "export", f"--file={out}/apps.json", "--default=false", "--local=true",
                "--users=true", "--confs-only=true", f"--export-dir={out}"]
         subprocess.run(cmd, check=True, env=env)
-        print(f"PASS {group} export_apps: {Path(out, 'search.tgz').stat().st_size} bytes")
+        print(f"PASS {group} export_apps: {Path(out, 'search.tar.gz').stat().st_size} bytes")
 
 
 if __name__ == "__main__":

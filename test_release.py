@@ -135,7 +135,7 @@ with tempfile.TemporaryDirectory() as tmp:
         if command[1:3] == ["apps", "export"]:
             app = json.loads(Path(command[3].split("=", 1)[1]).read_text())["Apps"][0]
             if app == "my_ta":
-                (out / f"{app}.tgz").write_bytes(b"export")
+                (out / f"{app}.tar.gz").write_bytes(b"export")
 
     with (
         patch.dict(os.environ, {"SPLUNK_STACK": "example-stack", "STACK_TOKEN": "token"}),
