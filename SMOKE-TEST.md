@@ -64,12 +64,14 @@ PASS splunk-prod export_apps: <n> bytes
 
 ## Fix a failure
 
-| Last line | Fix |
-| --- | --- |
-| `FAIL <group>: empty value for <names>` | Fill those variables in that group. |
-| `HTTP 401` or `HTTP 403` from `api.splunk.com` | Check the splunk.com user name and password. |
-| `Error:` before the app list line | Check `SPLUNK_STACK` and the `acs` token. |
-| `Error:` after the app list line | Grant `export_apps` to the token account. |
+- `FAIL <group>: empty value for <names>`: fill those variables in that
+  group.
+- `HTTP 401` or `HTTP 403` from `api.splunk.com`: check the splunk.com user
+  name and password.
+- `Error:` before the app list line: check `SPLUNK_STACK` and the `acs`
+  token.
+- `Error:` after the app list line: grant `export_apps` to the token
+  account.
 
 The `nonprod` and `prod` jobs export only the local and user files of the
 built-in `search` app, which every stack has.
