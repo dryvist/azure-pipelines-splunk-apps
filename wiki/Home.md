@@ -10,7 +10,6 @@ nonprod, compares them with production, and publishes versioned packages from
 - [How it works](How-it-works.md)
 - [Pipeline stages](Pipeline-stages.md)
 - [Releases and versions](Releases-and-versions.md)
-- [Updating from GitHub](Updating-from-GitHub.md)
 - [release.py commands](release.py-commands.md)
 - [Troubleshooting](Troubleshooting.md)
 
