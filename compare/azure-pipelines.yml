@@ -4,6 +4,12 @@ trigger: none
 pr: none
 
 parameters:
+  - name: target
+    type: string
+    default: splunk
+    values:
+      - splunk
+      - splunk-itsi
   - name: apps
     type: string
     displayName: App IDs, separated by spaces
@@ -15,7 +21,7 @@ jobs:
   - ${{ each env in split('nonprod,prod', ',') }}:
       - job: ${{ env }}
         variables:
-          - group: splunk-${{ env }}
+          - group: ${{ parameters.target }}-${{ env }}
         steps:
           - task: UsePythonVersion@0
             inputs:
@@ -25,6 +31,7 @@ jobs:
             displayName: Export apps from ${{ env }} via ACS
             env:
               SPLUNK_STACK: $(SPLUNK_STACK)
+              SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
               STACK_TOKEN: $(ACS_TOKEN)
           - publish: $(Pipeline.Workspace)/${{ env }}-export
             artifact: ${{ env }}-export

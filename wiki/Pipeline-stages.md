@@ -2,6 +2,10 @@
 
 [[_TOC_]]
 
+The `target` parameter selects `splunk` or `splunk-itsi`. Its default is
+`splunk`. Variable group and environment names use `<target>-nonprod` and
+`<target>-prod`.
+
 ## build
 
 - **When:** Pull request validation and runs triggered by commits to `main`.
@@ -19,21 +23,21 @@
 - **Does:** Submits the package, polls the `private_victoria` and `future`
   results, and passes only for `SUCCESS` with zero failures, errors and manual
   checks. A `future_failure` count above 0 adds a warning to the run.
-- **Leaves:** The `appinspect-report-<attempt>` artifact with HTML and JSON reports
-  when produced, under **Artifacts** in the run.
+- **Leaves:** The `appinspect-report-<attempt>` artifact with HTML and JSON
+  reports when produced, under **Artifacts** in the run.
 
 ## nonprod
 
 - **When:** After `appinspect` succeeds on a pull request.
-- **Needs:** The `dist` artifact, `splunk-appinspect` and `splunk-nonprod`
-  variable groups, and the `splunk-nonprod` environment.
+- **Needs:** The `dist` artifact, `splunk-appinspect` and
+  `<target>-nonprod` variable groups, and the `<target>-nonprod` environment.
 - **Does:** Installs the package on the configured stack through ACS.
 - **Leaves:** No pipeline artifact. Deployment output is in the run logs.
 
 ## proddiff
 
 - **When:** After the pull request's `nonprod` stage succeeds.
-- **Needs:** The `dist` artifact and the `splunk-prod` variable group.
+- **Needs:** The `dist` artifact and the `<target>-prod` variable group.
 - **Does:** Exports the installed production app through the ACS CLI, then
   promotes local configuration into default files and compares only
   `default/` and `metadata/default.meta` with the package. If the app is not
@@ -57,8 +61,8 @@
 
 - **When:** After a successful `release`, when template parameter `prod` is
   `true`.
-- **Needs:** The `dist` artifact, `splunk-appinspect` and `splunk-prod`
-  variable groups, and the `splunk-prod` environment.
+- **Needs:** The `dist` artifact, `splunk-appinspect` and `<target>-prod`
+  variable groups, and the `<target>-prod` environment.
 - **Does:** Installs the package on the configured production stack through
   ACS.
 - **Leaves:** No pipeline artifact. Deployment output is in the run logs.

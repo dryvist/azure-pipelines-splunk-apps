@@ -82,40 +82,77 @@ with tempfile.TemporaryDirectory() as tmp:
     assert pkg_bytes in body
 
 
-# Deploy selects the configured stack, loads its token, and installs one package.
-with tempfile.TemporaryDirectory() as tmp:
-    package_dir = Path(tmp, "dist")
-    package_dir.mkdir()
-    (package_dir / "my_ta-1.4.10.tar.gz").write_bytes(b"package")
+# ACS sessions select the configured search head only when its value is set.
+for search_head in (None, "", "premium-sh", "$(SPLUNK_SEARCH_HEAD)"):
+    variables = {"SPLUNK_STACK": "example-stack"}
+    if search_head is not None:
+        variables["SPLUNK_SEARCH_HEAD"] = search_head
     with (
-        patch.dict(
-            os.environ,
-            {
-                "SPLUNK_STACK": "example-stack",
-                "STACK_TOKEN": "token",
-                "SPLUNK_USERNAME": "user",
-                "SPLUNK_PASSWORD": "password",
-            },
-        ),
+        patch.dict(os.environ, variables, clear=True),
         patch("release.subprocess.run") as run,
     ):
-        release.deploy(package_dir)
+        with release.acs_session():
+            pass
     commands = [call.args[0] for call in run.call_args_list]
-    assert commands == [
-        ["acs", "config", "add-stack", "example-stack", "--use"],
-        ["acs", "login"],
-        [
-            "acs",
-            "apps",
-            "install",
-            "private",
-            "--acs-legal-ack",
-            "Y",
-            "--app-package",
-            str(package_dir / "my_ta-1.4.10.tar.gz"),
-        ],
-    ]
+    expected = [["acs", "config", "add-stack", "example-stack", "--use"]]
+    if search_head == "premium-sh":
+        expected.append(
+            ["acs", "config", "use-stack", "example-stack", "--target-sh=premium-sh"]
+        )
+    expected.append(["acs", "login"])
+    assert commands == expected
     assert all(call.kwargs["check"] for call in run.call_args_list)
+
+
+# Deploy scopes an install to the configured search head only when it is set.
+for search_head, uses_target in (
+    (None, False),
+    ("premium-sh", True),
+    ("$(SPLUNK_SEARCH_HEAD)", False),
+):
+    with tempfile.TemporaryDirectory() as tmp:
+        package_dir = Path(tmp, "dist")
+        package_dir.mkdir()
+        (package_dir / "my_ta-1.4.10.tar.gz").write_bytes(b"package")
+        variables = {
+            "SPLUNK_STACK": "example-stack",
+            "STACK_TOKEN": "token",
+            "SPLUNK_USERNAME": "user",
+            "SPLUNK_PASSWORD": "password",
+        }
+        if search_head is not None:
+            variables["SPLUNK_SEARCH_HEAD"] = search_head
+        with (
+            patch.dict(os.environ, variables, clear=True),
+            patch("release.subprocess.run") as run,
+        ):
+            release.deploy(package_dir)
+        commands = [call.args[0] for call in run.call_args_list]
+        expected = [
+            ["acs", "config", "add-stack", "example-stack", "--use"],
+        ]
+        if uses_target:
+            expected.append(
+                ["acs", "config", "use-stack", "example-stack", "--target-sh=premium-sh"]
+            )
+        expected.extend(
+            [
+                ["acs", "login"],
+                [
+                    "acs",
+                    "apps",
+                    "install",
+                    "private",
+                    "--acs-legal-ack",
+                    "Y",
+                    "--app-package",
+                    str(package_dir / "my_ta-1.4.10.tar.gz"),
+                    *(["--scope", "local"] if uses_target else []),
+                ],
+            ]
+        )
+        assert commands == expected
+        assert all(call.kwargs["check"] for call in run.call_args_list)
 
 
 # Export writes one archive per installed app and reports apps with no export.

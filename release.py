@@ -10,6 +10,8 @@ release.py diff <target> <source> <out> merge local, compare defaults, write art
 release.py tag                          tag HEAD as v<version>, push the tag, and set APP_ID/APP_VERSION (CI only)
 
 The ACS CLI reads STACK_TOKEN. Azure Pipelines maps ACS_TOKEN to STACK_TOKEN.
+SPLUNK_SEARCH_HEAD selects a target search head. Installs to that target use
+the local scope.
 """
 
 import base64
@@ -291,13 +293,26 @@ def appinspect(artifact_dir):
         sys.exit("AppInspect did not pass")
 
 
+def configured_value(name):
+    """Return a configured environment value, ignoring empty Azure placeholders."""
+    value = os.environ.get(name, "").strip()
+    return value if value and not value.startswith("$(") else None
+
+
 @contextmanager
 def acs_session():
-    """Select SPLUNK_STACK and log in with STACK_TOKEN in a temporary ACS CLI config."""
+    """Select the configured stack and search head, then log in with STACK_TOKEN."""
     stack = os.environ["SPLUNK_STACK"]
+    search_head = configured_value("SPLUNK_SEARCH_HEAD")
     with tempfile.TemporaryDirectory() as home:
         env = {**os.environ, "HOME": home}
         subprocess.run(["acs", "config", "add-stack", stack, "--use"], check=True, env=env)
+        if search_head:
+            subprocess.run(
+                ["acs", "config", "use-stack", stack, f"--target-sh={search_head}"],
+                check=True,
+                env=env,
+            )
         subprocess.run(["acs", "login"], check=True, env=env)
         yield env
 
@@ -306,6 +321,8 @@ def deploy(artifact_dir):
     (pkg,) = Path(artifact_dir).glob("*.tar.gz")
     with acs_session() as env:
         cmd = ["acs", "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(pkg)]
+        if configured_value("SPLUNK_SEARCH_HEAD"):
+            cmd.extend(["--scope", "local"])
         subprocess.run(cmd, check=True, env=env)
 
 
