@@ -10,8 +10,7 @@ release.py diff <target> <source> <out> merge local, compare defaults, write art
 release.py tag                          tag HEAD as v<version>, push the tag, and set APP_ID/APP_VERSION (CI only)
 
 The ACS CLI reads STACK_TOKEN. Azure Pipelines maps ACS_TOKEN to STACK_TOKEN.
-SPLUNK_SEARCH_HEAD selects a target search head. Installs to that target use
-the local scope.
+SPLUNK_SEARCH_HEAD selects a target search head for compare and smoke tests.
 """
 
 import base64
@@ -320,10 +319,10 @@ def acs_session():
 def deploy(artifact_dir):
     (pkg,) = Path(artifact_dir).glob("*.tar.gz")
     with acs_session() as env:
-        cmd = ["acs", "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(pkg)]
-        if configured_value("SPLUNK_SEARCH_HEAD"):
-            cmd.extend(["--scope", "local"])
-        subprocess.run(cmd, check=True, env=env)
+        subprocess.run(
+            ["acs", "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(pkg)],
+            check=True, env=env,
+        )
 
 
 def export(out_dir, *app_ids):

@@ -14,9 +14,9 @@ The app id comes from `[id] name` in `package/default/app.conf`. If that value
 is missing, `release.py` uses the Azure Repos repository name, then the
 working directory name. The `[launcher]` and `[id]` version values must match.
 
-The app template parameter `target` selects `splunk` or `splunk-itsi`. Its
-default is `splunk`. The selected value determines the variable group and
-environment names for nonprod and prod.
+App deployments always use the `splunk-nonprod` and `splunk-prod` variable
+groups and environments. The compare and smoke-test pipelines can also select
+the ITSI groups with their `target` setting.
 
 ## Pull request and main runs
 
@@ -34,12 +34,12 @@ flowchart LR
     Inspect --> Report["artifact: appinspect-report-N"]
     Inspect -->|"PR and success"| Nonprod["nonprod stage"]
     Dist --> Nonprod
-    NonprodGroups["groups: splunk-appinspect + target-nonprod"] --> Nonprod
-    NonprodEnv["environment: target-nonprod"] --> Nonprod
+    NonprodGroups["groups: splunk-appinspect + splunk-nonprod"] --> Nonprod
+    NonprodEnv["environment: splunk-nonprod"] --> Nonprod
     Nonprod --> NonprodNone["no pipeline artifact"]
     Nonprod -->|"success"| Proddiff["proddiff stage"]
     Dist --> Proddiff
-    ProdGroup["variable group: target-prod"] --> Proddiff
+    ProdGroup["variable group: splunk-prod"] --> Proddiff
     Proddiff --> ProdDiffArtifact["artifact: prod-diff-N"]
     Inspect -->|"main and success"| Release["release stage"]
     Dist --> Release
@@ -47,8 +47,8 @@ flowchart LR
     Release --> Feed["Universal Package: splunk-apps"]
     Release -->|"prod true"| Prod["prod stage"]
     Dist --> Prod
-    ProdGroups["groups: splunk-appinspect + target-prod"] --> Prod
-    ProdEnv["environment: target-prod"] --> Prod
+    ProdGroups["groups: splunk-appinspect + splunk-prod"] --> Prod
+    ProdEnv["environment: splunk-prod"] --> Prod
     Prod --> ProdNone["no pipeline artifact"]
 :::
 
@@ -71,17 +71,17 @@ flowchart LR
     Template --> InspectAPI["AppInspect API"]
     InspectGroup["variable group: splunk-appinspect"] --> InspectAPI
     Template --> Nonprod["nonprod deployment"]
-    NonprodGroup["variable group: target-nonprod"] --> Nonprod
-    NonprodEnv["environment: target-nonprod"] --> Nonprod
+    NonprodGroup["variable group: splunk-nonprod"] --> Nonprod
+    NonprodEnv["environment: splunk-nonprod"] --> Nonprod
     Nonprod -->|"ACS install"| NonprodStack["nonprod stack"]
     Template --> ProdDiff["production export and diff"]
-    ProdGroup["variable group: target-prod"] --> ProdDiff
+    ProdGroup["variable group: splunk-prod"] --> ProdDiff
     ProdDiff -->|"ACS export"| ProdStack["production stack"]
     ProdDiff --> DiffArtifact["artifact: prod-diff-N"]
     Template --> Prod["optional prod deployment"]
     InspectGroup --> Prod
     ProdGroup --> Prod
-    ProdEnv["environment: target-prod"] --> Prod
+    ProdEnv["environment: splunk-prod"] --> Prod
     Prod -->|"ACS install"| ProdStack
     Template --> Release["main release"]
     Release --> GitTags["Azure Repos git tags"]
