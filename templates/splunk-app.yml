@@ -2,6 +2,12 @@
 # (see example/azure-pipelines.yml). The pipeline derives app-specific values
 # from the repo.
 parameters:
+  - name: target
+    type: string
+    default: splunk
+    values:
+      - splunk
+      - splunk-itsi
   - name: pool
     type: object
     default:
@@ -85,10 +91,10 @@ stages:
     jobs:
       - deployment: deploy
         pool: ${{ parameters.pool }}
-        environment: splunk-nonprod
+        environment: ${{ parameters.target }}-nonprod
         variables:
           - group: splunk-appinspect
-          - group: splunk-nonprod
+          - group: ${{ parameters.target }}-nonprod
         strategy:
           runOnce:
             deploy:
@@ -105,12 +111,13 @@ stages:
                     SPLUNK_USERNAME: $(SPLUNK_USERNAME)
                     SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
                     SPLUNK_STACK: $(SPLUNK_STACK)
+                    SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
                     STACK_TOKEN: $(ACS_TOKEN)
 
   - stage: proddiff
     dependsOn: nonprod
     variables:
-      - group: splunk-prod
+      - group: ${{ parameters.target }}-prod
     jobs:
       - job: proddiff
         pool: ${{ parameters.pool }}
@@ -126,6 +133,7 @@ stages:
             displayName: Export the app from production via ACS
             env:
               SPLUNK_STACK: $(SPLUNK_STACK)
+              SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
               STACK_TOKEN: $(ACS_TOKEN)
           - script: python -m pip install --quiet ksconf==0.13.10 splunk-sdk==2.1.0
             displayName: Install diff dependencies
@@ -170,10 +178,10 @@ stages:
         jobs:
           - deployment: deploy
             pool: ${{ parameters.pool }}
-            environment: splunk-prod
+            environment: ${{ parameters.target }}-prod
             variables:
               - group: splunk-appinspect
-              - group: splunk-prod
+              - group: ${{ parameters.target }}-prod
             strategy:
               runOnce:
                 deploy:
@@ -190,4 +198,5 @@ stages:
                         SPLUNK_USERNAME: $(SPLUNK_USERNAME)
                         SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
                         SPLUNK_STACK: $(SPLUNK_STACK)
+                        SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
                         STACK_TOKEN: $(ACS_TOKEN)

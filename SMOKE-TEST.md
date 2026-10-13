@@ -1,9 +1,9 @@
 # Smoke test
 
-One pipeline run checks every external value the release pipeline needs:
-the AppInspect account, both Splunk Cloud stack names, both ACS tokens and
-the `export_apps` capability on both stacks. It only reads. It changes
-nothing on any Splunk stack.
+One pipeline run checks the AppInspect account, the selected target's nonprod
+and prod stack names and ACS tokens, ITSI search head names when selected, and
+the `export_apps` capability. It only reads. It changes nothing on any Splunk
+stack.
 
 ## Before you run it
 
@@ -25,11 +25,12 @@ Complete Steps 1 to 4 of `AZURE-DEVOPS-SETUP.md`.
 ## Run it
 
 1. Select **Run pipeline**.
-2. Select **Run**.
-3. If the run shows **This pipeline needs permission**, select **View**.
-4. Select **Permit** for `splunk-appinspect`.
-5. Select **Permit** for `splunk-nonprod`.
-6. Select **Permit** for `splunk-prod`.
+2. Select `splunk` or `splunk-itsi` for `target` in the Run panel.
+3. Select **Run**.
+4. If the run shows **This pipeline needs permission**, select **View**.
+5. Select **Permit** for `splunk-appinspect`.
+6. Select **Permit** for the selected nonprod variable group.
+7. Select **Permit** for the selected prod variable group.
 
 ## Read the result
 
@@ -48,18 +49,18 @@ RESULT: FAILED - open each failed job for its FAIL or Error line
 | Job | Checks | Variable group |
 | --- | --- | --- |
 | `appinspect` | AppInspect sign-in works | `splunk-appinspect` |
-| `nonprod` | Token and stack name can list and export apps | `splunk-nonprod` |
-| `prod` | Token and stack name can list and export apps | `splunk-prod` |
+| `nonprod` | Lists and exports apps | `<target>-nonprod` |
+| `prod` | Lists and exports apps | `<target>-prod` |
 | `result` | All three jobs succeeded | none |
 
 Success lines in the job logs:
 
 ```text
 PASS AppInspect login
-PASS splunk-nonprod ACS login and app list
-PASS splunk-nonprod export_apps: <n> bytes
-PASS splunk-prod ACS login and app list
-PASS splunk-prod export_apps: <n> bytes
+PASS <target>-nonprod ACS login and app list
+PASS <target>-nonprod export_apps: <n> bytes
+PASS <target>-prod ACS login and app list
+PASS <target>-prod export_apps: <n> bytes
 ```
 
 ## Fix a failure
@@ -68,8 +69,8 @@ PASS splunk-prod export_apps: <n> bytes
   group.
 - `HTTP 401` or `HTTP 403` from `api.splunk.com`: check the splunk.com user
   name and password.
-- `Error:` before the app list line: check `SPLUNK_STACK` and the `acs`
-  token.
+- `Error:` before the app list line: check `SPLUNK_STACK`, the `acs` token,
+  and, for `splunk-itsi`, `SPLUNK_SEARCH_HEAD`.
 - `Error:` after the app list line: grant `export_apps` to the token
   account.
 

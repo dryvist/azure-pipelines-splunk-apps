@@ -7,8 +7,8 @@ Set up the shared Splunk app pipeline in an Azure DevOps project.
 | Step | Purpose |
 | --- | --- |
 | Step 1 | Create the package feed and grant publish access. |
-| Step 2 | Create the three variable groups. |
-| Step 3 | Create deployment environments. |
+| Step 2 | Create the five variable groups. |
+| Step 3 | Create the four deployment environments. |
 | Step 4 | Create ACS tokens and grant export access. |
 | Step 5 | Create an app repository and add its pipeline files. |
 | Step 6 | Grant the Build Service app repository permissions. |
@@ -28,8 +28,10 @@ Set up the shared Splunk app pipeline in an Azure DevOps project.
   Repos.
 - A Splunk account for AppInspect, with its username and password.
 - The Splunk Cloud (Victoria) nonprod and prod stack names.
-- Access to create ACS tokens for both stacks. Both token accounts need
-  `export_apps`; `sc_admin` can grant this capability to itself.
+- The ITSI search head names from the provisioning information for both stacks.
+- Access to create ACS tokens on both stacks and their ITSI search heads.
+  Each token account needs `export_apps`; `sc_admin` can grant this capability
+  to itself.
 - Apps installed this way are private apps. A copy of a Splunkbase app needs
   its own app id in `[id] name`, different from the Splunkbase app id.
 - Outbound HTTPS from Azure Pipelines agents to `pypi.org`, `api.splunk.com`,
@@ -128,11 +130,52 @@ needs `export_apps`, `install_apps` and `edit_local_apps`. The token is sourced
 from Splunk Web on the production stack in Step 4 and used by `proddiff` and
 `prod`.
 
+Create the `splunk-itsi-nonprod` group:
+
+1. Select **+ Variable group**.
+2. Type `splunk-itsi-nonprod` as the group name.
+3. Type `Nonprod ITSI search head on the Splunk Cloud stack` as the
+   description.
+4. Add a variable.
+5. Type `SPLUNK_STACK` as the variable name.
+6. Type the nonprod stack name as its value.
+7. Set its lock icon off.
+8. Add a variable.
+9. Type `ACS_TOKEN` as the variable name.
+10. Leave its value empty until Step 4.
+11. Set its lock icon on.
+12. Add a variable.
+13. Type `SPLUNK_SEARCH_HEAD` as the variable name.
+14. Type the nonprod ITSI search head name from provisioning information.
+15. Set its lock icon off.
+
+Create the `splunk-itsi-prod` group:
+
+1. Select **+ Variable group**.
+2. Type `splunk-itsi-prod` as the group name.
+3. Type `Production ITSI search head on the Splunk Cloud stack` as the
+   description.
+4. Add a variable.
+5. Type `SPLUNK_STACK` as the variable name.
+6. Type the production stack name as its value.
+7. Set its lock icon off.
+8. Add a variable.
+9. Type `ACS_TOKEN` as the variable name.
+10. Leave its value empty until Step 4.
+11. Set its lock icon on.
+12. Add a variable.
+13. Type `SPLUNK_SEARCH_HEAD` as the variable name.
+14. Type the prod ITSI search head name from provisioning information.
+15. Set its lock icon off.
+
+The ITSI groups use the same `SPLUNK_STACK` value as the matching standard
+group. Their `SPLUNK_SEARCH_HEAD` value selects the target search head.
+
 **Verify:**
 
-1. Confirm the group names are exactly `splunk-appinspect`,
-   `splunk-nonprod`, and `splunk-prod`, with hyphens, typed exactly.
-2. Confirm all three groups appear in Library.
+1. Confirm the group names are exactly `splunk-appinspect`, `splunk-nonprod`,
+   `splunk-prod`, `splunk-itsi-nonprod`, and `splunk-itsi-prod`.
+2. Confirm all five groups appear in Library.
 3. Confirm secret values are masked after they are saved.
 
 ## Step 3: Create deployment environments
@@ -147,23 +190,34 @@ from Splunk Web on the production stack in Step 4 and used by `proddiff` and
 4. Select **Create environment**.
 5. Enter `splunk-prod` as the environment name.
 6. Create the environment.
+7. Select **Create environment**.
+8. Enter `splunk-itsi-nonprod` as the environment name.
+9. Create the environment.
+10. Select **Create environment**.
+11. Enter `splunk-itsi-prod` as the environment name.
+12. Create the environment.
 
 To require approval before production deployment:
 
 1. Open `splunk-prod`.
 2. Go to **Approvals and checks → Approvals → +**.
 3. Add the approvers.
+4. Open `splunk-itsi-prod`.
+5. Go to **Approvals and checks → Approvals → +**.
+6. Add the approvers.
 
 **Verify:**
 
 1. Confirm `splunk-nonprod` appears in the environments list.
 2. Confirm `splunk-prod` appears in the environments list.
-3. If configured, confirm the prod environment shows its approval check.
+3. Confirm `splunk-itsi-nonprod` appears in the environments list.
+4. Confirm `splunk-itsi-prod` appears in the environments list.
+5. If configured, confirm both prod environments show their approval checks.
 
 ## Step 4: Create ACS tokens and grant export access
 
-**Where:** In Splunk Web, use **Settings → Tokens** for each stack and
-**Settings → Roles** for roles. To enter token values, use
+**Where:** In Splunk Web, use **Settings → Tokens** on each stack and its ITSI
+search head, and **Settings → Roles** for roles. To enter token values, use
 **Pipelines → Library → `<group>`**.
 
 **Do:**
@@ -171,36 +225,40 @@ To require approval before production deployment:
 1. In Splunk Web for the nonprod stack, go to **Settings → Tokens**.
 2. Create an ACS token for the nonprod stack.
 3. Set its audience to `acs`.
-4. In Splunk Web for the prod stack, go to **Settings → Tokens**.
-5. Create an ACS token for the prod stack.
+4. In Splunk Web on the nonprod ITSI search head, go to **Settings → Tokens**.
+5. Create an ACS token on the nonprod ITSI search head.
 6. Set its audience to `acs`.
-7. Go to **Pipelines → Library → `splunk-nonprod`**.
-8. Enter the nonprod token as the `ACS_TOKEN` value.
-9. Go to **Pipelines → Library → `splunk-prod`**.
-10. Enter the prod token as the `ACS_TOKEN` value.
-11. Go to **Settings → Roles**.
-12. Open the role for the nonprod token account.
-13. Confirm that the nonprod token account has `install_apps`.
-14. Confirm that the nonprod token account has `edit_local_apps`.
-15. Grant the nonprod token account the `export_apps` capability.
-16. Go to **Settings → Roles**.
-17. Open the role for the prod token account.
-18. Confirm that the prod token account has `install_apps`.
-19. Confirm that the prod token account has `edit_local_apps`.
-20. Grant the prod token account the `export_apps` capability.
+7. In Splunk Web for the prod stack, go to **Settings → Tokens**.
+8. Create an ACS token for the prod stack.
+9. Set its audience to `acs`.
+10. In Splunk Web on the prod ITSI search head, go to **Settings → Tokens**.
+11. Create an ACS token on the prod ITSI search head.
+12. Set its audience to `acs`.
+13. Go to **Pipelines → Library → `splunk-nonprod`**.
+14. Enter the nonprod token as the `ACS_TOKEN` value.
+15. Go to **Pipelines → Library → `splunk-prod`**.
+16. Enter the prod token as the `ACS_TOKEN` value.
+17. Go to **Pipelines → Library → `splunk-itsi-nonprod`**.
+18. Enter the nonprod ITSI token as the `ACS_TOKEN` value.
+19. Go to **Pipelines → Library → `splunk-itsi-prod`**.
+20. Enter the prod ITSI token as the `ACS_TOKEN` value.
+21. Go to **Settings → Roles**.
+22. Open the role for each ACS token account.
+23. Confirm each account has `install_apps`.
+24. Confirm each account has `edit_local_apps`.
+25. Grant each account the `export_apps` capability.
 
 `sc_admin` can grant the `export_apps` capability to itself.
 
 **Verify:**
 
-1. Confirm one token exists for the nonprod stack.
-2. Confirm one token exists for the prod stack.
-3. Confirm the nonprod account has `install_apps`.
-4. Confirm the nonprod account has `edit_local_apps`.
-5. Confirm the nonprod account has `export_apps`.
-6. Confirm the prod account has `install_apps`.
-7. Confirm the prod account has `edit_local_apps`.
-8. Confirm the prod account has `export_apps`.
+1. Confirm the nonprod stack token exists.
+2. Confirm the nonprod ITSI search head token exists.
+3. Confirm the prod stack token exists.
+4. Confirm the prod ITSI search head token exists.
+5. Confirm all four token accounts have `install_apps`.
+6. Confirm all four token accounts have `edit_local_apps`.
+7. Confirm all four token accounts have `export_apps`.
 
 ## Step 5: Create an app repository and add its files
 
@@ -243,9 +301,12 @@ To require approval before production deployment:
 
    extends:
      template: templates/splunk-app.yml@tools
+     parameters:
+       target: splunk
    ```
 
-6. If the shared repository is in another project, set `name` to
+6. Set `target` to `splunk-itsi` to deploy to the ITSI search head.
+7. If the shared repository is in another project, set `name` to
    `<project>/azure-pipelines-splunk-apps`.
 
 **Verify:**
@@ -290,7 +351,8 @@ To require approval before production deployment:
 
 ## Step 8: Permit the pipeline to use its resources
 
-**Where:** **Repos → Branches** and **Pipelines → Pipelines → `<pipeline>`**
+**Where:** **Repos → Branches** and
+**Pipelines → Pipelines → `<pipeline>`**
 
 **Do:**
 
@@ -313,34 +375,53 @@ When Azure DevOps reports that a resource needs authorization:
 1. Select **Permit** for `azure-pipelines-splunk-apps`.
 2. Select **Permit** for `splunk-appinspect`.
 3. Select **Permit** for `splunk-nonprod`.
-4. Select **Permit** for `splunk-prod`.
-5. Select **Permit** for the `splunk-nonprod` environment.
-6. Select **Permit** for the `splunk-prod` environment.
+4. Select **Permit** for `splunk-itsi-nonprod`.
+5. Select **Permit** for `splunk-prod`.
+6. Select **Permit** for `splunk-itsi-prod`.
+7. Select **Permit** for `splunk-nonprod` as an environment.
+8. Select **Permit** for `splunk-itsi-nonprod` as an environment.
+9. Select **Permit** for `splunk-prod` as an environment.
+10. Select **Permit** for `splunk-itsi-prod` as an environment.
 
 If no Permit banner appears, authorize each variable group:
 
-1. Go to **Pipelines → Library → `splunk-appinspect` → Pipeline
-    permissions**.
+1. Open **Pipelines → Library → `splunk-appinspect` → Pipeline
+   permissions**.
 2. Select **+**.
 3. Select the pipeline.
-4. Go to **Pipelines → Library → `splunk-nonprod` → Pipeline
-    permissions**.
+4. Open **Pipelines → Library → `splunk-nonprod` → Pipeline permissions**.
 5. Select **+**.
 6. Select the pipeline.
-7. Go to **Pipelines → Library → `splunk-prod` → Pipeline permissions**.
+7. Open **Pipelines → Library → `splunk-itsi-nonprod` → Pipeline
+   permissions**.
 8. Select **+**.
 9. Select the pipeline.
+10. Open **Pipelines → Library → `splunk-prod` → Pipeline permissions**.
+11. Select **+**.
+12. Select the pipeline.
+13. Open **Pipelines → Library → `splunk-itsi-prod` → Pipeline
+    permissions**.
+14. Select **+**.
+15. Select the pipeline.
 
 If no Permit banner appears, authorize each environment:
 
-1. Go to **Pipelines → Environments → `splunk-nonprod` → ⋮ → Security →
-    Pipeline permissions**.
-2. Select **+**.
-3. Select the pipeline.
-4. Go to **Pipelines → Environments → `splunk-prod` → ⋮ → Security →
-    Pipeline permissions**.
-5. Select **+**.
-6. Select the pipeline.
+1. Open **Pipelines → Environments → `splunk-nonprod`**.
+2. Select **⋮ → Security → Pipeline permissions**.
+3. Select **+**.
+4. Select the pipeline.
+5. Open **Pipelines → Environments → `splunk-itsi-nonprod`**.
+6. Select **⋮ → Security → Pipeline permissions**.
+7. Select **+**.
+8. Select the pipeline.
+9. Open **Pipelines → Environments → `splunk-prod`**.
+10. Select **⋮ → Security → Pipeline permissions**.
+11. Select **+**.
+12. Select the pipeline.
+13. Open **Pipelines → Environments → `splunk-itsi-prod`**.
+14. Select **⋮ → Security → Pipeline permissions**.
+15. Select **+**.
+16. Select the pipeline.
 
 **Verify:**
 
@@ -348,13 +429,15 @@ If no Permit banner appears, authorize each environment:
 2. Confirm the shared repository is authorized for the pipeline.
 3. Confirm `splunk-appinspect` is authorized for the pipeline.
 4. Confirm `splunk-nonprod` is authorized for the pipeline.
-5. Confirm `splunk-prod` is authorized for the pipeline.
-6. Confirm the `splunk-nonprod` environment is authorized for the pipeline.
-7. Confirm the `splunk-prod` environment is authorized for the pipeline.
+5. Confirm `splunk-itsi-nonprod` is authorized for the pipeline.
+6. Confirm `splunk-prod` is authorized for the pipeline.
+7. Confirm `splunk-itsi-prod` is authorized for the pipeline.
+8. Confirm all four deployment environments are authorized for the pipeline.
 
 ## Step 9: Add the `main` Build validation policy
 
-**Where:** **Repos → Branches → main → Branch policies → Build validation → +**
+**Where:** **Repos → Branches → main → Branch policies → Build
+validation → +**
 
 **Do:**
 
@@ -373,8 +456,8 @@ Azure Repos uses this branch policy to queue pull request validation. The YAML
 
 ## Step 10: Check the first pull request run
 
-**Where:** **Repos → Pull requests → New pull request**; then open its pipeline
-run and **Artifacts**.
+**Where:** **Repos → Pull requests → New pull request**; then open the
+pipeline run and **Artifacts**.
 
 **Do:**
 
@@ -455,18 +538,19 @@ package file as added.
    extends:
      template: templates/splunk-app.yml@tools
      parameters:
+       target: splunk
        prod: true
    ```
 
 2. Commit the change to `main`.
-3. Confirm the `splunk-prod` environment has an approval check if production
+3. Confirm the selected prod environment has an approval check if production
    approval is required.
 
 **Verify:**
 
 1. Confirm a `prod` stage follows a successful `main` release.
 2. Confirm the `prod` stage uses the prod stack.
-3. Confirm the `prod` stage uses the `splunk-prod` environment.
+3. Confirm the `prod` stage uses the selected prod environment.
 4. Confirm pull request runs do not deploy to production.
 
 ## Step 13: Publish the repository wiki
@@ -497,12 +581,13 @@ package file as added.
 4. Enter `compare-nonprod-prod` as the pipeline name.
 5. Save the pipeline.
 6. Select **Run pipeline**.
-7. In **App IDs, separated by spaces**, enter the app ids to compare, for
+7. Select `splunk` or `splunk-itsi` for `target` in the Run panel.
+8. In **App IDs, separated by spaces**, enter the app ids to compare, for
    example `my_app other_app`. Use the app folder names from `[id] name`, not
    the display labels.
-8. Select **Run**.
-9. When asked, select **Permit** for the `splunk-nonprod` group.
-10. When asked, select **Permit** for the `splunk-prod` group.
+9. Select **Run**.
+10. When asked, permit the selected nonprod variable group.
+11. When asked, permit the selected prod variable group.
 
 **Verify:**
 

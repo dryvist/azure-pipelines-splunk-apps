@@ -16,3 +16,5 @@ resources:
 
 extends:
   template: templates/splunk-app.yml@tools
+  parameters:
+    target: splunk

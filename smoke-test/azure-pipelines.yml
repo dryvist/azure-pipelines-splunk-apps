@@ -1,6 +1,14 @@
 trigger: none
 pr: none
 
+parameters:
+  - name: target
+    type: string
+    default: splunk
+    values:
+      - splunk
+      - splunk-itsi
+
 pool:
   vmImage: ubuntu-latest
 
@@ -20,30 +28,32 @@ jobs:
 
   - job: nonprod
     variables:
-      - group: splunk-nonprod
+      - group: ${{ parameters.target }}-nonprod
     steps:
       - task: UsePythonVersion@0
         inputs:
           versionSpec: "3.13"
       - template: ../templates/acs-cli.yml
-      - script: python smoke-test/smoke_test.py nonprod
+      - script: python smoke-test/smoke_test.py ${{ parameters.target }}-nonprod
         displayName: Check nonprod ACS access and export
         env:
           SPLUNK_STACK: $(SPLUNK_STACK)
+          SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
           ACS_TOKEN: $(ACS_TOKEN)
 
   - job: prod
     variables:
-      - group: splunk-prod
+      - group: ${{ parameters.target }}-prod
     steps:
       - task: UsePythonVersion@0
         inputs:
           versionSpec: "3.13"
       - template: ../templates/acs-cli.yml
-      - script: python smoke-test/smoke_test.py prod
+      - script: python smoke-test/smoke_test.py ${{ parameters.target }}-prod
         displayName: Check prod ACS access and export
         env:
           SPLUNK_STACK: $(SPLUNK_STACK)
+          SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
           ACS_TOKEN: $(ACS_TOKEN)
 
   - job: result
