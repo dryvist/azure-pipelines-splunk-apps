@@ -14,6 +14,11 @@ pipeline.
 
 ## Usage
 
+### Check credentials
+
+Run the [smoke test](SMOKE-TEST.md) to check the AppInspect account and both
+ACS tokens before the first app pipeline run.
+
 ### Run the tests
 
 From the repository root, run:
