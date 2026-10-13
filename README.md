@@ -26,7 +26,3 @@ python test_release.py
 
 The [documentation pages](wiki/Home.md) are also published as the Azure DevOps
 wiki.
-
-## License
-
-[Apache License 2.0](LICENSE)
