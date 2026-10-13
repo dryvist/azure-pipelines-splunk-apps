@@ -34,7 +34,7 @@ def stack(group):
         print(f"PASS {group} ACS login and app list")
         Path(out, "apps.json").write_text(json.dumps({"Apps": ["search"]}))
         cmd = ["acs", "apps", "export", f"--file={out}/apps.json", "--default=false", "--local=true",
-               "--users=true", "--confs-only=false", f"--export-dir={out}"]
+               "--users=true", "--confs-only=true", f"--export-dir={out}"]
         subprocess.run(cmd, check=True, env=env)
         print(f"PASS {group} export_apps: {Path(out, 'search.tgz').stat().st_size} bytes")
 
