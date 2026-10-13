@@ -6,7 +6,7 @@ release.py package                      stage package/ and write dist/<app-id>-<
 release.py appinspect <dir>             submit the package in <dir> to AppInspect
 release.py deploy <dir>                 install the single .tar.gz in <dir> with the ACS CLI
 release.py export <out-dir> [app-id...] export default, local, and users data for each app (default: this app) as <app-id>.tgz
-release.py diff <target> <source> <out> compare archives and write per-app patches and Markdown summaries
+release.py diff <target> <source> <out> merge local, compare defaults, write artifacts
 release.py tag                          tag HEAD as v<version>, push the tag, and set APP_ID/APP_VERSION (CI only)
 
 The ACS CLI reads STACK_TOKEN. Azure Pipelines maps ACS_TOKEN to STACK_TOKEN.
@@ -355,14 +355,54 @@ def kept(path):
     return path.parts[0] in ("local", "users") or path.parts[:2] == ("metadata", "local.meta")
 
 
+def merge_local(root):
+    """Promote local configuration into default files and copy other local files."""
+    local = root / "local"
+    if local.exists():
+        for relative in sorted(files(local)):
+            source = local / relative
+            target = root / "default" / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if source.suffix == ".conf":
+                subprocess.run(
+                    ["ksconf", "promote", "--batch", str(source), str(target)],
+                    check=True,
+                )
+            else:
+                shutil.copy2(source, target)
+    local_meta = root / "metadata" / "local.meta"
+    if local_meta.exists():
+        default_meta = root / "metadata" / "default.meta"
+        default_meta.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            ["ksconf", "promote", "--batch", str(local_meta), str(default_meta)],
+            check=True,
+        )
+
+
+def deployed(path):
+    """Files a deploy compares: default/ and metadata/default.meta."""
+    return path.parts[0] == "default" or path == Path("metadata/default.meta")
+
+
+def merged_archive(app, root, path):
+    """Write an app archive without local/, users/ or metadata/local.meta."""
+    def keep(info):
+        relative = Path(info.name).relative_to(app)
+        return None if relative.parts and kept(relative) else info
+
+    with tarfile.open(path, "w:gz") as archive:
+        archive.add(root, arcname=app, filter=keep)
+
+
 def listed(paths):
     return [f"- {p.as_posix()}" for p in sorted(paths)] or ["- None"]
 
 
-def summary(target, source):
+def summary(target, source, target_before, source_before):
     t, s = files(target), files(source)
     changes = []
-    for p in sorted((t | s) - {p for p in t | s if kept(p)}):
+    for p in sorted(p for p in t | s if deployed(p)):
         if p not in t:
             changes.append(f"- Added: {p.as_posix()}")
         elif p not in s:
@@ -373,18 +413,18 @@ def summary(target, source):
         "## Deployed changes", *(changes or ["- None"]),
         "## Target local files (kept, not backed up)",
         "These files stay on the target after a deploy, override the deployed defaults, and are not backed up.",
-        *listed(p for p in t if p.parts[0] != "users" and kept(p)),
+        *listed(p for p in target_before if p.parts[0] != "users" and kept(p)),
         "## Source local files (not deployed)",
         "These files exist only in the source environment and are not part of the deploy.",
-        *listed(p for p in s if p.parts[0] != "users" and kept(p)),
+        *listed(p for p in source_before if p.parts[0] != "users" and kept(p)),
         "## User files",
-        "Target:", *listed(p for p in t if p.parts[0] == "users"),
-        "Source:", *listed(p for p in s if p.parts[0] == "users"),
+        "Target:", *listed(p for p in target_before if p.parts[0] == "users"),
+        "Source:", *listed(p for p in source_before if p.parts[0] == "users"),
     ]) + "\n"
 
 
 def diff(target_dir, source_dir, out_dir):
-    """Write <app-id>.patch and <app-id>-summary.md for every app in either directory."""
+    """Write each app's merged archive, deployed patch, and Markdown summary."""
     targets, sources = archives(target_dir), archives(source_dir)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -393,10 +433,15 @@ def diff(target_dir, source_dir, out_dir):
             target, source = Path(tmp, "target"), Path(tmp, "source")
             extract(targets.get(app), target)
             extract(sources.get(app), source)
-            text = summary(target, source)
+            target_before, source_before = files(target), files(source)
+            merge_local(target)
+            merge_local(source)
+            text = summary(target, source, target_before, source_before)
+            merged_archive(app, target if app in targets else source,
+                           out / f"{app}-merged.tar.gz")
             for root in (target, source):
                 for p in files(root):
-                    if kept(p):
+                    if not deployed(p):
                         (root / p).unlink()
             # diff exits 1 when the trees differ, 2 on error.
             patch = subprocess.run(["diff", "-ruN", "target", "source"], cwd=tmp,

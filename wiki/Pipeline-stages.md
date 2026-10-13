@@ -33,11 +33,14 @@
 - **When:** After the pull request's `nonprod` stage succeeds.
 - **Needs:** The `dist` artifact and the `splunk-prod` variable group.
 - **Does:** Exports the installed production app through the ACS CLI, then
-  compares it with the package. If the app is not in production, the summary
-  lists every package file as added.
-- **Leaves:** The `prod-diff-<attempt>` artifact with `<app-id>.patch` and
-  `<app-id>-summary.md`. Find it under **Artifacts** in the pull request
-  run.
+  promotes local configuration into default files and compares only
+  `default/` and `metadata/default.meta` with the package. If the app is not
+  in production, the summary lists each package default file and
+  `metadata/default.meta` as added.
+- **Leaves:** The `prod-diff-<attempt>` artifact with `<app-id>.patch`,
+  `<app-id>-summary.md`, and `<app-id>-merged.tar.gz`. Find it under
+  **Artifacts** in the pull request run. The merged archive omits `local/`,
+  `metadata/local.meta`, and `users/`.
 
 ## release
 
