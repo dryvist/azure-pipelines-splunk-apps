@@ -169,7 +169,9 @@ Create the `splunk-itsi-prod` group:
 15. Set its lock icon off.
 
 The ITSI groups use the same `SPLUNK_STACK` value as the matching standard
-group. Their `SPLUNK_SEARCH_HEAD` value selects the target search head.
+group. Their `SPLUNK_SEARCH_HEAD` value selects the target search head. Only
+the compare and smoke-test pipelines use the ITSI groups. App deployments
+always use `splunk-nonprod` and `splunk-prod`.
 
 **Verify:**
 
@@ -301,12 +303,9 @@ search head, and **Settings → Roles** for roles. To enter token values, use
 
    extends:
      template: templates/splunk-app.yml@tools
-     parameters:
-       target: splunk
    ```
 
-6. Set `target` to `splunk-itsi` to deploy to the ITSI search head.
-7. If the shared repository is in another project, set `name` to
+6. If the shared repository is in another project, set `name` to
    `<project>/azure-pipelines-splunk-apps`.
 
 **Verify:**
@@ -538,7 +537,6 @@ package file as added.
    extends:
      template: templates/splunk-app.yml@tools
      parameters:
-       target: splunk
        prod: true
    ```
 

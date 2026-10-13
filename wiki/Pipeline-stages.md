@@ -2,9 +2,8 @@
 
 [[_TOC_]]
 
-The `target` parameter selects `splunk` or `splunk-itsi`. Its default is
-`splunk`. Variable group and environment names use `<target>-nonprod` and
-`<target>-prod`.
+Deployments always use the `splunk-nonprod` and `splunk-prod` variable groups
+and environments.
 
 ## build
 
@@ -30,14 +29,14 @@ The `target` parameter selects `splunk` or `splunk-itsi`. Its default is
 
 - **When:** After `appinspect` succeeds on a pull request.
 - **Needs:** The `dist` artifact, `splunk-appinspect` and
-  `<target>-nonprod` variable groups, and the `<target>-nonprod` environment.
+  `splunk-nonprod` variable groups, and the `splunk-nonprod` environment.
 - **Does:** Installs the package on the configured stack through ACS.
 - **Leaves:** No pipeline artifact. Deployment output is in the run logs.
 
 ## proddiff
 
 - **When:** After the pull request's `nonprod` stage succeeds.
-- **Needs:** The `dist` artifact and the `<target>-prod` variable group.
+- **Needs:** The `dist` artifact and the `splunk-prod` variable group.
 - **Does:** Exports the installed production app through the ACS CLI, then
   promotes local configuration into default files and compares only
   `default/` and `metadata/default.meta` with the package. If the app is not
@@ -61,8 +60,8 @@ The `target` parameter selects `splunk` or `splunk-itsi`. Its default is
 
 - **When:** After a successful `release`, when template parameter `prod` is
   `true`.
-- **Needs:** The `dist` artifact, `splunk-appinspect` and `<target>-prod`
-  variable groups, and the `<target>-prod` environment.
+- **Needs:** The `dist` artifact, `splunk-appinspect` and `splunk-prod`
+  variable groups, and the `splunk-prod` environment.
 - **Does:** Installs the package on the configured production stack through
   ACS.
 - **Leaves:** No pipeline artifact. Deployment output is in the run logs.
