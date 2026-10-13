@@ -36,6 +36,8 @@ jobs:
         inputs:
           versionSpec: "3.13"
       - download: current
+      - script: python -m pip install --quiet ksconf==0.13.10 splunk-sdk==2.1.0
+        displayName: Install diff dependencies
       - script: >-
           python release.py diff
           $(Pipeline.Workspace)/prod-export $(Pipeline.Workspace)/nonprod-export

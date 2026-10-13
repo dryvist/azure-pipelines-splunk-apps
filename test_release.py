@@ -169,7 +169,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert not input_file.exists()
 
 
-# Diff compares deployed files and summarizes target/source local and user files.
+# Diff promotes local files, compares defaults, and archives the merged target.
 with tempfile.TemporaryDirectory() as tmp:
     target_dir = Path(tmp, "target")
     source_dir = Path(tmp, "source")
@@ -179,21 +179,21 @@ with tempfile.TemporaryDirectory() as tmp:
     write_tgz(
         target_dir / "my_ta.tgz",
         {
-            "my_ta/default/app.conf": "version = 1.4.9\n",
-            "my_ta/default/old.conf": "removed\n",
-            "my_ta/local/props.conf": "target local\n",
-            "my_ta/metadata/local.meta": "target metadata\n",
-            "my_ta/users/admin/local/savedsearches.conf": "target user\n",
+            "my_ta/default/props.conf": (
+                "[changed]\nvalue = default\n"
+            ),
+            "my_ta/local/props.conf": (
+                "[changed]\nvalue = local\n\n[new]\nvalue = added\n"
+            ),
+            "my_ta/local/data/ui/views/example.xml": "<view/>\n",
+            "my_ta/metadata/local.meta": "[my_ta]\naccess = read : [*]\n",
+            "my_ta/users/admin/local/savedsearches.conf": "[search]\n",
         },
     )
     write_tgz(
         source_dir / "my_ta-1.4.10.tar.gz",
         {
-            "my_ta/default/app.conf": "version = 1.4.10\n",
-            "my_ta/default/new.conf": "added\n",
-            "my_ta/local/inputs.conf": "source local\n",
-            "my_ta/metadata/local.meta": "source metadata\n",
-            "my_ta/users/editor/local/props.conf": "source user\n",
+            "my_ta/default/props.conf": "[changed]\nvalue = package\n",
         },
     )
     output = io.StringIO()
@@ -201,12 +201,22 @@ with tempfile.TemporaryDirectory() as tmp:
         release.diff(target_dir, source_dir, out)
     patch_text = (out / "my_ta.patch").read_text()
     summary = (out / "my_ta-summary.md").read_text()
-    assert "-version = 1.4.9" in patch_text
-    assert "+version = 1.4.10" in patch_text
-    assert "+added" in patch_text
-    assert "-removed" in patch_text
-    for excluded in ("local/", "metadata/local.meta", "users/"):
-        assert excluded not in patch_text
+    patch_paths = [
+        path
+        for token in patch_text.split()
+        if token.startswith(("target/", "source/"))
+        for path in [token.split("\t", 1)[0]]
+    ]
+    assert patch_paths
+    assert all(
+        path.startswith(("target/default/", "source/default/"))
+        or path in (
+            "target/metadata/default.meta",
+            "source/metadata/default.meta",
+        )
+        for path in patch_paths
+    )
+    assert any(path.endswith("metadata/default.meta") for path in patch_paths)
     sections = [
         "## Deployed changes",
         "## Target local files (kept, not backed up)",
@@ -216,22 +226,30 @@ with tempfile.TemporaryDirectory() as tmp:
     assert [summary.index(section) for section in sections] == sorted(
         summary.index(section) for section in sections
     )
-    assert "- Changed: default/app.conf" in summary
-    assert "- Added: default/new.conf" in summary
-    assert "- Removed: default/old.conf" in summary
+    assert "- Changed: default/props.conf" in summary
+    assert "- Removed: metadata/default.meta" in summary
     assert "local/props.conf" in summary
     assert "metadata/local.meta" in summary
-    assert "local/inputs.conf" in summary
+    assert "local/data/ui/views/example.xml" in summary
     assert "users/admin/local/savedsearches.conf" in summary
-    assert "users/editor/local/props.conf" in summary
-    assert (
-        "These files stay on the target after a deploy, override the deployed defaults, "
-        "and are not backed up."
-    ) in summary
-    assert (
-        "These files exist only in the source environment and are not part of the deploy."
-    ) in summary
     assert output.getvalue() == summary
+    merged_path = out / "my_ta-merged.tar.gz"
+    assert merged_path.exists()
+    with tarfile.open(merged_path, "r:gz") as archive:
+        names = archive.getnames()
+        assert all(name == "my_ta" or name.startswith("my_ta/") for name in names)
+        assert not any("/local/" in name or "/users/" in name for name in names)
+        assert "my_ta/metadata/local.meta" not in names
+        merged_props = archive.extractfile("my_ta/default/props.conf").read().decode()
+        assert "value = local" in merged_props
+        assert "[new]" in merged_props
+        assert "value = added" in merged_props
+        assert archive.extractfile(
+            "my_ta/default/data/ui/views/example.xml"
+        ).read().decode() == "<view/>\n"
+        assert "access = read : [*]" in archive.extractfile(
+            "my_ta/metadata/default.meta"
+        ).read().decode()
 
 
 # Tagging sets Azure Pipelines variables after pushing the version tag.

@@ -34,17 +34,20 @@ To download a release:
 ## Review the production diff
 
 Before merging a pull request, open its validation run and download
-**Artifacts** → `prod-diff-<attempt>`. It holds two files:
+**Artifacts** → `prod-diff-<attempt>`. It holds three files:
 
 - `<app-id>-summary.md` lists the changes in sections:
-  - **Deployed changes:** files the deploy adds, changes, or removes.
+  - **Deployed changes:** files under `default/` and
+    `metadata/default.meta` that the deploy adds, changes, or removes.
   - **Target local files:** files in production `local/` and
     `metadata/local.meta`. They stay after a deploy, override the deployed
     defaults, and are not backed up.
-  - **Source local files:** files in the package `local/`. They are not
-    deployed.
+  - **Source local files:** files in the package `local/`, if present.
   - **User files:** files under `users/` on each side.
-- `<app-id>.patch` shows the line changes for the deployed files.
+- `<app-id>.patch` shows line changes only under `default/` and
+  `metadata/default.meta`.
+- `<app-id>-merged.tar.gz` contains the merged target app without `local/`,
+  `metadata/local.meta`, or `users/`.
 
 ## Compare nonprod with prod
 
