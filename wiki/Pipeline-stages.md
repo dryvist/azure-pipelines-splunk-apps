@@ -1,5 +1,7 @@
 # Pipeline stages
 
+[[_TOC_]]
+
 ## build
 
 - **When:** Pull request validation and runs triggered by commits to `main`.

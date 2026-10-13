@@ -1,5 +1,7 @@
 # Troubleshooting
 
+[[_TOC_]]
+
 | Symptom | Fix |
 | --- | --- |
 | Version mismatch | Match `[id]` and `[launcher]` in `app.conf`. |

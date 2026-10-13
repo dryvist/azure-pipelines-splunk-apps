@@ -1,5 +1,7 @@
 # How it works
 
+[[_TOC_]]
+
 ## The two repositories
 
 Each app repo contains the app under `package/` and an
