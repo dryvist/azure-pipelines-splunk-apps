@@ -1,0 +1,254 @@
+"""Tests for splunk_release.acs."""
+
+from unittest import TestCase
+
+import _common
+import io
+import json
+import os
+import subprocess
+import sys
+import tarfile
+import tempfile
+from contextlib import redirect_stdout
+from pathlib import Path
+from unittest.mock import patch
+
+from splunk_release import acs
+
+
+def check_acs():
+    # ACS install downloads this platform's pinned archive, unpacks it, and rejects a bad checksum.
+    payload = io.BytesIO()
+    with tarfile.open(fileobj=payload, mode="w:gz") as archive:
+        info = tarfile.TarInfo("acs")
+        info.size = 7
+        archive.addfile(info, io.BytesIO(b"acs cli"))
+    for checksum in ("9450ee04be42c633af4b0db932d28139232815704bc4410c0908ea8ee38a8e49", "bad"):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = io.StringIO()
+            with (
+                patch.dict(os.environ, {"AGENT_TEMPDIRECTORY": tmp}),
+                patch("splunk_release.acs.os.name", "posix"),
+                patch("splunk_release.acs.run", side_effect=lambda cmd, **_: Path(cmd[-2]).write_bytes(payload.getvalue())) as curl,
+                patch("splunk_release.acs.hashlib.sha256") as sha256,
+                redirect_stdout(output),
+            ):
+                sha256.return_value.hexdigest.return_value = checksum
+                try:
+                    acs.install_acs()
+                except SystemExit as error:
+                    assert checksum == "bad" and "checksum mismatch" in str(error)
+                else:
+                    assert checksum != "bad"
+                    assert curl.call_args.args[0][-1].endswith("/v2.26.0/acs_v2.26.0_linux_amd64.tar.gz")
+                    assert Path(tmp, "acs").read_bytes() == b"acs cli"
+                    assert f"##vso[task.prependpath]{tmp}" in output.getvalue()
+
+    # ACS sessions and status use the shared command wrapper.
+    for search_head in (None, "", "premium-sh", "$(SPLUNK_SEARCH_HEAD)"):
+        variables = {"SPLUNK_STACK": "example-stack"}
+        if search_head is not None:
+            variables["SPLUNK_SEARCH_HEAD"] = search_head
+        with (
+            patch.dict(os.environ, variables, clear=True),
+            patch("splunk_release.acs.run") as run,
+            redirect_stdout(io.StringIO()),
+        ):
+            run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+            with acs.acs_session():
+                pass
+        commands = [call.args[0] for call in run.call_args_list]
+        target = ["--target-sh=premium-sh"] if search_head == "premium-sh" else []
+        assert commands == [
+            ["acs", "config", "add-stack", "example-stack", "--use", *target],
+            ["acs", "login"],
+        ]
+        assert all(call.kwargs["check"] for call in run.call_args_list)
+
+    with (
+        patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
+        patch("splunk_release.acs.acs_session") as session,
+        patch("splunk_release.acs.run") as run,
+    ):
+        session.return_value.__enter__.return_value = {}
+        run.return_value = subprocess.CompletedProcess(
+            ["acs"], 0, stdout='{"Status":{"RestartRequired":true}}', stderr=""
+        )
+        output = io.StringIO()
+        with redirect_stdout(output):
+            acs.status()
+        assert run.call_args.args[0] == ["acs", "status", "current-stack", "-f", "structured"]
+        assert "##[warning]Restart required on stack" in output.getvalue()
+        assert "##[group]acs status current-stack -f structured" in output.getvalue()
+        assert "##[endgroup]" in output.getvalue()
+
+    # Restart polls restartRequired every 30 seconds until it clears.
+    with (
+        patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
+        patch("splunk_release.acs.acs_session") as session,
+        patch("splunk_release.acs.run") as run,
+    ):
+        session.return_value.__enter__.return_value = {}
+        run.side_effect = [
+            subprocess.CompletedProcess(["acs"], 0, stdout="", stderr=""),
+            subprocess.CompletedProcess(["acs"], 0, stdout='{"restartRequired":true}', stderr=""),
+            subprocess.CompletedProcess(["acs"], 0, stdout='{"restartRequired":false}', stderr=""),
+        ]
+        now = [0]
+        with patch("splunk_release.acs.time.monotonic", side_effect=lambda: now[0]), patch(
+            "splunk_release.acs.time.sleep", side_effect=lambda seconds: now.__setitem__(0, now[0] + seconds)
+        ), redirect_stdout(io.StringIO()):
+            acs.restart()
+        assert [call.args[0] for call in run.call_args_list] == [
+            ["acs", "restart", "current-stack"],
+            ["acs", "status", "current-stack", "-f", "structured"],
+            ["acs", "status", "current-stack", "-f", "structured"],
+        ]
+        assert now == [30]
+
+    # The package filename supplies the app id and version for install and polling.
+    with tempfile.TemporaryDirectory() as tmp:
+        package_dir = Path(tmp, "my-app")
+        package_dir.mkdir()
+        (package_dir / "my-app-1.4.10.tar.gz").write_bytes(b"package")
+        assert acs.package_identity(package_dir)[1:] == ("my-app", "1.4.10")
+        with (
+            patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
+            patch("splunk_release.acs.run") as run,
+            redirect_stdout(io.StringIO()),
+        ):
+            run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+            acs.deploy(package_dir)
+        assert run.call_args.args[0][-2:] == ["--app-package", str(package_dir / "my-app-1.4.10.tar.gz")]
+
+        with (
+            patch("splunk_release.acs.acs_session") as session,
+            patch("splunk_release.acs.run") as run,
+        ):
+            session.return_value.__enter__.return_value = {}
+            run.side_effect = [
+                subprocess.CompletedProcess([], 0, stdout="version 1.4.9", stderr=""),
+                subprocess.CompletedProcess([], 0, stdout="version 1.4.10", stderr=""),
+            ]
+            now, sleeps = [0], []
+            def wait(seconds):
+                sleeps.append(seconds)
+                now[0] += seconds
+            with patch("splunk_release.acs.time.monotonic", side_effect=lambda: now[0]), patch(
+                "splunk_release.acs.time.sleep", side_effect=wait
+            ), redirect_stdout(io.StringIO()):
+                acs.wait_version(package_dir)
+            assert run.call_count == 2 and sleeps == [3]
+
+        with (
+            patch("splunk_release.acs.acs_session") as session,
+            patch("splunk_release.acs.run") as run,
+            patch("splunk_release.acs.time.sleep", side_effect=lambda seconds: now.__setitem__(0, now[0] + seconds)),
+            patch("splunk_release.acs.time.monotonic", side_effect=lambda: now[0]),
+            redirect_stdout(io.StringIO()),
+        ):
+            session.return_value.__enter__.return_value = {}
+            run.return_value = subprocess.CompletedProcess([], 0, stdout="version 1.4.9", stderr="")
+            now[0] = 0
+            try:
+                acs.wait_version(package_dir)
+            except SystemExit as error:
+                assert error.code == 1
+            else:
+                raise AssertionError("version wait should time out")
+            assert now == [300]
+
+    # Custom export pages in blocks of 100 and excludes Splunkbase names.
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp, "exports")
+        pages = []
+
+        def fake_acs(command, **kwargs):
+            if command[1:3] == ["apps", "list"]:
+                offset = int(command[command.index("--offset") + 1])
+                splunkbase = "--splunkbase=true" in command
+                pages.append((splunkbase, offset))
+                rows = [{"name": "base_app"}] if splunkbase else (
+                    [{"name": f"custom_{i}"} for i in range(100)] if offset == 0
+                    else [{"name": "base_app"}]
+                )
+                return subprocess.CompletedProcess(command, 0, json.dumps({"apps": rows}), "")
+            if command[1:3] == ["apps", "export"]:
+                app = json.loads(Path(command[3].split("=", 1)[1]).read_text())["Apps"][0]
+                destination = Path(command[-1].split("=", 1)[1])
+                (destination / f"{app}.tar.gz").write_bytes(b"export")
+            return subprocess.CompletedProcess(command, 0, "", "")
+
+        with patch("splunk_release.acs.acs_session") as session, patch("splunk_release.acs.run", side_effect=fake_acs), redirect_stdout(io.StringIO()):
+            session.return_value.__enter__.return_value = {}
+            acs.export(out, "--custom")
+        assert pages == [(False, 0), (False, 100), (True, 0)]
+        assert len(list(out.glob("*.tgz"))) == 100
+
+    with tempfile.TemporaryDirectory() as tmp:
+        raw = '{"items":[]}'
+        output = io.StringIO()
+        with patch("splunk_release.acs.acs_session") as session, patch(
+            "splunk_release.acs.run", return_value=subprocess.CompletedProcess([], 0, raw, "")
+        ), redirect_stdout(output):
+            session.return_value.__enter__.return_value = {}
+            try:
+                acs.export(Path(tmp), "--custom")
+            except SystemExit as error:
+                assert error.code == 1
+            else:
+                raise AssertionError("missing apps field should fail")
+        assert raw in output.getvalue()
+
+    # Package-directory export sets the Azure app id from the archive name.
+    with tempfile.TemporaryDirectory() as tmp:
+        package_dir = Path(tmp, "packages")
+        package_dir.mkdir()
+        (package_dir / "my-app-1.4.10.tar.gz").write_bytes(b"package")
+        output = io.StringIO()
+
+        def fake_export(command, **kwargs):
+            if command[1:3] == ["apps", "export"]:
+                app = json.loads(Path(command[3].split("=", 1)[1]).read_text())["Apps"][0]
+                destination = Path(command[-1].split("=", 1)[1])
+                (destination / f"{app}.tar.gz").write_bytes(b"export")
+            return subprocess.CompletedProcess(command, 0, "", "")
+
+        with patch("splunk_release.acs.acs_session") as session, patch(
+            "splunk_release.acs.run", side_effect=fake_export
+        ), redirect_stdout(output):
+            session.return_value.__enter__.return_value = {}
+            acs.export(Path(tmp, "export"), package_dir)
+        assert Path(tmp, "export", "my-app", "my-app.tgz").exists()
+        assert "##vso[task.setvariable variable=APP_ID]my-app" in output.getvalue()
+
+    # The smoke result command passes only when all three jobs succeeded.
+    result_script = Path(__file__).resolve().parents[1] / "smoke-test" / "smoke_test.py"
+    passed = subprocess.run(
+        [sys.executable, str(result_script), "result", "Succeeded", "Succeeded", "Succeeded"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert passed.returncode == 0
+    assert "RESULT: ALL PASS" in passed.stdout
+    failed = subprocess.run(
+        [sys.executable, str(result_script), "result", "Succeeded", "Failed", "Succeeded"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert failed.returncode == 1
+    assert "RESULT: ALL PASS" not in failed.stdout
+    assert "RESULT: FAILED - open each failed job for its FAIL or Error line" in failed.stdout
+
+
+class AcsTests(TestCase):
+    def test_acs(self):
+        check_acs()
+
+
+if __name__ == "__main__":
+    check_acs()
+    print("ok")

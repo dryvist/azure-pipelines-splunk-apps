@@ -24,7 +24,7 @@ ACS tokens before the first app pipeline run.
 From the repository root, run:
 
 ```sh
-python test_release.py
+python -m unittest discover -s tests -p "test_*.py"
 ```
 
 ## Documentation
