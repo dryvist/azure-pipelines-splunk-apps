@@ -48,7 +48,7 @@ trust. `curl` uses the operating system certificate store.
 **Fix:**
 
 1. Add the HTTPS inspection root certificate to the agent OS trust store.
-2. Rerun **Install ACS CLI 2.26.0**.
+2. Rerun **Set up ACS CLI 2.26.0**.
 
 **Docs:** [Agents](https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/agents).
 

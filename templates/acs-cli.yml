@@ -5,6 +5,8 @@ parameters:
 
 steps:
   - script: python ${{ parameters.releaseScript }} install-acs
-    displayName: Install ACS CLI 2.26.0
-  - script: python -c "import subprocess; subprocess.run(['acs', 'version'], check=True)"
-    displayName: ACS CLI version
+    displayName: Set up ACS CLI 2.26.0 for $(SPLUNK_STACK)
+    env:
+      SPLUNK_STACK: $(SPLUNK_STACK)
+      SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
+      STACK_TOKEN: $(ACS_TOKEN)
