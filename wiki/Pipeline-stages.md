@@ -9,9 +9,12 @@ and environments.
 
 - **When:** Pull request validation and runs triggered by commits to `main`.
 - **Needs:** The app repo, shared tools repo, Python 3.13, and
-  `splunk-packaging-toolkit`.
-- **Does:** On pull requests, bumps matching app versions and regenerates
-  `app.manifest` when the target version has not changed. Then packages the app.
+  `splunk-packaging-toolkit` and `ksconf`.
+- **Does:** Prints which stages run and why. Sorts every `.conf` file with
+  `ksconf sort`: stanzas and keys in order, one blank line between stanzas. On
+  pull requests, commits the sorted files, bumps matching app versions and
+  regenerates `app.manifest` when the target version has not changed. Then
+  packages the app.
 - **Leaves:** The `dist` artifact with `<app-id>-<version>.tar.gz`, under
   **Artifacts** in the pipeline run.
 
@@ -30,15 +33,18 @@ and environments.
 - **When:** After `appinspect` succeeds on a pull request.
 - **Needs:** The `dist` artifact, `splunk-appinspect` and
   `splunk-nonprod` variable groups, and the `splunk-nonprod` environment.
-- **Does:** Installs the package on the configured stack through ACS.
-- **Leaves:** No pipeline artifact. Deployment output is in the run logs.
+- **Does:** Exports the installed app, compares it with the package as in
+  `proddiff`, then installs the package on the configured stack through ACS.
+- **Leaves:** The `nonprod-diff-<attempt>` artifact, with the same files as
+  `prod-diff-<attempt>`.
 
 ## proddiff
 
 - **When:** After the pull request's `nonprod` stage succeeds.
 - **Needs:** The `dist` artifact and the `splunk-prod` variable group.
 - **Does:** Exports the installed production app through the ACS CLI, then
-  promotes local configuration into default files and compares only
+  promotes local configuration into default files, sorts them with
+  `ksconf sort`, and compares only
   `default/` and `metadata/default.meta` with the package. If the app is not
   in production, the summary lists each package default file and
   `metadata/default.meta` as added.
@@ -62,6 +68,7 @@ and environments.
   `true`.
 - **Needs:** The `dist` artifact, `splunk-appinspect` and `splunk-prod`
   variable groups, and the `splunk-prod` environment.
-- **Does:** Installs the package on the configured production stack through
-  ACS.
-- **Leaves:** No pipeline artifact. Deployment output is in the run logs.
+- **Does:** Exports the installed app, compares it with the package as in
+  `proddiff`, then installs the package on the configured production stack
+  through ACS.
+- **Leaves:** The `prod-diff-<attempt>` artifact from this stage.

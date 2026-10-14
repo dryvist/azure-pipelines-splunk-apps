@@ -1,0 +1,35 @@
+# Export the app from the target environment, compare it with the package, then install the package.
+parameters:
+  - name: environment
+    type: string
+  - name: setup
+    type: stepList
+    default: []
+
+steps:
+  - checkout: self
+    path: app
+  - ${{ parameters.setup }}
+  - download: current
+    artifact: dist
+  - template: acs-cli.yml
+  - script: python -m pip install --quiet ksconf==0.13.10 splunk-sdk==2.1.0
+    displayName: Install diff dependencies
+  - script: python ../tools/release.py export $(Pipeline.Workspace)/${{ parameters.environment }}-export
+    workingDirectory: $(Pipeline.Workspace)/app
+    displayName: Export the app from ${{ parameters.environment }} via ACS
+    env:
+      SPLUNK_STACK: $(SPLUNK_STACK)
+      STACK_TOKEN: $(ACS_TOKEN)
+  - script: python $(Pipeline.Workspace)/tools/release.py diff $(Pipeline.Workspace)/${{ parameters.environment }}-export $(Pipeline.Workspace)/dist $(Pipeline.Workspace)/${{ parameters.environment }}-diff
+    displayName: Compare ${{ parameters.environment }} with this package
+  # Each job attempt publishes its own artifact.
+  - publish: $(Pipeline.Workspace)/${{ parameters.environment }}-diff
+    artifact: ${{ parameters.environment }}-diff-$(System.JobAttempt)
+  - script: python $(Pipeline.Workspace)/tools/release.py deploy $(Pipeline.Workspace)/dist
+    displayName: Deploy to ${{ parameters.environment }} via ACS
+    env:
+      SPLUNK_USERNAME: $(SPLUNK_USERNAME)
+      SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
+      SPLUNK_STACK: $(SPLUNK_STACK)
+      STACK_TOKEN: $(ACS_TOKEN)

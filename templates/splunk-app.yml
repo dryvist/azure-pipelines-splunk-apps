@@ -28,8 +28,12 @@ stages:
             path: app
             persistCredentials: true
           - ${{ parameters.setup }}
-          - script: python -m pip install --quiet splunk-packaging-toolkit
-            displayName: Install slim
+          - script: python $(Pipeline.Workspace)/tools/release.py plan
+            displayName: Show stage plan
+            env:
+              DEPLOY_PROD: ${{ parameters.prod }}
+          - script: python -m pip install --quiet splunk-packaging-toolkit ksconf==0.13.10 splunk-sdk==2.1.0
+            displayName: Install slim and ksconf
           - script: python ../tools/release.py bump
             workingDirectory: $(Pipeline.Workspace)/app
             displayName: Bump PR version and manifest
@@ -91,17 +95,10 @@ stages:
           runOnce:
             deploy:
               steps:
-                - ${{ parameters.setup }}
-                - download: current
-                  artifact: dist
-                - template: acs-cli.yml
-                - script: python $(Pipeline.Workspace)/tools/release.py deploy $(Pipeline.Workspace)/dist
-                  displayName: Deploy to nonprod via ACS
-                  env:
-                    SPLUNK_USERNAME: $(SPLUNK_USERNAME)
-                    SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
-                    SPLUNK_STACK: $(SPLUNK_STACK)
-                    STACK_TOKEN: $(ACS_TOKEN)
+                - template: deploy.yml
+                  parameters:
+                    environment: nonprod
+                    setup: ${{ parameters.setup }}
 
   - stage: proddiff
     dependsOn: nonprod
@@ -171,14 +168,7 @@ stages:
               runOnce:
                 deploy:
                   steps:
-                    - ${{ parameters.setup }}
-                    - download: current
-                      artifact: dist
-                    - template: acs-cli.yml
-                    - script: python $(Pipeline.Workspace)/tools/release.py deploy $(Pipeline.Workspace)/dist
-                      displayName: Deploy to prod via ACS
-                      env:
-                        SPLUNK_USERNAME: $(SPLUNK_USERNAME)
-                        SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
-                        SPLUNK_STACK: $(SPLUNK_STACK)
-                        STACK_TOKEN: $(ACS_TOKEN)
+                    - template: deploy.yml
+                      parameters:
+                        environment: prod
+                        setup: ${{ parameters.setup }}

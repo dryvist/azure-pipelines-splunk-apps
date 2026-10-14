@@ -201,7 +201,7 @@ with tempfile.TemporaryDirectory() as tmp:
     ]
     assert (out / "my_ta.tgz").read_bytes() == b"export"
     assert not (out / "missing_ta.tgz").exists()
-    assert output.getvalue().endswith("NOT INSTALLED missing_ta\n")
+    assert output.getvalue().endswith("##[warning]NOT INSTALLED missing_ta\n")
     assert not input_file.exists()
 
 
@@ -275,7 +275,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert "metadata/local.meta" in summary
     assert "local/data/ui/views/example.xml" in summary
     assert "users/admin/local/savedsearches.conf" in summary
-    assert output.getvalue() == summary
+    assert output.getvalue().endswith(summary)
     merged_path = out / "my_ta-merged.tar.gz"
     assert merged_path.exists()
     with tarfile.open(merged_path, "r:gz") as archive:
@@ -337,5 +337,25 @@ with tempfile.TemporaryDirectory() as tmp:
         "##vso[task.setvariable variable=APP_ID]my_ta",
         "##vso[task.setvariable variable=APP_VERSION]1.4.9",
     ]
+
+# Sorting orders stanzas and keys with one blank line between stanzas.
+with tempfile.TemporaryDirectory() as tmp:
+    conf = Path(tmp, "default", "props.conf")
+    conf.parent.mkdir()
+    conf.write_text("[zeta]\nb = 2\na = 1\n\n\n[alpha]\nx = 8\n")
+    with redirect_stdout(io.StringIO()):
+        release.sort_confs(tmp)
+    assert conf.read_text() == "[alpha]\nx = 8\n\n[zeta]\na = 1\nb = 2\n"
+
+# The stage plan marks deploy stages for pull request and main runs.
+for env, runs in (
+    ({"BUILD_REASON": "PullRequest", "BUILD_SOURCEBRANCH": "refs/heads/feature"}, {"nonprod", "proddiff"}),
+    ({"BUILD_REASON": "IndividualCI", "BUILD_SOURCEBRANCH": "refs/heads/main", "DEPLOY_PROD": "True"}, {"release", "prod"}),
+):
+    output = io.StringIO()
+    with patch.dict(os.environ, env, clear=True), redirect_stdout(output):
+        release.plan()
+    shown = {line.split()[0] for line in output.getvalue().splitlines() if " RUNS " in line}
+    assert shown == {"build", "appinspect"} | runs
 
 print("ok")
