@@ -1,10 +1,21 @@
-# Manual run: export the listed apps from nonprod and prod, then report every
-# change a deploy from nonprod to prod would make.
+# Manually export apps from one environment and compare them with another.
 trigger: none
 pr: none
 
 parameters:
+  - name: source
+    type: string
+    default: nonprod
+    values:
+      - nonprod
+      - prod
   - name: target
+    type: string
+    default: prod
+    values:
+      - nonprod
+      - prod
+  - name: groupPrefix
     type: string
     default: splunk
     values:
@@ -13,34 +24,71 @@ parameters:
   - name: apps
     type: string
     displayName: App IDs, separated by spaces
+    default: ''
 
 jobs:
-  - ${{ each env in split('nonprod,prod', ',') }}:
-      - job: ${{ env }}
-        workspace:
-          clean: all
-        variables:
-          - group: ${{ parameters.target }}-${{ env }}
-        steps:
-          - task: UsePythonVersion@0
-            inputs:
-              versionSpec: "3.13"
-          - template: ../templates/acs-cli.yml
-            parameters:
-              releaseScript: $(Build.SourcesDirectory)/release.py
-          - script: python release.py export $(Pipeline.Workspace)/${{ env }}-export ${{ parameters.apps }}
-            displayName: Export apps from ${{ env }} via ACS
+  - job: source
+    workspace:
+      clean: all
+    variables:
+      - group: ${{ parameters.groupPrefix }}-${{ parameters.source }}
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.13"
+      - template: ../templates/acs-cli.yml
+        parameters:
+          releaseScript: $(Build.SourcesDirectory)/release.py
+      - ${{ if eq(parameters.apps, '') }}:
+          - script: python release.py export $(Pipeline.Workspace)/${{ parameters.source }}-export --custom
+            displayName: Export all custom apps from ${{ parameters.source }}
             env:
               SPLUNK_STACK: $(SPLUNK_STACK)
               SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
               STACK_TOKEN: $(ACS_TOKEN)
-          - publish: $(Pipeline.Workspace)/${{ env }}-export
-            artifact: ${{ env }}-export
+      - ${{ if ne(parameters.apps, '') }}:
+          - script: python release.py export $(Pipeline.Workspace)/${{ parameters.source }}-export ${{ parameters.apps }}
+            displayName: Export selected apps from ${{ parameters.source }}
+            env:
+              SPLUNK_STACK: $(SPLUNK_STACK)
+              SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
+              STACK_TOKEN: $(ACS_TOKEN)
+      - publish: $(Pipeline.Workspace)/${{ parameters.source }}-export
+        artifact: ${{ parameters.source }}-export
+
+  - job: target
+    workspace:
+      clean: all
+    variables:
+      - group: ${{ parameters.groupPrefix }}-${{ parameters.target }}
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.13"
+      - template: ../templates/acs-cli.yml
+        parameters:
+          releaseScript: $(Build.SourcesDirectory)/release.py
+      - ${{ if eq(parameters.apps, '') }}:
+          - script: python release.py export $(Pipeline.Workspace)/${{ parameters.target }}-export --custom
+            displayName: Export all custom apps from ${{ parameters.target }}
+            env:
+              SPLUNK_STACK: $(SPLUNK_STACK)
+              SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
+              STACK_TOKEN: $(ACS_TOKEN)
+      - ${{ if ne(parameters.apps, '') }}:
+          - script: python release.py export $(Pipeline.Workspace)/${{ parameters.target }}-export ${{ parameters.apps }}
+            displayName: Export selected apps from ${{ parameters.target }}
+            env:
+              SPLUNK_STACK: $(SPLUNK_STACK)
+              SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
+              STACK_TOKEN: $(ACS_TOKEN)
+      - publish: $(Pipeline.Workspace)/${{ parameters.target }}-export
+        artifact: ${{ parameters.target }}-export
 
   - job: compare
     workspace:
       clean: all
-    dependsOn: [nonprod, prod]
+    dependsOn: [source, target]
     steps:
       - task: UsePythonVersion@0
         inputs:
@@ -48,7 +96,7 @@ jobs:
       - download: current
       - script: python -m pip install --quiet ksconf==0.13.10 splunk-sdk==2.1.0
         displayName: Install diff dependencies
-      - script: python release.py diff $(Pipeline.Workspace)/prod-export $(Pipeline.Workspace)/nonprod-export $(Pipeline.Workspace)/compare
-        displayName: Compare prod with nonprod
+      - script: python release.py diff $(Pipeline.Workspace)/${{ parameters.target }}-export $(Pipeline.Workspace)/${{ parameters.source }}-export $(Pipeline.Workspace)/compare
+        displayName: Compare ${{ parameters.target }} with ${{ parameters.source }}
       - publish: $(Pipeline.Workspace)/compare
         artifact: compare

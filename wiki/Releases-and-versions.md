@@ -33,11 +33,16 @@ To download a release:
 1. Open **Artifacts → splunk-apps**.
 2. Select the app id and version.
 
+To install a feed package, run the manual deploy pipeline and select the
+environment and app ids. Production approvals apply through `splunk-prod`.
+
 ## Review the production diff
 
 Before merging a pull request, open its validation run and download
-**Artifacts** → `prod-diff-<attempt>`. It holds four files:
+**Artifacts** → `prod-diff-<attempt>`. It holds five files:
 
+- `<app-id>-diff.html` shows a folder tree and side-by-side tables for each
+  changed deployed file. It also includes the local-versus-default report.
 - `<app-id>-summary.md` lists the changes in sections:
   - **Deployed changes:** files under `default/` and
     `metadata/default.meta` that the deploy adds, changes, or removes.
@@ -52,9 +57,11 @@ Before merging a pull request, open its validation run and download
   matching stanzas in the package defaults.
 - `<app-id>-merged.tar.gz` contains the merged target app without `local/`,
   `metadata/local.meta`, or `users/`.
+- The same summary is added to the run summary tab.
 
-## Compare nonprod with prod
+## Compare environments
 
-Run the `compare-nonprod-prod` pipeline with a list of app ids. It exports
-each app from both stacks and writes the same summary and patch per app to
-the `compare` artifact. Production is the target; nonprod is the source.
+Run the `compare-environments` pipeline and select source and target as
+`nonprod` or `prod`. Leave the app list empty to export all custom apps, or
+enter app ids. The `compare` artifact contains the HTML report, summary,
+patch, local-versus-default report, and merged archive for each app.

@@ -5,7 +5,10 @@ release.py bump                         update app.conf and app.manifest, then p
 release.py package                      stage package/ and write dist/<app-id>-<version>.tar.gz
 release.py appinspect <dir>             submit the package in <dir> to AppInspect
 release.py deploy <dir>                 install the single .tar.gz in <dir> with the ACS CLI
-release.py export <out-dir> [app-id...] export default, local, and users data for each app (default: this app) as <app-id>.tgz
+release.py status                       report current-stack status and pending restart
+release.py wait-version <dir>           wait until ACS reports the packaged app version
+release.py restart                      restart current-stack and wait for completion
+release.py export <out-dir> [app-id...] export app data, custom apps (--custom), or a package directory
 release.py diff <target> <source> <out> merge local, compare defaults, write artifacts
 release.py install-acs                  download, verify, and add the ACS CLI for this agent to PATH
 release.py appinspect-link              print the link to this build's published artifacts
@@ -21,6 +24,7 @@ import configparser
 import difflib
 import filecmp
 import hashlib
+import html
 import json
 import os
 import re
@@ -143,19 +147,17 @@ def plan():
     """Print which stages this run executes and the rule behind each."""
     reason = os.environ.get("BUILD_REASON", "")
     branch = os.environ.get("BUILD_SOURCEBRANCH", "")
-    prod = os.environ.get("DEPLOY_PROD", "").lower() == "true"
     pull_request, main = reason == "PullRequest", branch == "refs/heads/main"
+    compare = pull_request or main
     print("##[section]Stage plan")
     print(f"Build.Reason = {reason}")
     print(f"Build.SourceBranch = {branch}")
-    print(f"prod parameter = {prod}")
     for stage, runs, rule in (
         ("build", True, "every run"),
         ("appinspect", True, "every run, after build"),
-        ("nonprod", pull_request, "Build.Reason is PullRequest"),
-        ("proddiff", pull_request, "Build.Reason is PullRequest"),
-        ("release", main, "Build.SourceBranch is refs/heads/main"),
-        ("prod", main and prod, "Build.SourceBranch is refs/heads/main and prod is true"),
+        ("nonprod", compare, "pull request or refs/heads/main"),
+        ("proddiff", compare, "pull request or refs/heads/main"),
+        ("release", main, "refs/heads/main, after proddiff"),
     ):
         print(f"{stage:<11} {'RUNS' if runs else 'SKIPPED':<8} runs when {rule}")
 
@@ -315,7 +317,7 @@ def save_appinspect_report(artifact_dir, html, report):
 
 
 def appinspect(artifact_dir):
-    (pkg,) = Path(artifact_dir).glob("*.tar.gz")
+    pkg, _, _ = package_identity(artifact_dir)
     auth = {"Authorization": f"Bearer {appinspect_token()}"}
     content_type, body = multipart(pkg)
     response = json.loads(
@@ -368,6 +370,17 @@ def configured_value(name):
     return value if value and not value.startswith("$(") else None
 
 
+def acs(env, *args):  # run an ACS CLI command, print its output in a ##[group], return stdout
+    print(f"##[group]acs {' '.join(args)}")
+    try:
+        result = run(["acs", *args], capture_output=True, text=True, check=True, env=env)
+    finally:
+        result = locals().get("result", sys.exc_info()[1])
+        print(getattr(result, "stdout", "") or "", getattr(result, "stderr", "") or "", sep="\n")
+        print("##[endgroup]")
+    return result.stdout
+
+
 @contextmanager
 def acs_session():
     """Select the configured stack and search head, then log in with STACK_TOKEN."""
@@ -377,39 +390,114 @@ def acs_session():
         env = {**os.environ, "HOME": home, "USERPROFILE": home}
         print(f"##[section]ACS stack {stack}, search head {search_head or 'not set (all search heads)'}")
         target = [f"--target-sh={search_head}"] if search_head else []
-        run(["acs", "config", "add-stack", stack, "--use", *target], check=True, env=env)
-        run(["acs", "login"], check=True, env=env)
+        acs(env, "config", "add-stack", stack, "--use", *target)
+        acs(env, "login")
         yield env
 
 
-def deploy(artifact_dir):
-    (pkg,) = Path(artifact_dir).glob("*.tar.gz")
-    print(f"##[section]Installing {pkg.name} as a private app")
+def restart_required(env):
+    # shortcut: matches the documented restartRequired field; parse JSON if ACS changes format
+    return bool(re.search(r'"restartRequired"\s*:\s*true', acs(env, "status", "current-stack", "-f", "structured"), re.I))
+
+
+def status():
     with acs_session() as env:
-        run(
-            ["acs", "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(pkg)],
-            check=True, env=env,
-        )
+        if restart_required(env):
+            print(f"##[warning]Restart required on {os.environ['SPLUNK_STACK']}")
+
+
+def package_identity(directory):
+    packages = list(Path(directory).glob("*.tar.gz"))
+    if len(packages) != 1:
+        sys.exit(f"Expected one .tar.gz package in {directory}, found {len(packages)}")
+    package = packages[0]
+    app, _, version = package.name.removesuffix(".tar.gz").rpartition("-")
+    if not app or not version:
+        sys.exit(f"Expected <app-id>-<version>.tar.gz package name, found {package.name}")
+    return package, app, version
+
+
+def wait_version(directory):
+    _, app, version = package_identity(directory)
+    deadline = time.monotonic() + 300
+    with acs_session() as env:
+        while time.monotonic() < deadline:
+            if version in acs(env, "apps", "describe", app):
+                return
+            time.sleep(min(3, max(0, deadline - time.monotonic())))
+    print(f"##[error]Timed out after 300 seconds waiting for {app} version {version}")
+    raise SystemExit(1)
+
+
+def restart():
+    with acs_session() as env:
+        acs(env, "restart", "current-stack")
+        deadline = time.monotonic() + 30 * 60
+        while time.monotonic() < deadline:
+            if not restart_required(env):
+                return
+            time.sleep(min(30, max(0, deadline - time.monotonic())))
+    print("##[error]Timed out after 30 minutes waiting for restart completion")
+    raise SystemExit(1)
+
+
+def deploy(directory):
+    package, app, version = package_identity(directory)
+    print(f"##[section]Installing {app} {version} as a private app")
+    with acs_session() as env:
+        acs(env, "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(package))
+
+
+def listed_apps(env, splunkbase=False):
+    apps, offset = [], 0
+    while True:
+        args = ["apps", "list", "--count", "100", "--offset", str(offset)]
+        if splunkbase:
+            args.append("--splunkbase=true")
+        raw = acs(env, *args, "-f", "structured")
+        try:
+            rows = json.loads(raw)["apps"]
+            if not isinstance(rows, list):
+                raise TypeError
+        except (json.JSONDecodeError, KeyError, TypeError):
+            print(raw)
+            print("##[error]Missing apps in ACS output")
+            raise SystemExit(1)
+        apps.extend(item["name"] for item in rows)
+        if len(rows) < 100:
+            return apps
+        offset += 100
 
 
 def export(out_dir, *app_ids):
-    """Save each app as <out_dir>/<app-id>.tgz with default, local and users content."""
-    out = Path(out_dir)
+    package_dir = len(app_ids) == 1 and Path(app_ids[0]).is_dir()
+    custom = app_ids == ("--custom",)
+    out, apps = Path(out_dir), app_ids or [APP]
+    if package_dir:
+        _, app, _ = package_identity(app_ids[0])
+        apps = [app]
+        out /= app
+        print(f"##vso[task.setvariable variable=APP_ID]{app}")
+
     out.mkdir(parents=True, exist_ok=True)
     apps_file = out / "apps.json"
-    with acs_session() as env:
-        for app in app_ids or [APP]:
-            apps_file.write_text(json.dumps({"Apps": [app]}))
-            cmd = ["acs", "apps", "export", f"--file={apps_file}", "--default=true", "--local=true",
-                   "--users=true", "--confs-only=false", f"--export-dir={out}"]
-            print(f"##[section]Exporting {app} to {out}")
-            run(cmd, check=False, env=env)
-            exported = out / f"{app}.tar.gz"
-            if exported.exists():
-                exported.rename(out / f"{app}.tgz")
-            else:
-                print(f"##[warning]NOT INSTALLED {app}")
-    apps_file.unlink()
+    try:
+        with acs_session() as env:
+            if custom:
+                installed = listed_apps(env)
+                splunkbase = {app.casefold() for app in listed_apps(env, True)}
+                apps = sorted({app for app in installed if app.casefold() not in splunkbase})
+            for app in apps:
+                apps_file.write_text(json.dumps({"Apps": [app]}))
+                acs(env, "apps", "export", f"--file={apps_file}", "--default=true", "--local=true",
+                    "--users=true", "--confs-only=false", f"--export-dir={out}")
+                exported = out / f"{app}.tar.gz"
+                if exported.exists():
+                    exported.rename(out / f"{app}.tgz")
+                else:
+                    print(f"##[warning]NOT INSTALLED {app}")
+    finally:
+        apps_file.unlink(missing_ok=True)
 
 
 def archives(directory):
@@ -487,18 +575,43 @@ def listed(paths):
     return [f"- {p.as_posix()}" for p in sorted(paths)] or ["- None"]
 
 
-def summary(target, source, target_before, source_before):
+def deployed_changes(target, source):
     t, s = files(target), files(source)
     changes = []
     for p in sorted(p for p in t | s if deployed(p)):
         if p not in t:
-            changes.append(f"- Added: {p.as_posix()}")
+            status = "Added"
         elif p not in s:
-            changes.append(f"- Removed: {p.as_posix()}")
+            status = "Removed"
         elif not filecmp.cmp(target / p, source / p, shallow=False):
-            changes.append(f"- Changed: {p.as_posix()}")
+            status = "Changed"
+        else:
+            continue
+        changes.append((status, p))
+    return changes
+
+
+def change_tree(changes):
+    lines, folders = [], set()
+    for status, path in changes:
+        for depth in range(1, len(path.parts)):
+            folder = path.parts[:depth]
+            if folder not in folders:
+                lines.append("  " * (depth - 1) + f"{path.parts[depth - 1]}/")
+                folders.add(folder)
+        lines.append("  " * (len(path.parts) - 1) + f"{path.name} [{status.lower()}]")
+    return "\n".join(lines) or "No deployed file changes."
+
+
+def summary(target, source, target_before, source_before):
+    changes = deployed_changes(target, source)
+    deployed = [f"- {status}: {path.as_posix()}" for status, path in changes]
     return "\n".join([
-        "## Deployed changes", *(changes or ["- None"]),
+        "## Deployed change tree",
+        "```text",
+        change_tree(changes),
+        "```",
+        "## Deployed changes", *(deployed or ["- None"]),
         "## Target local files (kept, not backed up)",
         "These files stay on the target after a deploy, override the deployed defaults, and are not backed up.",
         *listed(p for p in target_before if p.parts[0] != "users" and kept(p)),
@@ -509,6 +622,45 @@ def summary(target, source, target_before, source_before):
         "Target:", *listed(p for p in target_before if p.parts[0] == "users"),
         "Source:", *listed(p for p in source_before if p.parts[0] == "users"),
     ]) + "\n"
+
+
+def write_html_diff(app, target, source, changes, local_text, out):
+    local = html.escape(local_text or "No local configuration files.\n")
+    tables = "".join(
+        f"<section><h2>{html.escape(path.as_posix())} ({status})</h2>"
+        + difflib.HtmlDiff().make_table(
+            (target / path).read_bytes().decode("utf-8", "replace").splitlines(True)
+            if (target / path).exists() else [],
+            (source / path).read_bytes().decode("utf-8", "replace").splitlines(True)
+            if (source / path).exists() else [],
+            fromdesc=html.escape(f"target/{path.as_posix()}"),
+            todesc=html.escape(f"source/{path.as_posix()}"),
+            context=True,
+            numlines=3,
+        ) + "</section>"
+        for status, path in changes
+    )
+    page = f'<!doctype html><html><head><meta charset="utf-8"><title>{html.escape(app)} diff</title>'
+    page += "<style>body{font-family:Arial;margin:2em}table.diff{border-collapse:collapse;width:100%}"
+    page += "td,th{padding:.2em;vertical-align:top}.diff_add{background:#cfc}"
+    page += ".diff_sub{background:#fcc}.diff_chg{background:#ffc}</style></head><body>"
+    page += f"<h1>{html.escape(app)} deployed diff</h1><pre>{html.escape(change_tree(changes))}</pre>"
+    page += tables or "<p>No deployed file changes.</p>"
+    page += f"<h2>Local vs default</h2><pre>{local}</pre></body></html>\n"
+    (out / f"{app}-diff.html").write_text(page, encoding="utf-8")
+
+
+def print_colored_patch(patch):
+    colors = {"+": "\033[32m", "-": "\033[31m", "@": "\033[36m"}
+    for line in patch.decode("utf-8", "replace").splitlines():
+        color = None
+        if line.startswith("@@"):
+            color = colors["@"]
+        elif line.startswith("+") and not line.startswith("+++"):
+            color = colors["+"]
+        elif line.startswith("-") and not line.startswith("---"):
+            color = colors["-"]
+        print(f"{color}{line}\033[0m" if color else line)
 
 
 def local_vs_default(target, source, work):
@@ -534,7 +686,7 @@ def local_vs_default(target, source, work):
 
 
 def diff(target_dir, source_dir, out_dir):
-    """Write each app's merged archive, deployed patch, and Markdown summary."""
+    """Write each app's merged archive, readable diffs, and Markdown summary."""
     targets, sources = archives(target_dir), archives(source_dir)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -552,9 +704,10 @@ def diff(target_dir, source_dir, out_dir):
             print(local_text or "No local configuration files.\n", end="")
             merge_local(target)
             merge_local(source)
+            changes = deployed_changes(target, source)
             text = summary(target, source, target_before, source_before)
-            merged_archive(app, target if app in targets else source,
-                           out / f"{app}-merged.tar.gz")
+            write_html_diff(app, target, source, changes, local_text, out)
+            merged_archive(app, target if app in targets else source, out / f"{app}-merged.tar.gz")
             for root in (target, source):
                 for p in files(root):
                     if not deployed(p):
@@ -568,8 +721,11 @@ def diff(target_dir, source_dir, out_dir):
                     new.read_bytes().splitlines(keepends=True) if new.exists() else [],
                     f"target/{path.as_posix()}".encode(), f"source/{path.as_posix()}".encode(),
                 ))
-        (out / f"{app}.patch").write_bytes(b"".join(patch))
+        patch_text = b"".join(patch)
+        (out / f"{app}.patch").write_bytes(patch_text)
         (out / f"{app}-summary.md").write_text(text, encoding="utf-8")
+        print_colored_patch(patch_text)
+        print(f"##vso[task.uploadsummary]{(out / f'{app}-summary.md').resolve()}")
         print(text, end="")
 
 
@@ -590,6 +746,9 @@ if __name__ == "__main__":
         "package": package,
         "appinspect": appinspect,
         "deploy": deploy,
+        "status": status,
+        "wait-version": wait_version,
+        "restart": restart,
         "plan": plan,
         "export": export,
         "diff": diff,

@@ -9,17 +9,17 @@ An app repo can override the `setup` and `pool` parameters.
 
 ## Main app pipeline
 
-The shared template has a `build` stage on every run and an `appinspect`
-stage after it. Pull request runs can continue through `nonprod` and
-`proddiff`. Runs from `refs/heads/main` can continue through `release` and,
-when the app repo sets `prod: true`, `prod`.
+The shared template has `build` and `appinspect` stages on every run. Pull
+request and `refs/heads/main` runs continue through `nonprod` and `proddiff`.
+Runs from `refs/heads/main` also continue through `release`. Production
+installation uses the separate manual deploy pipeline.
 
 ### Stage `build`
 
 - **Does:** Plans the run, sorts and packages the app, and bumps the version
   on a pull request when the target branch has not changed it.
-- **Inputs:** App repo, tools repo, Python 3.13, `prod` template parameter,
-  build reason and branch variables, `slim`, `ksconf`, and Splunk SDK packages.
+- **Inputs:** App repo, tools repo, Python 3.13, build reason and branch
+  variables, `slim`, `ksconf`, and Splunk SDK packages.
 - **Outputs:** `dist` pipeline artifact containing the app package.
 
 #### Job `build` in the build stage
@@ -27,7 +27,7 @@ when the app repo sets `prod: true`, `prod`.
 - **Does:** Runs on the selected `pool` and prepares the package for later
   stages.
 - **Inputs:** App repo; tools repo; `Build.Reason`, `Build.SourceBranch`, and
-  `prod`; default `setup` or the app repo override.
+  default `setup` or the app repo override.
 - **Outputs:** `dist` artifact and, for a successful pull request bump, a
   commit pushed to the pull request source branch.
 
@@ -42,7 +42,7 @@ Steps, in order:
 - **UsePythonVersion@0 (default `setup`):** Selects Python 3.13.
   **Inputs:** `versionSpec: 3.13`. **Outputs:** Python on `PATH`.
 - **Show stage plan:** Prints each stage and its run condition.
-  **Inputs:** Build reason, source branch, and `prod` parameter.
+  **Inputs:** Build reason and source branch.
   **Outputs:** Stage plan in the job log.
 - **Install slim and ksconf:** Installs the packaging, sorting, and SDK
   packages. **Inputs:** Python package index. **Outputs:** `slim`, `ksconf`,
@@ -102,7 +102,8 @@ Steps, in order:
 
 ### Stage `nonprod`
 
-- **Does:** Runs only after a successful AppInspect stage on a pull request.
+- **Does:** Runs after a successful AppInspect stage on a pull request or
+  `refs/heads/main` run.
 - **Inputs:** `dist`, `splunk-appinspect` and `splunk-nonprod` groups, and the
   `splunk-nonprod` environment.
 - **Outputs:** Nonprod diff artifact and app installation through ACS.
@@ -115,40 +116,34 @@ Steps, in order:
   setup, `SPLUNK_STACK`, `ACS_TOKEN`, and AppInspect username/password.
 - **Outputs:** `nonprod-diff-<attempt>` artifact and installed private app.
 
-Steps from `templates/deploy.yml`, in order:
+The deployment job installs Python, ACS CLI, and diff dependencies once, then
+downloads `dist`. `templates/deploy.yml` runs these steps for the package:
 
-- **Checkout app (`checkout: self`):** Gets the app repo at `app`.
-  **Inputs:** App repo revision. **Outputs:** App checkout.
-- **Checkout tools (`checkout: tools`, default `setup`):** Gets the shared
-  scripts. **Inputs:** `tools` repository resource. **Outputs:**
-  `$(Pipeline.Workspace)/tools` checkout.
-- **UsePythonVersion@0 (default `setup`):** Selects Python 3.13.
-  **Inputs:** `versionSpec: 3.13`. **Outputs:** Python on `PATH`.
-- **Download artifact (`download: current`, `dist`):** Gets the package.
-  **Inputs:** `dist` artifact. **Outputs:** `dist/` in the workspace.
-- **Install ACS CLI 2.26.0:** Downloads, verifies, and unpacks the CLI.
-  **Inputs:** Agent OS, `curl`, GitHub release file, and checksum.
-  **Outputs:** `acs` on `PATH`.
-- **ACS CLI version:** Prints the installed CLI version.
-  **Inputs:** `acs` on `PATH`. **Outputs:** Version in the log.
-- **Install diff dependencies:** Installs `ksconf` and Splunk SDK.
-  **Inputs:** Python package index. **Outputs:** Diff tools in Python.
-- **Export the app from nonprod via ACS:** Exports the configured app.
+- **Check stack status:** Reports current status and warns if restart is
+  required. **Inputs:** Nonprod ACS session.
+- **Export the app from nonprod via ACS:** Gets the app id from the package
+  filename and exports the installed app.
   **Inputs:** `SPLUNK_STACK` and mapped `ACS_TOKEN` as `STACK_TOKEN`.
   **Outputs:** `nonprod-export/`.
 - **Compare nonprod with this package:** Writes local, patch, summary, and
   merged archive reports. **Inputs:** Nonprod export and `dist` package.
   **Outputs:** `nonprod-diff/`.
-- **Publish artifact (`nonprod-diff-$(System.JobAttempt)`):** Publishes the
-  diff for this attempt. **Inputs:** `nonprod-diff/`. **Outputs:** Attempt-
-  named pipeline artifact.
+- **Publish artifact (`nonprod-diff-<app>-$(System.JobAttempt)`):** Publishes
+  this app's diff. **Inputs:** App diff directory. **Outputs:** Attempt-named
+  pipeline artifact.
 - **Deploy to nonprod via ACS:** Installs the package as a private app.
   **Inputs:** `dist`, `SPLUNK_USERNAME`, `SPLUNK_PASSWORD`, `SPLUNK_STACK`,
   and `ACS_TOKEN` mapped to `STACK_TOKEN`. **Outputs:** App install result.
+- **Wait for the deployed version:** Checks `acs apps describe` every three
+  seconds for up to 300 seconds. **Inputs:** Package version and ACS session.
+  **Outputs:** Confirmed app version or a timeout error.
+- **Check stack status after deploy:** Prints current stack status and warns
+  if a restart is required. **Inputs:** Nonprod ACS session.
 
 ### Stage `proddiff`
 
-- **Does:** Runs after `nonprod` succeeds on a pull request.
+- **Does:** Runs after `nonprod` succeeds on a pull request or
+  `refs/heads/main` run.
 - **Inputs:** `dist`, `splunk-prod`, tools repo, and Python setup.
 - **Outputs:** `prod-diff-<attempt>` artifact for review.
 
@@ -218,109 +213,55 @@ Steps, in order:
   Publishes the package. **Inputs:** `dist/`, `APP_ID`, `APP_VERSION`, and
   feed permissions. **Outputs:** Universal Package in the feed.
 
-### Stage `prod`
+## Manual deploy pipeline
 
-- **Does:** Exists only when `prod: true`, and runs after `release` succeeds.
-- **Inputs:** `dist`, `splunk-appinspect` and `splunk-prod` groups, and the
-  `splunk-prod` environment.
-- **Outputs:** `prod-diff-<attempt>` artifact and app installation through
-  ACS.
+The pipeline in `deploy/azure-pipelines.yml` accepts an environment and
+space-separated app ids. It uses the matching `splunk-<environment>` group
+and deployment environment, so configured approvals apply. For each app it
+downloads the latest package from `splunk-apps` and runs
+`templates/deploy.yml`. After all packages succeed, it restarts the stack and
+checks status.
 
-#### Deployment job `deploy` in the prod stage
+The deploy job checks out the tools repo, selects Python 3.13, installs the
+ACS CLI and diff dependencies once, then runs the shared steps for each app:
 
-- **Does:** Uses `templates/deploy.yml` to export, compare, and install the
-  package in the `splunk-prod` environment.
-- **Inputs:** `dist`, groups `splunk-appinspect` and `splunk-prod`, Python
-  setup, `SPLUNK_STACK`, `ACS_TOKEN`, and AppInspect username/password.
-- **Outputs:** `prod-diff-<attempt>` artifact and installed private app.
+- Check status and export the installed app.
+- Create and publish `<environment>-diff-<app>-<attempt>`.
+- Install the package, wait for its version, and check status again.
 
-Steps from `templates/deploy.yml`, in order:
+## Restart pipeline
 
-- **Checkout app (`checkout: self`):** Gets the app repo at `app`.
-  **Inputs:** App repo revision. **Outputs:** App checkout.
-- **Checkout tools (`checkout: tools`, default `setup`):** Gets the shared
-  scripts. **Inputs:** `tools` repository resource. **Outputs:**
-  `$(Pipeline.Workspace)/tools` checkout.
-- **UsePythonVersion@0 (default `setup`):** Selects Python 3.13.
-  **Inputs:** `versionSpec: 3.13`. **Outputs:** Python on `PATH`.
-- **Download artifact (`download: current`, `dist`):** Gets the package.
-  **Inputs:** `dist` artifact. **Outputs:** `dist/` in the workspace.
-- **Install ACS CLI 2.26.0:** Downloads, verifies, and unpacks the CLI.
-  **Inputs:** Agent OS, `curl`, GitHub release file, and checksum.
-  **Outputs:** `acs` on `PATH`.
-- **ACS CLI version:** Prints the installed CLI version.
-  **Inputs:** `acs` on `PATH`. **Outputs:** Version in the log.
-- **Install diff dependencies:** Installs `ksconf` and Splunk SDK.
-  **Inputs:** Python package index. **Outputs:** Diff tools in Python.
-- **Export the app from prod via ACS:** Exports the configured app.
-  **Inputs:** `SPLUNK_STACK` and mapped `ACS_TOKEN` as `STACK_TOKEN`.
-  **Outputs:** `prod-export/`.
-- **Compare prod with this package:** Writes local, patch, summary, and
-  merged archive reports. **Inputs:** Prod export and `dist` package.
-  **Outputs:** `prod-diff/`.
-- **Publish artifact (`prod-diff-$(System.JobAttempt)`):** Publishes the diff
-  for this attempt. **Inputs:** `prod-diff/`. **Outputs:** Attempt-named
-  pipeline artifact.
-- **Deploy to prod via ACS:** Installs the package as a private app.
-  **Inputs:** `dist`, `SPLUNK_USERNAME`, `SPLUNK_PASSWORD`, `SPLUNK_STACK`,
-  and `ACS_TOKEN` mapped to `STACK_TOKEN`. **Outputs:** App install result.
+The manual restart pipeline selects `nonprod` or `prod` and group prefix
+`splunk` or `splunk-itsi`. It checks status, restarts the current stack,
+polls until `restartRequired` is false, and checks status again.
+
+The restart job uses `workspace: clean: all`, Python 3.13, the shared ACS CLI
+template, and the selected variable group. ACS steps map `ACS_TOKEN` to
+`STACK_TOKEN` and pass the optional `SPLUNK_SEARCH_HEAD` value.
 
 ## Compare pipeline
 
-The manual pipeline accepts target `splunk` or `splunk-itsi` and a space-
-separated list of app ids. It exports both environments, then compares prod
-as the target against nonprod as the source.
+The manual pipeline selects `source` and `target` environments, each
+`nonprod` or `prod`, and a `groupPrefix` of `splunk` or `splunk-itsi`. The
+default source is nonprod and the default target is prod. An empty `apps`
+parameter exports every custom app from both environments. Otherwise, it
+exports the listed app ids. The compare job diffs target against source.
 
-### Job `nonprod` in the compare pipeline
+### Jobs `source` and `target` in the compare pipeline
 
-- **Does:** Exports the selected apps from nonprod.
-- **Inputs:** Variable group selected for the nonprod target, `SPLUNK_STACK`,
-  `SPLUNK_SEARCH_HEAD`, `ACS_TOKEN`, Python 3.13, and app ids.
-- **Outputs:** `nonprod-export` artifact.
+- **Does:** Exports the selected app ids from the selected environment.
+- **Inputs:** `groupPrefix`, environment, `SPLUNK_STACK`,
+  `SPLUNK_SEARCH_HEAD`, `ACS_TOKEN`, and `apps`.
+- **Outputs:** `<environment>-export` artifact.
 
-Steps:
-
-- **UsePythonVersion@0:** Selects Python 3.13. **Inputs:** `versionSpec`.
-  **Outputs:** Python on `PATH`.
-- **Install ACS CLI 2.26.0:** Downloads and verifies the CLI.
-  **Inputs:** Agent OS, `curl`, release file, checksum. **Outputs:** `acs` on
-  `PATH`.
-- **ACS CLI version:** Prints the installed version. **Inputs:** `acs` on
-  `PATH`. **Outputs:** Version in the log.
-- **Export apps from nonprod via ACS:** Exports the requested ids.
-  **Inputs:** Nonprod group, `SPLUNK_STACK`, `SPLUNK_SEARCH_HEAD`,
-  `ACS_TOKEN`, and `apps`. **Outputs:**
-  `$(Pipeline.Workspace)/nonprod-export`.
-- **Publish artifact (`nonprod-export`):** Publishes exported files.
-  **Inputs:** Nonprod export directory. **Outputs:** `nonprod-export` artifact.
-
-### Job `prod` in the compare pipeline
-
-- **Does:** Exports the selected apps from prod.
-- **Inputs:** Variable group selected for the prod target, `SPLUNK_STACK`,
-  `SPLUNK_SEARCH_HEAD`, `ACS_TOKEN`, Python 3.13, and app ids.
-- **Outputs:** `prod-export` artifact.
-
-Steps:
-
-- **UsePythonVersion@0:** Selects Python 3.13. **Inputs:** `versionSpec`.
-  **Outputs:** Python on `PATH`.
-- **Install ACS CLI 2.26.0:** Downloads and verifies the CLI.
-  **Inputs:** Agent OS, `curl`, release file, checksum. **Outputs:** `acs` on
-  `PATH`.
-- **ACS CLI version:** Prints the installed version. **Inputs:** `acs` on
-  `PATH`. **Outputs:** Version in the log.
-- **Export apps from prod via ACS:** Exports the requested ids.
-  **Inputs:** Prod group, `SPLUNK_STACK`, `SPLUNK_SEARCH_HEAD`,
-  `ACS_TOKEN`, and `apps`. **Outputs:**
-  `$(Pipeline.Workspace)/prod-export`.
-- **Publish artifact (`prod-export`):** Publishes exported files.
-  **Inputs:** Prod export directory. **Outputs:** `prod-export` artifact.
+Each job selects Python 3.13 and installs ACS CLI 2.26.0 through the shared
+template. It calls either `release.py export` or `release.py export --custom`,
+then publishes its export directory.
 
 ### Job `compare` in the compare pipeline
 
-- **Does:** Waits for both export jobs and compares prod to nonprod.
-- **Inputs:** `prod-export`, `nonprod-export`, Python 3.13, `ksconf`, and
+- **Does:** Waits for both export jobs and compares target to source.
+- **Inputs:** Source and target export artifacts, Python 3.13, `ksconf`, and
   Splunk SDK.
 - **Outputs:** `compare` artifact.
 
@@ -332,11 +273,14 @@ Steps:
   **Inputs:** Published artifacts. **Outputs:** Export directories.
 - **Install diff dependencies:** Installs `ksconf` and Splunk SDK.
   **Inputs:** Python package index. **Outputs:** Diff tools in Python.
-- **Compare prod with nonprod:** Writes per-app reports.
-  **Inputs:** Prod target and nonprod source exports. **Outputs:**
+- **Compare target with source:** Writes per-app reports.
+  **Inputs:** Target and source exports. **Outputs:**
   `$(Pipeline.Workspace)/compare`.
+- **Upload summary:** Adds each Markdown summary to the run summary tab.
+  **Inputs:** Per-app summary paths. **Outputs:** Run summary entries.
 - **Publish artifact (`compare`):** Publishes the reports.
-  **Inputs:** Compare directory. **Outputs:** `compare` artifact.
+  **Inputs:** HTML diff, patch, summary, local comparison, and merged archive.
+  **Outputs:** `compare` artifact.
 
 ## Smoke-test pipeline
 

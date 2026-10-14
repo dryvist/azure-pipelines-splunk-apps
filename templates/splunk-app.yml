@@ -6,9 +6,6 @@ parameters:
     type: object
     default:
       vmImage: ubuntu-latest
-  - name: prod
-    type: boolean
-    default: false
   - name: setup
     type: stepList
     default:
@@ -32,8 +29,6 @@ stages:
           - ${{ parameters.setup }}
           - script: python $(Pipeline.Workspace)/tools/release.py plan
             displayName: Show stage plan
-            env:
-              DEPLOY_PROD: ${{ parameters.prod }}
           - script: python -m pip install --quiet splunk-packaging-toolkit ksconf==0.13.10 splunk-sdk==2.1.0
             displayName: Install slim and ksconf
           - script: python ../tools/release.py bump
@@ -87,7 +82,7 @@ stages:
 
   - stage: nonprod
     dependsOn: appinspect
-    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+    condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
     jobs:
       - deployment: deploy
         pool: ${{ parameters.pool }}
@@ -101,13 +96,20 @@ stages:
           runOnce:
             deploy:
               steps:
+                - ${{ parameters.setup }}
+                - script: python -m pip install --quiet ksconf==0.13.10 splunk-sdk==2.1.0
+                  displayName: Install diff dependencies
+                - template: acs-cli.yml
+                - download: current
+                  artifact: dist
                 - template: deploy.yml
                   parameters:
                     environment: nonprod
-                    setup: ${{ parameters.setup }}
+                    packageDirectory: $(Pipeline.Workspace)/dist
 
   - stage: proddiff
     dependsOn: nonprod
+    condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
     variables:
       - group: splunk-prod
     jobs:
@@ -136,7 +138,7 @@ stages:
             artifact: prod-diff-$(System.JobAttempt)
 
   - stage: release
-    dependsOn: appinspect
+    dependsOn: proddiff
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
       - job: release
@@ -163,24 +165,3 @@ stages:
               vstsFeedPackagePublish: $(APP_ID)
               versionOption: custom
               versionPublish: $(APP_VERSION)
-
-  - ${{ if eq(parameters.prod, true) }}:
-      - stage: prod
-        dependsOn: release
-        jobs:
-          - deployment: deploy
-            pool: ${{ parameters.pool }}
-            workspace:
-              clean: all
-            environment: splunk-prod
-            variables:
-              - group: splunk-appinspect
-              - group: splunk-prod
-            strategy:
-              runOnce:
-                deploy:
-                  steps:
-                    - template: deploy.yml
-                      parameters:
-                        environment: prod
-                        setup: ${{ parameters.setup }}

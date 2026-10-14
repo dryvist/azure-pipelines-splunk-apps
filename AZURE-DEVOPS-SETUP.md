@@ -17,9 +17,10 @@ Set up the shared Splunk app pipeline in an Azure DevOps project.
 | Step 9 | Require pipeline validation for pull requests to `main`. |
 | Step 10 | Check the first pull request run and its artifacts. |
 | Step 11 | Check the first release after merging. |
-| Step 12 | Optionally enable production deployment. |
+| Step 12 | Create the manual app deployment pipeline. |
 | Step 13 | Publish the repository wiki. |
-| Step 14 | Create the nonprod and prod compare pipeline. |
+| Step 14 | Create the environment compare pipeline. |
+| Step 15 | Create the stack restart pipeline. |
 
 ## Before you start
 
@@ -30,8 +31,8 @@ Set up the shared Splunk app pipeline in an Azure DevOps project.
 - The Splunk Cloud (Victoria) nonprod and prod stack names.
 - The ITSI search head names from the provisioning information for both stacks.
 - Access to create ACS tokens on both stacks and their ITSI search heads.
-  Each token account needs `export_apps`; `sc_admin` can grant this capability
-  to itself.
+  Each token account needs `export_apps`. Standard stack deploy tokens also
+  need `install_apps` and `edit_local_apps`.
 - Azure agents must have Python 3.13 available in the UsePythonVersion tool cache.
 - Apps installed this way are private apps. A copy of a Splunkbase app needs
   its own app id in `[id] name`, different from the Splunkbase app id.
@@ -83,15 +84,15 @@ Create the `splunk-appinspect` group:
 11. Set its lock icon on.
 
 `SPLUNK_USERNAME` is sourced from the account used to sign in at splunk.com
-and Splunkbase. `appinspect` uses it; `nonprod` and `prod` send its AppInspect
-token to ACS as proof of validation. `SPLUNK_PASSWORD` is used by the same
-stages as `SPLUNK_USERNAME`.
+and Splunkbase. `appinspect`, `nonprod`, and the manual deploy pipeline use
+its AppInspect token as proof of validation. `SPLUNK_PASSWORD` is used by the
+same steps as `SPLUNK_USERNAME`.
 
 Create the `splunk-nonprod` group:
 
 1. Select **+ Variable group**.
 2. Type `splunk-nonprod` as the group name.
-3. Type `Nonprod Splunk Cloud stack for pull request installs` as the
+3. Type `Nonprod Splunk Cloud stack for pull request and main installs` as the
 description.
 4. Add a variable.
 5. Type `SPLUNK_STACK` as the variable name.
@@ -112,7 +113,7 @@ Create the `splunk-prod` group:
 
 1. Select **+ Variable group**.
 2. Type `splunk-prod` as the group name.
-3. Type `Production Splunk Cloud stack for export, diff and deploy` as the
+3. Type `Production Splunk Cloud stack for compare and manual deploy` as the
 description.
 4. Add a variable.
 5. Type `SPLUNK_STACK` as the variable name.
@@ -125,11 +126,11 @@ description.
 10. Leave its value empty until Step 4.
 11. Set its lock icon on.
 
-The prod `SPLUNK_STACK` is used by `proddiff` and `prod`. The prod `ACS_TOKEN`
-value is a Splunk Cloud authentication token with audience `acs`; its account
-needs `export_apps`, `install_apps` and `edit_local_apps`. The token is sourced
-from Splunk Web on the production stack in Step 4 and used by `proddiff` and
-`prod`.
+The prod `SPLUNK_STACK` is used by `proddiff` and the manual deploy pipeline.
+The prod `ACS_TOKEN` value is a Splunk Cloud authentication token with
+audience `acs`; its account needs `export_apps`, `install_apps` and
+`edit_local_apps`. The token is sourced from Splunk Web on the production
+stack in Step 4.
 
 Create the `splunk-itsi-nonprod` group:
 
@@ -172,7 +173,7 @@ Create the `splunk-itsi-prod` group:
 The ITSI groups use the same `SPLUNK_STACK` value as the matching standard
 group. Their `SPLUNK_SEARCH_HEAD` value selects the target search head. Only
 the compare and smoke-test pipelines use the ITSI groups. App deployments
-always use `splunk-nonprod` and `splunk-prod`.
+use `splunk-nonprod` or `splunk-prod`.
 
 **Verify:**
 
@@ -205,9 +206,6 @@ To require approval before production deployment:
 1. Open `splunk-prod`.
 2. Go to **Approvals and checks → Approvals → +**.
 3. Add the approvers.
-4. Open `splunk-itsi-prod`.
-5. Go to **Approvals and checks → Approvals → +**.
-6. Add the approvers.
 
 **Verify:**
 
@@ -215,7 +213,7 @@ To require approval before production deployment:
 2. Confirm `splunk-prod` appears in the environments list.
 3. Confirm `splunk-itsi-nonprod` appears in the environments list.
 4. Confirm `splunk-itsi-prod` appears in the environments list.
-5. If configured, confirm both prod environments show their approval checks.
+5. If configured, confirm `splunk-prod` shows its approval check.
 
 ## Step 4: Create ACS tokens and grant export access
 
@@ -247,8 +245,8 @@ search head, and **Settings → Roles** for roles. To enter token values, use
 20. Enter the prod ITSI token as the `ACS_TOKEN` value.
 21. Go to **Settings → Roles**.
 22. Open the role for each ACS token account.
-23. Confirm each account has `install_apps`.
-24. Confirm each account has `edit_local_apps`.
+23. Confirm the nonprod and prod stack accounts have `install_apps`.
+24. Confirm the nonprod and prod stack accounts have `edit_local_apps`.
 25. Grant each account the `export_apps` capability.
 
 `sc_admin` can grant the `export_apps` capability to itself.
@@ -259,8 +257,8 @@ search head, and **Settings → Roles** for roles. To enter token values, use
 2. Confirm the nonprod ITSI search head token exists.
 3. Confirm the prod stack token exists.
 4. Confirm the prod ITSI search head token exists.
-5. Confirm all four token accounts have `install_apps`.
-6. Confirm all four token accounts have `edit_local_apps`.
+5. Confirm the nonprod and prod stack accounts have `install_apps`.
+6. Confirm the nonprod and prod stack accounts have `edit_local_apps`.
 7. Confirm all four token accounts have `export_apps`.
 
 ## Step 5: Create an app repository and add its files
@@ -379,13 +377,8 @@ When Azure DevOps reports that a resource needs authorization:
 1. Select **Permit** for `azure-pipelines-splunk-apps`.
 2. Select **Permit** for `splunk-appinspect`.
 3. Select **Permit** for `splunk-nonprod`.
-4. Select **Permit** for `splunk-itsi-nonprod`.
-5. Select **Permit** for `splunk-prod`.
-6. Select **Permit** for `splunk-itsi-prod`.
-7. Select **Permit** for `splunk-nonprod` as an environment.
-8. Select **Permit** for `splunk-itsi-nonprod` as an environment.
-9. Select **Permit** for `splunk-prod` as an environment.
-10. Select **Permit** for `splunk-itsi-prod` as an environment.
+4. Select **Permit** for `splunk-prod`.
+5. Select **Permit** for `splunk-nonprod` as an environment.
 
 If no Permit banner appears, authorize each variable group:
 
@@ -396,17 +389,9 @@ If no Permit banner appears, authorize each variable group:
 4. Open **Pipelines → Library → `splunk-nonprod` → Pipeline permissions**.
 5. Select **+**.
 6. Select the pipeline.
-7. Open **Pipelines → Library → `splunk-itsi-nonprod` → Pipeline
-   permissions**.
+7. Open **Pipelines → Library → `splunk-prod` → Pipeline permissions**.
 8. Select **+**.
 9. Select the pipeline.
-10. Open **Pipelines → Library → `splunk-prod` → Pipeline permissions**.
-11. Select **+**.
-12. Select the pipeline.
-13. Open **Pipelines → Library → `splunk-itsi-prod` → Pipeline
-    permissions**.
-14. Select **+**.
-15. Select the pipeline.
 
 If no Permit banner appears, authorize each environment:
 
@@ -414,18 +399,6 @@ If no Permit banner appears, authorize each environment:
 2. Select **⋮ → Security → Pipeline permissions**.
 3. Select **+**.
 4. Select the pipeline.
-5. Open **Pipelines → Environments → `splunk-itsi-nonprod`**.
-6. Select **⋮ → Security → Pipeline permissions**.
-7. Select **+**.
-8. Select the pipeline.
-9. Open **Pipelines → Environments → `splunk-prod`**.
-10. Select **⋮ → Security → Pipeline permissions**.
-11. Select **+**.
-12. Select the pipeline.
-13. Open **Pipelines → Environments → `splunk-itsi-prod`**.
-14. Select **⋮ → Security → Pipeline permissions**.
-15. Select **+**.
-16. Select the pipeline.
 
 **Verify:**
 
@@ -433,10 +406,8 @@ If no Permit banner appears, authorize each environment:
 2. Confirm the shared repository is authorized for the pipeline.
 3. Confirm `splunk-appinspect` is authorized for the pipeline.
 4. Confirm `splunk-nonprod` is authorized for the pipeline.
-5. Confirm `splunk-itsi-nonprod` is authorized for the pipeline.
-6. Confirm `splunk-prod` is authorized for the pipeline.
-7. Confirm `splunk-itsi-prod` is authorized for the pipeline.
-8. Confirm all four deployment environments are authorized for the pipeline.
+5. Confirm `splunk-prod` is authorized for the production comparison.
+6. Confirm `splunk-nonprod` is authorized as an environment for the pipeline.
 
 ## Step 9: Add the `main` Build validation policy
 
@@ -530,33 +501,33 @@ package file as added.
 1. Confirm the tag points to the release commit.
 2. Confirm the feed contains the matching Universal Package version.
 
-## Step 12: Optionally enable production deployment
+## Step 12: Create the manual app deployment pipeline
 
-**Where:** The app repository's root `azure-pipelines.yml` file.
+**Where:** **Pipelines → New pipeline → Azure Repos Git**
 
 **Do:**
 
-1. Add `prod: true` under `extends`:
-
-   ```yaml
-   extends:
-     template: templates/splunk-app.yml@tools
-     parameters:
-       pool:
-         name: <agent-pool>
-       prod: true
-   ```
-
-2. Commit the change to `main`.
-3. Confirm the selected prod environment has an approval check if production
-   approval is required.
+1. Select repository `azure-pipelines-splunk-apps`.
+2. Choose **Existing Azure Pipelines YAML file**.
+3. Select `/deploy/azure-pipelines.yml`.
+4. Enter `deploy-apps` as the pipeline name.
+5. Save the pipeline.
+6. Select **Run pipeline**.
+7. Select `nonprod` or `prod` for `environment`.
+8. Enter app ids separated by spaces for `apps`.
+9. Select **Run**.
+10. Permit the `splunk-appinspect` variable group if asked.
+11. Permit the selected `splunk-<environment>` variable group if asked.
+12. Permit the selected `splunk-<environment>` deployment environment if asked.
+13. Rerun the pipeline if resource authorization stopped the run.
+14. Complete any approval check on the selected environment.
 
 **Verify:**
 
-1. Confirm a `prod` stage follows a successful `main` release.
-2. Confirm the `prod` stage uses the prod stack.
-3. Confirm the `prod` stage uses the selected prod environment.
-4. Confirm pull request runs do not deploy to production.
+1. Confirm the pipeline uses the selected `splunk-<environment>` group.
+2. Confirm the deployment uses the matching `splunk-<environment>` approval.
+3. Confirm the diff artifact name includes the environment, app id, and attempt.
+4. Confirm all selected packages finish before the stack restart runs.
 
 ## Step 13: Publish the repository wiki
 
@@ -583,7 +554,7 @@ package file as added.
 1. Select repository `azure-pipelines-splunk-apps`.
 2. Choose **Existing Azure Pipelines YAML file**.
 3. Select `/compare/azure-pipelines.yml`.
-4. Enter `compare-nonprod-prod` as the pipeline name.
+4. Enter `compare-environments` as the pipeline name.
 5. Save the pipeline.
 6. Select **Edit**.
 7. Select **⋮** (More actions) at the top right.
@@ -593,22 +564,53 @@ package file as added.
 11. Select the arrow next to **Save & queue**.
 12. Select **Save**.
 13. Select **Run pipeline**.
-14. Select `splunk` or `splunk-itsi` for `target` in the Run panel.
-15. In **App IDs, separated by spaces**, enter the app ids to compare, for
-    example `my_app other_app`. Use the app folder names from `[id] name`, not
-    the display labels.
-16. Select **Run**.
-17. When asked, permit the selected nonprod variable group.
-18. When asked, permit the selected prod variable group.
+14. Select `splunk` or `splunk-itsi` for `groupPrefix` in the Run panel.
+15. Select `nonprod` or `prod` for `source`.
+16. Select `nonprod` or `prod` for `target`.
+17. Leave **App IDs, separated by spaces** empty to export every custom app,
+    or enter app ids such as `my_app other_app`. Use app folder names from
+    `[id] name`, not display labels.
+18. Select **Run**.
+19. When asked, permit the selected source variable group.
+20. When asked, permit the selected target variable group.
 
 **Verify:**
 
-1. Confirm the `nonprod` job succeeds.
-2. Confirm the `prod` job succeeds.
+1. Confirm the `source` job succeeds.
+2. Confirm the `target` job succeeds.
 3. Confirm the `compare` job succeeds.
-4. Confirm the `compare` artifact holds `<app-id>.patch` for each app.
+4. Confirm the `compare` artifact holds `<app-id>-diff.html` for each app.
 5. Confirm the `compare` artifact holds `<app-id>-summary.md` for each app.
-6. Confirm the `compare` job log prints each summary.
+6. Confirm each summary appears on the run summary tab.
+
+## Step 15: Create the restart pipeline
+
+**Where:** **Pipelines → New pipeline → Azure Repos Git**
+
+**Do:**
+
+1. Select repository `azure-pipelines-splunk-apps`.
+2. Choose **Existing Azure Pipelines YAML file**.
+3. Select `/restart/azure-pipelines.yml`.
+4. Enter `restart-stack` as the pipeline name.
+5. Save the pipeline.
+6. Select **Edit**.
+7. Select **⋮** (More actions) at the top right.
+8. Select **Triggers**.
+9. Select the **YAML** tab.
+10. In **Default agent pool for YAML**, select an agent pool.
+11. Select the arrow next to **Save & queue**.
+12. Select **Save**.
+13. Select **Run pipeline**.
+14. Select `nonprod` or `prod` for `environment`.
+15. Select `splunk` or `splunk-itsi` for `target`.
+16. Select **Run**.
+17. When asked, permit the selected variable group.
+
+**Verify:**
+
+1. Confirm the restart job completes.
+2. Confirm the final stack status does not report a required restart.
 
 ## If a step fails
 

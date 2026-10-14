@@ -111,98 +111,183 @@ with tempfile.TemporaryDirectory() as tmp:
     assert pkg_bytes in body
 
 
-# ACS sessions select the configured search head only when its value is set.
+# ACS sessions and status use the shared command wrapper.
 for search_head in (None, "", "premium-sh", "$(SPLUNK_SEARCH_HEAD)"):
     variables = {"SPLUNK_STACK": "example-stack"}
     if search_head is not None:
         variables["SPLUNK_SEARCH_HEAD"] = search_head
     with (
         patch.dict(os.environ, variables, clear=True),
-        patch("release.subprocess.run") as run,
+        patch("release.run") as run,
+        redirect_stdout(io.StringIO()),
     ):
+        run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
         with release.acs_session():
             pass
     commands = [call.args[0] for call in run.call_args_list]
     target = ["--target-sh=premium-sh"] if search_head == "premium-sh" else []
-    expected = [
+    assert commands == [
         ["acs", "config", "add-stack", "example-stack", "--use", *target],
         ["acs", "login"],
     ]
-    assert commands == expected
     assert all(call.kwargs["check"] for call in run.call_args_list)
 
-
-# Deploy installs the package with the legal acknowledgement.
-with tempfile.TemporaryDirectory() as tmp:
-    package_dir = Path(tmp, "dist")
-    package_dir.mkdir()
-    (package_dir / "my_ta-1.4.10.tar.gz").write_bytes(b"package")
-    variables = {"SPLUNK_STACK": "example-stack", "STACK_TOKEN": "token"}
-    with (
-        patch.dict(os.environ, variables, clear=True),
-        patch("release.subprocess.run") as run,
-    ):
-        release.deploy(package_dir)
-    assert [call.args[0] for call in run.call_args_list] == [
-        ["acs", "config", "add-stack", "example-stack", "--use"],
-        ["acs", "login"],
-        [
-            "acs", "apps", "install", "private", "--acs-legal-ack", "Y",
-            "--app-package", str(package_dir / "my_ta-1.4.10.tar.gz"),
-        ],
-    ]
-    assert all(call.kwargs["check"] for call in run.call_args_list)
-
-
-# Export writes one archive per installed app and reports apps with no export.
-with tempfile.TemporaryDirectory() as tmp:
-    out = Path(tmp, "export")
+with (
+    patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
+    patch("release.acs_session") as session,
+    patch("release.run") as run,
+):
+    session.return_value.__enter__.return_value = {}
+    run.return_value = subprocess.CompletedProcess(
+        ["acs"], 0, stdout='{"Status":{"RestartRequired":true}}', stderr=""
+    )
     output = io.StringIO()
+    with redirect_stdout(output):
+        release.status()
+    assert run.call_args.args[0] == ["acs", "status", "current-stack", "-f", "structured"]
+    assert "##[warning]Restart required on stack" in output.getvalue()
+    assert "##[group]acs status current-stack -f structured" in output.getvalue()
+    assert "##[endgroup]" in output.getvalue()
 
-    def fake_acs(command, *, check, env):
+# Restart polls restartRequired every 30 seconds until it clears.
+with (
+    patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
+    patch("release.acs_session") as session,
+    patch("release.run") as run,
+):
+    session.return_value.__enter__.return_value = {}
+    run.side_effect = [
+        subprocess.CompletedProcess(["acs"], 0, stdout="", stderr=""),
+        subprocess.CompletedProcess(["acs"], 0, stdout='{"restartRequired":true}', stderr=""),
+        subprocess.CompletedProcess(["acs"], 0, stdout='{"restartRequired":false}', stderr=""),
+    ]
+    now = [0]
+    with patch("release.time.monotonic", side_effect=lambda: now[0]), patch(
+        "release.time.sleep", side_effect=lambda seconds: now.__setitem__(0, now[0] + seconds)
+    ), redirect_stdout(io.StringIO()):
+        release.restart()
+    assert [call.args[0] for call in run.call_args_list] == [
+        ["acs", "restart", "current-stack"],
+        ["acs", "status", "current-stack", "-f", "structured"],
+        ["acs", "status", "current-stack", "-f", "structured"],
+    ]
+    assert now == [30]
+
+# The package filename supplies the app id and version for install and polling.
+with tempfile.TemporaryDirectory() as tmp:
+    package_dir = Path(tmp, "my-app")
+    package_dir.mkdir()
+    (package_dir / "my-app-1.4.10.tar.gz").write_bytes(b"package")
+    assert release.package_identity(package_dir)[1:] == ("my-app", "1.4.10")
+    with (
+        patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
+        patch("release.run") as run,
+        redirect_stdout(io.StringIO()),
+    ):
+        run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+        release.deploy(package_dir)
+    assert run.call_args.args[0][-2:] == ["--app-package", str(package_dir / "my-app-1.4.10.tar.gz")]
+
+    with (
+        patch("release.acs_session") as session,
+        patch("release.run") as run,
+    ):
+        session.return_value.__enter__.return_value = {}
+        run.side_effect = [
+            subprocess.CompletedProcess([], 0, stdout="version 1.4.9", stderr=""),
+            subprocess.CompletedProcess([], 0, stdout="version 1.4.10", stderr=""),
+        ]
+        now, sleeps = [0], []
+        def wait(seconds):
+            sleeps.append(seconds)
+            now[0] += seconds
+        with patch("release.time.monotonic", side_effect=lambda: now[0]), patch(
+            "release.time.sleep", side_effect=wait
+        ), redirect_stdout(io.StringIO()):
+            release.wait_version(package_dir)
+        assert run.call_count == 2 and sleeps == [3]
+
+    with (
+        patch("release.acs_session") as session,
+        patch("release.run") as run,
+        patch("release.time.sleep", side_effect=lambda seconds: now.__setitem__(0, now[0] + seconds)),
+        patch("release.time.monotonic", side_effect=lambda: now[0]),
+        redirect_stdout(io.StringIO()),
+    ):
+        session.return_value.__enter__.return_value = {}
+        run.return_value = subprocess.CompletedProcess([], 0, stdout="version 1.4.9", stderr="")
+        now[0] = 0
+        try:
+            release.wait_version(package_dir)
+        except SystemExit as error:
+            assert error.code == 1
+        else:
+            raise AssertionError("version wait should time out")
+        assert now == [300]
+
+# Custom export pages in blocks of 100 and excludes Splunkbase names.
+with tempfile.TemporaryDirectory() as tmp:
+    out = Path(tmp, "exports")
+    pages = []
+
+    def fake_acs(command, **kwargs):
+        if command[1:3] == ["apps", "list"]:
+            offset = int(command[command.index("--offset") + 1])
+            splunkbase = "--splunkbase=true" in command
+            pages.append((splunkbase, offset))
+            rows = [{"name": "base_app"}] if splunkbase else (
+                [{"name": f"custom_{i}"} for i in range(100)] if offset == 0
+                else [{"name": "base_app"}]
+            )
+            return subprocess.CompletedProcess(command, 0, json.dumps({"apps": rows}), "")
         if command[1:3] == ["apps", "export"]:
             app = json.loads(Path(command[3].split("=", 1)[1]).read_text())["Apps"][0]
-            if app == "my_ta":
-                (out / f"{app}.tar.gz").write_bytes(b"export")
+            destination = Path(command[-1].split("=", 1)[1])
+            (destination / f"{app}.tar.gz").write_bytes(b"export")
+        return subprocess.CompletedProcess(command, 0, "", "")
 
-    with (
-        patch.dict(os.environ, {"SPLUNK_STACK": "example-stack", "STACK_TOKEN": "token"}),
-        patch("release.subprocess.run", side_effect=fake_acs) as run,
-        redirect_stdout(output),
-    ):
-        release.export(out, "my_ta", "missing_ta")
-    commands = [call.args[0] for call in run.call_args_list]
-    input_file = out / "apps.json"
-    assert commands == [
-        ["acs", "config", "add-stack", "example-stack", "--use"],
-        ["acs", "login"],
-        [
-            "acs",
-            "apps",
-            "export",
-            f"--file={input_file}",
-            "--default=true",
-            "--local=true",
-            "--users=true",
-            "--confs-only=false",
-            f"--export-dir={out}",
-        ],
-        [
-            "acs",
-            "apps",
-            "export",
-            f"--file={input_file}",
-            "--default=true",
-            "--local=true",
-            "--users=true",
-            "--confs-only=false",
-            f"--export-dir={out}",
-        ],
-    ]
-    assert (out / "my_ta.tgz").read_bytes() == b"export"
-    assert not (out / "missing_ta.tgz").exists()
-    assert output.getvalue().endswith("##[warning]NOT INSTALLED missing_ta\n")
-    assert not input_file.exists()
+    with patch("release.acs_session") as session, patch("release.run", side_effect=fake_acs), redirect_stdout(io.StringIO()):
+        session.return_value.__enter__.return_value = {}
+        release.export(out, "--custom")
+    assert pages == [(False, 0), (False, 100), (True, 0)]
+    assert len(list(out.glob("*.tgz"))) == 100
+
+with tempfile.TemporaryDirectory() as tmp:
+    raw = '{"items":[]}'
+    output = io.StringIO()
+    with patch("release.acs_session") as session, patch(
+        "release.run", return_value=subprocess.CompletedProcess([], 0, raw, "")
+    ), redirect_stdout(output):
+        session.return_value.__enter__.return_value = {}
+        try:
+            release.export(Path(tmp), "--custom")
+        except SystemExit as error:
+            assert error.code == 1
+        else:
+            raise AssertionError("missing apps field should fail")
+    assert raw in output.getvalue()
+
+# Package-directory export sets the Azure app id from the archive name.
+with tempfile.TemporaryDirectory() as tmp:
+    package_dir = Path(tmp, "packages")
+    package_dir.mkdir()
+    (package_dir / "my-app-1.4.10.tar.gz").write_bytes(b"package")
+    output = io.StringIO()
+
+    def fake_export(command, **kwargs):
+        if command[1:3] == ["apps", "export"]:
+            app = json.loads(Path(command[3].split("=", 1)[1]).read_text())["Apps"][0]
+            destination = Path(command[-1].split("=", 1)[1])
+            (destination / f"{app}.tar.gz").write_bytes(b"export")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    with patch("release.acs_session") as session, patch(
+        "release.run", side_effect=fake_export
+    ), redirect_stdout(output):
+        session.return_value.__enter__.return_value = {}
+        release.export(Path(tmp, "export"), package_dir)
+    assert Path(tmp, "export", "my-app", "my-app.tgz").exists()
+    assert "##vso[task.setvariable variable=APP_ID]my-app" in output.getvalue()
 
 
 # Diff promotes local files, compares defaults, and archives the merged target.
@@ -236,9 +321,15 @@ with tempfile.TemporaryDirectory() as tmp:
     with redirect_stdout(output):
         release.diff(target_dir, source_dir, out)
     local_text = (out / "my_ta-local-vs-default.diff").read_text()
+    html_text = (out / "my_ta-diff.html").read_text()
     assert "=== local/props.conf vs the same stanzas" in local_text
     assert "-value = package" in local_text and "+value = local" in local_text
     assert "[new]" in local_text
+    assert "my_ta deployed diff" in html_text
+    assert "default/" in html_text and "props.conf [changed]" in html_text
+    assert '<table class="diff"' in html_text
+    assert "Local vs default" in html_text and "same stanzas" in html_text
+    assert "Added lines:" not in html_text
     patch_text = (out / "my_ta.patch").read_text()
     summary = (out / "my_ta-summary.md").read_text()
     patch_paths = [
@@ -279,6 +370,9 @@ with tempfile.TemporaryDirectory() as tmp:
     assert "metadata/local.meta" in summary
     assert "local/data/ui/views/example.xml" in summary
     assert "users/admin/local/savedsearches.conf" in summary
+    assert "## Deployed change tree" in summary
+    assert "  props.conf [changed]" in summary
+    assert "##vso[task.uploadsummary]" in output.getvalue()
     assert output.getvalue().endswith(summary)
     merged_path = out / "my_ta-merged.tar.gz"
     assert merged_path.exists()
@@ -351,10 +445,10 @@ with tempfile.TemporaryDirectory() as tmp:
         release.sort_confs(tmp)
     assert conf.read_text() == "[alpha]\nx = 8\n\n[zeta]\na = 1\nb = 2\n"
 
-# The stage plan marks deploy stages for pull request and main runs.
+# The stage plan runs compare and nonprod on pull requests and main.
 for env, runs in (
     ({"BUILD_REASON": "PullRequest", "BUILD_SOURCEBRANCH": "refs/heads/feature"}, {"nonprod", "proddiff"}),
-    ({"BUILD_REASON": "IndividualCI", "BUILD_SOURCEBRANCH": "refs/heads/main", "DEPLOY_PROD": "True"}, {"release", "prod"}),
+    ({"BUILD_REASON": "IndividualCI", "BUILD_SOURCEBRANCH": "refs/heads/main"}, {"nonprod", "proddiff", "release"}),
 ):
     output = io.StringIO()
     with patch.dict(os.environ, env, clear=True), redirect_stdout(output):
