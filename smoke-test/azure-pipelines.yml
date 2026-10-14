@@ -15,8 +15,6 @@ parameters:
 
 pool:
   name: ${{ parameters.pool }}
-  ${{ if eq(parameters.pool, 'Azure Pipelines') }}:
-    vmImage: ubuntu-latest
 
 jobs:
   - job: appinspect
