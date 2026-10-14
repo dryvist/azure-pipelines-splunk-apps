@@ -9,6 +9,7 @@ release.py export <out-dir> [app-id...] export default, local, and users data fo
 release.py diff <target> <source> <out> merge local, compare defaults, write artifacts
 release.py install-acs                  download, verify, and add the ACS CLI for this agent to PATH
 release.py appinspect-link              print the link to this build's published artifacts
+release.py plan                         print which stages this run executes and why
 release.py tag                          tag HEAD as v<version>, push the tag, and set APP_ID/APP_VERSION (CI only)
 
 The ACS CLI reads STACK_TOKEN. Azure Pipelines maps ACS_TOKEN to STACK_TOKEN.
@@ -118,6 +119,14 @@ def bump_conf(text, level):
     return "".join(lines), new
 
 
+def sort_confs(root):
+    """Sort stanzas and keys in every .conf file under root with ksconf, one blank line apart."""
+    confs = sorted(str(p) for p in Path(root).rglob("*.conf"))
+    if confs:
+        # ksconf exits 9 when it rewrote a file.
+        run(["ksconf", "sort", "--inplace", "--quiet", *confs], check=False)
+
+
 def stage():
     """Copy package/ to build/<app>; slim requires the folder and tarball root to match the app id."""
     shutil.rmtree(STAGE.parent, ignore_errors=True)
@@ -126,8 +135,29 @@ def stage():
 
 def run(cmd, **kwargs):
     """Print a command, then run it."""
-    print("Running:", " ".join(str(c) for c in cmd), flush=True)
+    print("##[command]" + " ".join(str(c) for c in cmd), flush=True)
     return subprocess.run(cmd, **kwargs)
+
+
+def plan():
+    """Print which stages this run executes and the rule behind each."""
+    reason = os.environ.get("BUILD_REASON", "")
+    branch = os.environ.get("BUILD_SOURCEBRANCH", "")
+    prod = os.environ.get("DEPLOY_PROD", "").lower() == "true"
+    pull_request, main = reason == "PullRequest", branch == "refs/heads/main"
+    print("##[section]Stage plan")
+    print(f"Build.Reason = {reason}")
+    print(f"Build.SourceBranch = {branch}")
+    print(f"prod parameter = {prod}")
+    for stage, runs, rule in (
+        ("build", True, "every run"),
+        ("appinspect", True, "every run, after build"),
+        ("nonprod", pull_request, "Build.Reason is PullRequest"),
+        ("proddiff", pull_request, "Build.Reason is PullRequest"),
+        ("release", main, "Build.SourceBranch is refs/heads/main"),
+        ("prod", main and prod, "Build.SourceBranch is refs/heads/main and prod is true"),
+    ):
+        print(f"{stage:<11} {'RUNS' if runs else 'SKIPPED':<8} runs when {rule}")
 
 
 def install_acs():
@@ -197,6 +227,7 @@ def bump():
     )
     # PR builds use a detached merge commit. The bump updates and pushes the PR source branch.
     git("checkout", "-B", source, f"origin/{source}")
+    sort_confs(SRC)
     try:
         target_text = subprocess.check_output(
             ["git", "show", f"origin/{target}:{CONF.as_posix()}"], text=True
@@ -217,13 +248,14 @@ def bump():
     if not (STAGE / MANIFEST.name).exists():
         slim("generate-manifest", str(STAGE), "-o", str(STAGE / MANIFEST.name))
     slim("generate-manifest", "--update", str(STAGE), "-o", str(MANIFEST))
-    git("add", str(CONF), str(MANIFEST))
+    git("add", str(SRC), str(MANIFEST))
     git("commit", "-m", f"Release {APP} {new}")
     git("push", "origin", f"HEAD:{source_ref}")
     print(f"{APP} bumped to {new}")
 
 
 def package():
+    sort_confs(SRC)
     stage()
     DIST.mkdir(parents=True, exist_ok=True)
     slim("package", str(STAGE), "-o", str(DIST))
@@ -341,7 +373,7 @@ def acs_session():
     search_head = configured_value("SPLUNK_SEARCH_HEAD")
     with tempfile.TemporaryDirectory() as home:
         env = {**os.environ, "HOME": home, "USERPROFILE": home}
-        print(f"ACS stack: {stack}. Search head: {search_head or 'not set, all search heads'}.")
+        print(f"##[section]ACS stack {stack}, search head {search_head or 'not set (all search heads)'}")
         target = [f"--target-sh={search_head}"] if search_head else []
         run(["acs", "config", "add-stack", stack, "--use", *target], check=True, env=env)
         run(["acs", "login"], check=True, env=env)
@@ -350,7 +382,7 @@ def acs_session():
 
 def deploy(artifact_dir):
     (pkg,) = Path(artifact_dir).glob("*.tar.gz")
-    print(f"Installing {pkg.name} as a private app.")
+    print(f"##[section]Installing {pkg.name} as a private app")
     with acs_session() as env:
         run(
             ["acs", "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(pkg)],
@@ -368,13 +400,13 @@ def export(out_dir, *app_ids):
             apps_file.write_text(json.dumps({"Apps": [app]}))
             cmd = ["acs", "apps", "export", f"--file={apps_file}", "--default=true", "--local=true",
                    "--users=true", "--confs-only=false", f"--export-dir={out}"]
-            print(f"Exporting {app} to {out}.")
+            print(f"##[section]Exporting {app} to {out}")
             run(cmd, check=False, env=env)
             exported = out / f"{app}.tar.gz"
             if exported.exists():
                 exported.rename(out / f"{app}.tgz")
             else:
-                print(f"NOT INSTALLED {app}")
+                print(f"##[warning]NOT INSTALLED {app}")
     apps_file.unlink()
 
 
@@ -431,6 +463,7 @@ def merge_local(root):
             ["ksconf", "promote", "--batch", str(local_meta), str(default_meta)],
             check=True,
         )
+    sort_confs(root / "default")
 
 
 def deployed(path):
@@ -527,6 +560,7 @@ if __name__ == "__main__":
         "package": package,
         "appinspect": appinspect,
         "deploy": deploy,
+        "plan": plan,
         "export": export,
         "diff": diff,
         "install-acs": install_acs,
