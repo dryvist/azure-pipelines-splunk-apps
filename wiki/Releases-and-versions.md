@@ -36,7 +36,7 @@ To download a release:
 ## Review the production diff
 
 Before merging a pull request, open its validation run and download
-**Artifacts** → `prod-diff-<attempt>`. It holds three files:
+**Artifacts** → `prod-diff-<attempt>`. It holds four files:
 
 - `<app-id>-summary.md` lists the changes in sections:
   - **Deployed changes:** files under `default/` and
@@ -48,6 +48,8 @@ Before merging a pull request, open its validation run and download
   - **User files:** files under `users/` on each side.
 - `<app-id>.patch` shows line changes only under `default/` and
   `metadata/default.meta`.
+- `<app-id>-local-vs-default.diff` compares production local files with the
+  matching stanzas in the package defaults.
 - `<app-id>-merged.tar.gz` contains the merged target app without `local/`,
   `metadata/local.meta`, or `users/`.
 
