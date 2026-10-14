@@ -1,22 +1,8 @@
 # release.py commands
 
+[Home](/Home) > [Reference](/Reference) > release.py commands
+
 [[_TOC_]]
-
-The app id comes from `[id] name` in `package/default/app.conf`. If missing,
-the script uses `BUILD_REPOSITORY_NAME`, then the working directory name.
-
-## Code layout
-
-| File | Contents |
-| --- | --- |
-| `release.py` | Command list and CLI dispatch. |
-| `splunk_release/__init__.py` | Package marker. |
-| `splunk_release/azure.py` | Pipeline plan, artifact link, and log helpers. |
-| `splunk_release/version.py` | App id, version changes, and Git operations. |
-| `splunk_release/package.py` | Configuration sorting, staging, and packaging. |
-| `splunk_release/appinspect.py` | AppInspect requests, polling, and reports. |
-| `splunk_release/acs.py` | ACS CLI install, sessions, deployment, and export. |
-| `splunk_release/compare.py` | Archive comparison and deployment reports. |
 
 - `bump` (no arguments) uses `SYSTEM_PULLREQUEST_TARGETBRANCH`,
   `SYSTEM_PULLREQUEST_SOURCEBRANCH`, and `BUILD_SOURCEVERSIONMESSAGE`.
@@ -61,3 +47,12 @@ source and target branches. The `tag` command writes `APP_ID` and
 `APP_VERSION` as Azure Pipelines variables for the feed publish step.
 
 Azure Pipelines maps the variable group's `ACS_TOKEN` to `STACK_TOKEN`.
+
+## Related
+
+- [Code layout](/Reference/Code-layout)
+- [Artifacts](/Reference/Artifacts)
+
+---
+
+[Next: Code layout >](/Reference/Code-layout)

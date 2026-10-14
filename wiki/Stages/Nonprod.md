@@ -1,0 +1,55 @@
+# Nonprod stage
+
+[Home](/Home) > [Stages](/Stages) > Nonprod stage
+
+[[_TOC_]]
+
+## Stage `nonprod`
+
+- **Does:** Runs after a successful AppInspect stage on a pull request or
+  `refs/heads/main` run.
+- **Inputs:** `dist`, `splunk-appinspect` and `splunk-nonprod` groups, and the
+  `splunk-nonprod` environment.
+- **Outputs:** Nonprod diff artifact and app installation through ACS.
+
+### Deployment job `deploy` in the nonprod stage
+
+- **Does:** Uses `templates/deploy.yml` to export, compare, and install the
+  package in the `splunk-nonprod` environment.
+- **Inputs:** `dist`, groups `splunk-appinspect` and `splunk-nonprod`, Python
+  setup, `SPLUNK_STACK`, `ACS_TOKEN`, and AppInspect username/password.
+- **Outputs:** `nonprod-diff-<attempt>` artifact and installed private app.
+
+The deployment job installs Python, ACS CLI, and diff dependencies once, then
+downloads `dist`. `templates/deploy.yml` runs these steps for the package:
+
+- **Check stack status:** Reports current status and warns if restart is
+  required. **Inputs:** Nonprod ACS session.
+- **Export the app from nonprod via ACS:** Gets the app id from the package
+  filename and exports the installed app.
+  **Inputs:** `SPLUNK_STACK` and mapped `ACS_TOKEN` as `STACK_TOKEN`.
+  **Outputs:** `nonprod-export/`.
+- **Compare nonprod with this package:** Writes local, patch, summary, and
+  merged archive reports. **Inputs:** Nonprod export and `dist` package.
+  **Outputs:** `nonprod-diff/`.
+- **Publish artifact (`nonprod-diff-<app>-$(System.JobAttempt)`):** Publishes
+  this app's diff. **Inputs:** App diff directory. **Outputs:** Attempt-named
+  pipeline artifact.
+- **Deploy to nonprod via ACS:** Installs the package as a private app.
+  **Inputs:** `dist`, `SPLUNK_USERNAME`, `SPLUNK_PASSWORD`, `SPLUNK_STACK`,
+  and `ACS_TOKEN` mapped to `STACK_TOKEN`. **Outputs:** App install result.
+- **Wait for the deployed version:** Checks `acs apps describe` every three
+  seconds for up to 300 seconds. **Inputs:** Package version and ACS session.
+  **Outputs:** Confirmed app version or a timeout error.
+- **Check stack status after deploy:** Prints current stack status and warns
+  if a restart is required. **Inputs:** Nonprod ACS session.
+
+## Related
+
+- [Deploy pipeline](/Pipelines/Deploy-pipeline)
+- [Troubleshooting](/Troubleshooting/Nonprod)
+
+---
+
+[< Previous: AppInspect stage](/Stages/AppInspect) |
+[Next: Proddiff stage >](/Stages/Proddiff)
