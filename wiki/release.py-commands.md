@@ -20,9 +20,14 @@ the script uses `BUILD_REPOSITORY_NAME`, then the working directory name.
   app id after promoting local configuration into default files. It writes
   `<app-id>.patch`, `<app-id>-summary.md`, and
   `<app-id>-merged.tar.gz`. The patch compares only `default/` and
-  `metadata/default.meta`. The merged archive contains the target app without
-  `local/`, `metadata/local.meta`, or `users/`. The summary lists those
-  deployed changes, local files, and user files.
+  `metadata/default.meta` as unified diffs with `target/` and `source/` paths.
+  The merged archive contains the target app without `local/`,
+  `metadata/local.meta`, or `users/`. The summary lists those deployed changes,
+  local files, and user files.
+- `install-acs` downloads ACS CLI 2.26.0 for Linux or Windows x64 agents,
+  verifies its SHA-256 checksum, extracts it to `AGENT_TEMPDIRECTORY`, and
+  prepends that directory to the Azure Pipelines path.
+- `appinspect-link` prints the current build's AppInspect artifact link.
 - `tag` (no arguments) uses no environment variables beyond the app id
   fallback above.
 

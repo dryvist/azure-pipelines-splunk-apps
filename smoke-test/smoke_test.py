@@ -35,15 +35,31 @@ def stack(group):
     with tempfile.TemporaryDirectory() as out, release.acs_session() as env:
         release.run(["acs", "apps", "list"], check=True, env=env, capture_output=True)
         print(f"PASS {group} ACS login and app list")
-        Path(out, "apps.json").write_text(json.dumps({"Apps": ["search"]}))
-        cmd = ["acs", "apps", "export", f"--file={out}/apps.json", "--default=false", "--local=true",
+        apps_file = Path(out, "apps.json")
+        apps_file.write_text(json.dumps({"Apps": ["search"]}))
+        cmd = ["acs", "apps", "export", f"--file={apps_file}", "--default=false", "--local=true",
                "--users=true", "--confs-only=true", f"--export-dir={out}"]
         print("Exporting the search app local and user configuration files only.")
         release.run(cmd, check=True, env=env)
         print(f"PASS {group} export_apps: {Path(out, 'search.tar.gz').stat().st_size} bytes")
 
 
+def result(*results):
+    """Print each job result and fail unless all succeeded."""
+    for name, value in zip(("appinspect", "nonprod", "prod"), results):
+        print(f"{name}: {value}")
+    if set(results) == {"Succeeded"}:
+        print("RESULT: ALL PASS")
+    else:
+        print("RESULT: FAILED - open each failed job for its FAIL or Error line")
+        sys.exit(1)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        sys.exit("Usage: python smoke-test/smoke_test.py <appinspect|variable-group-name>")
-    appinspect() if sys.argv[1] == "appinspect" else stack(sys.argv[1])
+    command, *args = sys.argv[1:] or ["help"]
+    if command == "result":
+        result(*args)
+    elif command == "appinspect":
+        appinspect()
+    else:
+        stack(command)

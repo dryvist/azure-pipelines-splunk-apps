@@ -31,6 +31,8 @@ jobs:
         inputs:
           versionSpec: "3.13"
       - template: ../templates/acs-cli.yml
+        parameters:
+          releaseScript: $(Build.SourcesDirectory)/release.py
       - script: python smoke-test/smoke_test.py ${{ parameters.target }}-nonprod
         displayName: Check nonprod ACS access and export
         env:
@@ -46,6 +48,8 @@ jobs:
         inputs:
           versionSpec: "3.13"
       - template: ../templates/acs-cli.yml
+        parameters:
+          releaseScript: $(Build.SourcesDirectory)/release.py
       - script: python smoke-test/smoke_test.py ${{ parameters.target }}-prod
         displayName: Check prod ACS access and export
         env:
@@ -61,15 +65,9 @@ jobs:
       nonprodResult: $[ dependencies.nonprod.result ]
       prodResult: $[ dependencies.prod.result ]
     steps:
-      - checkout: none
-      - script: |
-          echo "appinspect: $(appinspectResult)"
-          echo "nonprod:    $(nonprodResult)"
-          echo "prod:       $(prodResult)"
-          if [ "$(appinspectResult)$(nonprodResult)$(prodResult)" = "SucceededSucceededSucceeded" ]; then
-            echo "RESULT: ALL PASS"
-          else
-            echo "RESULT: FAILED - open each failed job for its FAIL or Error line"
-            exit 1
-          fi
+      - checkout: self
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.13"
+      - script: python smoke-test/smoke_test.py result $(appinspectResult) $(nonprodResult) $(prodResult)
         displayName: Result

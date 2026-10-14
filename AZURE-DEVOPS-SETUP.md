@@ -32,6 +32,7 @@ Set up the shared Splunk app pipeline in an Azure DevOps project.
 - Access to create ACS tokens on both stacks and their ITSI search heads.
   Each token account needs `export_apps`; `sc_admin` can grant this capability
   to itself.
+- Azure agents must have Python 3.13 available in the UsePythonVersion tool cache.
 - Apps installed this way are private apps. A copy of a Splunkbase app needs
   its own app id in `[id] name`, different from the Splunkbase app id.
 - Outbound HTTPS from Azure Pipelines agents to `pypi.org`, `api.splunk.com`,

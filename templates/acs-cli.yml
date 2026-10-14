@@ -1,12 +1,10 @@
+parameters:
+  - name: releaseScript
+    type: string
+    default: $(Pipeline.Workspace)/tools/release.py
+
 steps:
-  - bash: |
-      set -euo pipefail
-      asset=acs_v2.26.0_linux_amd64.tar.gz
-      cd "$(Agent.TempDirectory)"
-      curl -fsSLO "https://github.com/splunk/acs-cli/releases/download/v2.26.0/$asset"
-      echo "9450ee04be42c633af4b0db932d28139232815704bc4410c0908ea8ee38a8e49  $asset" | sha256sum -c -
-      tar -xzf "$asset"
-      echo "##vso[task.prependpath]$(Agent.TempDirectory)"
+  - script: python ${{ parameters.releaseScript }} install-acs
     displayName: Install ACS CLI 2.26.0
   - script: acs version
     displayName: ACS CLI version

@@ -7,6 +7,8 @@ release.py appinspect <dir>             submit the package in <dir> to AppInspec
 release.py deploy <dir>                 install the single .tar.gz in <dir> with the ACS CLI
 release.py export <out-dir> [app-id...] export default, local, and users data for each app (default: this app) as <app-id>.tgz
 release.py diff <target> <source> <out> merge local, compare defaults, write artifacts
+release.py install-acs                  download, verify, and add the ACS CLI for this agent to PATH
+release.py appinspect-link              print the link to this build's published artifacts
 release.py tag                          tag HEAD as v<version>, push the tag, and set APP_ID/APP_VERSION (CI only)
 
 The ACS CLI reads STACK_TOKEN. Azure Pipelines maps ACS_TOKEN to STACK_TOKEN.
@@ -15,7 +17,9 @@ SPLUNK_SEARCH_HEAD selects a target search head for compare and smoke tests.
 
 import base64
 import configparser
+import difflib
 import filecmp
+import hashlib
 import json
 import os
 import re
@@ -124,6 +128,33 @@ def run(cmd, **kwargs):
     """Print a command, then run it."""
     print("Running:", " ".join(str(c) for c in cmd), flush=True)
     return subprocess.run(cmd, **kwargs)
+
+
+def install_acs():
+    """Download, verify and unpack the ACS CLI for this agent, then add it to PATH."""
+    asset, sha256 = {
+        "posix": ("acs_v2.26.0_linux_amd64.tar.gz", "9450ee04be42c633af4b0db932d28139232815704bc4410c0908ea8ee38a8e49"),
+        "nt": ("acs_v2.26.0_windows_amd64.zip", "062ab820347a7186c159f1e744fbc1b2f4d790c979cd4de1710a164abc22185e"),
+    }[os.name]
+    directory = Path(os.environ["AGENT_TEMPDIRECTORY"])
+    archive = directory / asset
+    url = f"https://github.com/splunk/acs-cli/releases/download/v2.26.0/{asset}"
+    print(f"Downloading {url}", flush=True)
+    with urllib.request.urlopen(url) as response:
+        archive.write_bytes(response.read())
+    actual = hashlib.sha256(archive.read_bytes()).hexdigest()
+    if actual != sha256:
+        sys.exit(f"ACS CLI checksum mismatch: expected {sha256}, got {actual}")
+    shutil.unpack_archive(archive, directory)
+    print(f"##vso[task.prependpath]{directory}", flush=True)
+
+
+def appinspect_link():
+    """Print the link to this build's published artifacts."""
+    print(
+        f"{os.environ['SYSTEM_COLLECTIONURI']}{os.environ['SYSTEM_TEAMPROJECTID']}/_build/results"
+        f"?buildId={os.environ['BUILD_BUILDID']}&view=artifacts&pathAsName=false&type=publishedArtifacts"
+    )
 
 
 def slim(*args):
@@ -310,7 +341,7 @@ def acs_session():
     stack = os.environ["SPLUNK_STACK"]
     search_head = configured_value("SPLUNK_SEARCH_HEAD")
     with tempfile.TemporaryDirectory() as home:
-        env = {**os.environ, "HOME": home}
+        env = {**os.environ, "HOME": home, "USERPROFILE": home}
         print(f"ACS stack: {stack}. Search head: {search_head or 'not set, all search heads'}.")
         target = [f"--target-sh={search_head}"] if search_head else []
         run(["acs", "config", "add-stack", stack, "--use", *target], check=True, env=env)
@@ -466,12 +497,16 @@ def diff(target_dir, source_dir, out_dir):
                 for p in files(root):
                     if not deployed(p):
                         (root / p).unlink()
-            # diff exits 1 when the trees differ, 2 on error.
-            patch = subprocess.run(["diff", "-ruN", "target", "source"], cwd=tmp,
-                                   capture_output=True, text=True, check=False)
-            if patch.returncode > 1:
-                sys.exit(f"diff failed for {app}: {patch.stderr}")
-        (out / f"{app}.patch").write_text(patch.stdout, encoding="utf-8")
+            patch = []
+            for path in sorted(p for p in files(target) | files(source) if deployed(p)):
+                old, new = (r / path for r in (target, source))
+                patch.extend(difflib.diff_bytes(
+                    difflib.unified_diff,
+                    old.read_bytes().splitlines(keepends=True) if old.exists() else [],
+                    new.read_bytes().splitlines(keepends=True) if new.exists() else [],
+                    f"target/{path.as_posix()}".encode(), f"source/{path.as_posix()}".encode(),
+                ))
+        (out / f"{app}.patch").write_bytes(b"".join(patch))
         (out / f"{app}-summary.md").write_text(text, encoding="utf-8")
         print(text, end="")
 
@@ -495,6 +530,8 @@ if __name__ == "__main__":
         "deploy": deploy,
         "export": export,
         "diff": diff,
+        "install-acs": install_acs,
+        "appinspect-link": appinspect_link,
         "tag": tag,
     }
     if len(sys.argv) < 2 or sys.argv[1] not in commands:
