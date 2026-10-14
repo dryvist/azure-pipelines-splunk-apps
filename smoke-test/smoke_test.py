@@ -9,19 +9,21 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import release
+from splunk_release.acs import acs_session, configured_value
+from splunk_release.appinspect import appinspect_token
+from splunk_release.azure import run
 
 
 def require(group, *names):
     """Stop with one clear line when a variable group value is missing."""
-    missing = [n for n in names if release.configured_value(n) is None]
+    missing = [n for n in names if configured_value(n) is None]
     if missing:
         sys.exit(f"FAIL {group}: empty value for {', '.join(missing)}")
 
 
 def appinspect():
     require("splunk-appinspect", "SPLUNK_USERNAME", "SPLUNK_PASSWORD")
-    release.appinspect_token()
+    appinspect_token()
     print("PASS AppInspect login")
 
 
@@ -32,15 +34,15 @@ def stack(group):
         names.append("SPLUNK_SEARCH_HEAD")
     require(group, *names)
     os.environ["STACK_TOKEN"] = os.environ["ACS_TOKEN"]
-    with tempfile.TemporaryDirectory() as out, release.acs_session() as env:
-        release.run(["acs", "apps", "list"], check=True, env=env, capture_output=True)
+    with tempfile.TemporaryDirectory() as out, acs_session() as env:
+        run(["acs", "apps", "list"], check=True, env=env, capture_output=True)
         print(f"PASS {group} ACS login and app list")
         apps_file = Path(out, "apps.json")
         apps_file.write_text(json.dumps({"Apps": ["search"]}))
         cmd = ["acs", "apps", "export", f"--file={apps_file}", "--default=false", "--local=true",
                "--users=true", "--confs-only=true", f"--export-dir={out}"]
         print("Exporting the search app local and user configuration files only.")
-        release.run(cmd, check=True, env=env)
+        run(cmd, check=True, env=env)
         print(f"PASS {group} export_apps: {Path(out, 'search.tar.gz').stat().st_size} bytes")
 
 

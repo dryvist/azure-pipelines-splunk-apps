@@ -1,0 +1,167 @@
+"""Configure and operate the Splunk Cloud ACS CLI."""
+
+import hashlib
+import inspect
+import json
+import os
+import re
+import shutil
+import sys
+import tempfile
+import time
+from contextlib import contextmanager
+from pathlib import Path
+
+from splunk_release.azure import run
+from splunk_release.version import APP
+
+def install_acs():
+    """Download, verify and unpack the ACS CLI for this agent, then add it to PATH."""
+    asset, sha256 = {
+        "posix": ("acs_v2.26.0_linux_amd64.tar.gz", "9450ee04be42c633af4b0db932d28139232815704bc4410c0908ea8ee38a8e49"),
+        "nt": ("acs_v2.26.0_windows_amd64.zip", "062ab820347a7186c159f1e744fbc1b2f4d790c979cd4de1710a164abc22185e"),
+    }[os.name]
+    directory = Path(os.environ["AGENT_TEMPDIRECTORY"])
+    archive = directory / asset
+    url = f"https://github.com/splunk/acs-cli/releases/download/v2.26.0/{asset}"
+    # curl uses the operating system's certificate store on Windows and Linux.
+    run(["curl", "--fail", "--silent", "--show-error", "--location", "--output", str(archive), url], check=True)
+    actual = hashlib.sha256(archive.read_bytes()).hexdigest()
+    if actual != sha256:
+        sys.exit(f"ACS CLI checksum mismatch: expected {sha256}, got {actual}")
+    unpack_options = {}
+    if (
+        archive.suffix == ".gz"
+        and "filter" in inspect.signature(shutil.unpack_archive).parameters
+    ):
+        unpack_options["filter"] = (
+            "data" if sys.version_info >= (3, 14) else "fully_trusted"
+        )
+    shutil.unpack_archive(archive, directory, **unpack_options)
+    print(f"##vso[task.prependpath]{directory}", flush=True)
+
+
+def configured_value(name):
+    """Return a configured environment value, ignoring empty Azure placeholders."""
+    value = os.environ.get(name, "").strip()
+    return value if value and not value.startswith("$(") else None
+
+def acs(env, *args):  # run an ACS CLI command, print its output in a ##[group], return stdout
+    print(f"##[group]acs {' '.join(args)}")
+    try:
+        result = run(["acs", *args], capture_output=True, text=True, check=True, env=env)
+    finally:
+        result = locals().get("result", sys.exc_info()[1])
+        print(getattr(result, "stdout", "") or "", getattr(result, "stderr", "") or "", sep="\n")
+        print("##[endgroup]")
+    return result.stdout
+
+@contextmanager
+def acs_session():
+    """Select the configured stack and search head, then log in with STACK_TOKEN."""
+    stack = os.environ["SPLUNK_STACK"]
+    search_head = configured_value("SPLUNK_SEARCH_HEAD")
+    with tempfile.TemporaryDirectory() as home:
+        env = {**os.environ, "HOME": home, "USERPROFILE": home}
+        print(f"##[section]ACS stack {stack}, search head {search_head or 'not set (all search heads)'}")
+        target = [f"--target-sh={search_head}"] if search_head else []
+        acs(env, "config", "add-stack", stack, "--use", *target)
+        acs(env, "login")
+        yield env
+
+def restart_required(env):
+    # shortcut: matches the documented restartRequired field; parse JSON if ACS changes format
+    return bool(re.search(r'"restartRequired"\s*:\s*true', acs(env, "status", "current-stack", "-f", "structured"), re.I))
+
+def status():
+    with acs_session() as env:
+        if restart_required(env):
+            print(f"##[warning]Restart required on {os.environ['SPLUNK_STACK']}")
+
+def package_identity(directory):
+    packages = list(Path(directory).glob("*.tar.gz"))
+    if len(packages) != 1:
+        sys.exit(f"Expected one .tar.gz package in {directory}, found {len(packages)}")
+    package = packages[0]
+    app, _, version = package.name.removesuffix(".tar.gz").rpartition("-")
+    if not app or not version:
+        sys.exit(f"Expected <app-id>-<version>.tar.gz package name, found {package.name}")
+    return package, app, version
+
+def wait_version(directory):
+    _, app, version = package_identity(directory)
+    deadline = time.monotonic() + 300
+    with acs_session() as env:
+        while time.monotonic() < deadline:
+            if version in acs(env, "apps", "describe", app):
+                return
+            time.sleep(min(3, max(0, deadline - time.monotonic())))
+    print(f"##[error]Timed out after 300 seconds waiting for {app} version {version}")
+    raise SystemExit(1)
+
+def restart():
+    with acs_session() as env:
+        acs(env, "restart", "current-stack")
+        deadline = time.monotonic() + 30 * 60
+        while time.monotonic() < deadline:
+            if not restart_required(env):
+                return
+            time.sleep(min(30, max(0, deadline - time.monotonic())))
+    print("##[error]Timed out after 30 minutes waiting for restart completion")
+    raise SystemExit(1)
+
+def deploy(directory):
+    package, app, version = package_identity(directory)
+    print(f"##[section]Installing {app} {version} as a private app")
+    with acs_session() as env:
+        acs(env, "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(package))
+
+def listed_apps(env, splunkbase=False):
+    apps, offset = [], 0
+    while True:
+        args = ["apps", "list", "--count", "100", "--offset", str(offset)]
+        if splunkbase:
+            args.append("--splunkbase=true")
+        raw = acs(env, *args, "-f", "structured")
+        try:
+            rows = json.loads(raw)["apps"]
+            if not isinstance(rows, list):
+                raise TypeError
+        except (json.JSONDecodeError, KeyError, TypeError):
+            print(raw)
+            print("##[error]Missing apps in ACS output")
+            raise SystemExit(1)
+        apps.extend(item["name"] for item in rows)
+        if len(rows) < 100:
+            return apps
+        offset += 100
+
+def export(out_dir, *app_ids):
+    package_dir = len(app_ids) == 1 and Path(app_ids[0]).is_dir()
+    custom = app_ids == ("--custom",)
+    out, apps = Path(out_dir), app_ids or [APP]
+    if package_dir:
+        _, app, _ = package_identity(app_ids[0])
+        apps = [app]
+        out /= app
+        print(f"##vso[task.setvariable variable=APP_ID]{app}")
+
+    out.mkdir(parents=True, exist_ok=True)
+    apps_file = out / "apps.json"
+    try:
+        with acs_session() as env:
+            if custom:
+                installed = listed_apps(env)
+                splunkbase = {app.casefold() for app in listed_apps(env, True)}
+                apps = sorted({app for app in installed if app.casefold() not in splunkbase})
+            for app in apps:
+                apps_file.write_text(json.dumps({"Apps": [app]}))
+                acs(env, "apps", "export", f"--file={apps_file}", "--default=true", "--local=true",
+                    "--users=true", "--confs-only=false", f"--export-dir={out}")
+                exported = out / f"{app}.tar.gz"
+                if exported.exists():
+                    exported.rename(out / f"{app}.tgz")
+                else:
+                    print(f"##[warning]NOT INSTALLED {app}")
+    finally:
+        apps_file.unlink(missing_ok=True)
