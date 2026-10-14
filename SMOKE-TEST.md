@@ -25,12 +25,14 @@ Complete Steps 1 to 4 of `AZURE-DEVOPS-SETUP.md`.
 ## Run it
 
 1. Select **Run pipeline**.
-2. Select `splunk` or `splunk-itsi` for `target` in the Run panel.
-3. Select **Run**.
-4. If the run shows **This pipeline needs permission**, select **View**.
-5. Select **Permit** for `splunk-appinspect`.
-6. Select **Permit** for the selected nonprod variable group.
-7. Select **Permit** for the selected prod variable group.
+2. In **Agent pool**, type your self-hosted agent pool name, or keep
+   `Azure Pipelines`.
+3. Select `splunk` or `splunk-itsi` for `target` in the Run panel.
+4. Select **Run**.
+5. If the run shows **This pipeline needs permission**, select **View**.
+6. Select **Permit** for `splunk-appinspect`.
+7. Select **Permit** for the selected nonprod variable group.
+8. Select **Permit** for the selected prod variable group.
 
 ## Read the result
 

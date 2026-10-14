@@ -2,6 +2,10 @@ trigger: none
 pr: none
 
 parameters:
+  - name: pool
+    displayName: Agent pool
+    type: string
+    default: Azure Pipelines
   - name: target
     type: string
     default: splunk
@@ -10,7 +14,9 @@ parameters:
       - splunk-itsi
 
 pool:
-  vmImage: ubuntu-latest
+  name: ${{ parameters.pool }}
+  ${{ if eq(parameters.pool, 'Azure Pipelines') }}:
+    vmImage: ubuntu-latest
 
 jobs:
   - job: appinspect
