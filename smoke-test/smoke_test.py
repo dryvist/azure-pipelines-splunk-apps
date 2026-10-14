@@ -33,12 +33,13 @@ def stack(group):
     require(group, *names)
     os.environ["STACK_TOKEN"] = os.environ["ACS_TOKEN"]
     with tempfile.TemporaryDirectory() as out, release.acs_session() as env:
-        subprocess.run(["acs", "apps", "list"], check=True, env=env, capture_output=True)
+        release.run(["acs", "apps", "list"], check=True, env=env, capture_output=True)
         print(f"PASS {group} ACS login and app list")
         Path(out, "apps.json").write_text(json.dumps({"Apps": ["search"]}))
         cmd = ["acs", "apps", "export", f"--file={out}/apps.json", "--default=false", "--local=true",
                "--users=true", "--confs-only=true", f"--export-dir={out}"]
-        subprocess.run(cmd, check=True, env=env)
+        print("Exporting the search app local and user configuration files only.")
+        release.run(cmd, check=True, env=env)
         print(f"PASS {group} export_apps: {Path(out, 'search.tar.gz').stat().st_size} bytes")
 
 

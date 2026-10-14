@@ -120,11 +120,17 @@ def stage():
     shutil.copytree(SRC, STAGE, ignore=EXCLUDE)
 
 
+def run(cmd, **kwargs):
+    """Print a command, then run it."""
+    print("Running:", " ".join(str(c) for c in cmd), flush=True)
+    return subprocess.run(cmd, **kwargs)
+
+
 def slim(*args):
     # slim loads this environment into a case-insensitive ConfigParser and fails when keys
     # differ only by case, such as SHELL and shell. Pass one entry per case-folded key.
     env = dict({k.lower(): (k, v) for k, v in os.environ.items()}.values())
-    subprocess.run(["slim", *args], check=True, env=env)
+    run(["slim", *args], check=True, env=env)
 
 
 def git(*args):
@@ -134,7 +140,7 @@ def git(*args):
         "-c",
         "user.email=azure-pipelines@localhost",
     ]
-    subprocess.run(["git", *identity, *args], check=True)
+    run(["git", *identity, *args], check=True)
 
 
 def bump():
@@ -305,21 +311,18 @@ def acs_session():
     search_head = configured_value("SPLUNK_SEARCH_HEAD")
     with tempfile.TemporaryDirectory() as home:
         env = {**os.environ, "HOME": home}
-        subprocess.run(["acs", "config", "add-stack", stack, "--use"], check=True, env=env)
-        if search_head:
-            subprocess.run(
-                ["acs", "config", "use-stack", stack, f"--target-sh={search_head}"],
-                check=True,
-                env=env,
-            )
-        subprocess.run(["acs", "login"], check=True, env=env)
+        print(f"ACS stack: {stack}. Search head: {search_head or 'not set, all search heads'}.")
+        target = [f"--target-sh={search_head}"] if search_head else []
+        run(["acs", "config", "add-stack", stack, "--use", *target], check=True, env=env)
+        run(["acs", "login"], check=True, env=env)
         yield env
 
 
 def deploy(artifact_dir):
     (pkg,) = Path(artifact_dir).glob("*.tar.gz")
+    print(f"Installing {pkg.name} as a private app.")
     with acs_session() as env:
-        subprocess.run(
+        run(
             ["acs", "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(pkg)],
             check=True, env=env,
         )
@@ -335,7 +338,8 @@ def export(out_dir, *app_ids):
             apps_file.write_text(json.dumps({"Apps": [app]}))
             cmd = ["acs", "apps", "export", f"--file={apps_file}", "--default=true", "--local=true",
                    "--users=true", "--confs-only=false", f"--export-dir={out}"]
-            subprocess.run(cmd, check=False, env=env)
+            print(f"Exporting {app} to {out}.")
+            run(cmd, check=False, env=env)
             exported = out / f"{app}.tar.gz"
             if exported.exists():
                 exported.rename(out / f"{app}.tgz")
