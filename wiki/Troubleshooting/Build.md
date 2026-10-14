@@ -32,18 +32,19 @@ for each stage. `nonprod` and `proddiff` require a pull request or
 ### Bump step prints a skip reason
 
 **Symptom:** The step can print `target app.conf is missing, skipping bump`
-or `version already changed, skipping bump`. `release.py` also has the
-message `not a PR validation build, skipping bump`, but the pipeline condition
-skips the step before it runs outside a pull request.
+or `<branch> already changes the version, skipping bump`. The line before it
+prints the source and target `app.conf` versions.
 
-**Cause:** The bump runs only for a pull request. It also skips when the target
-branch has no app config or already has a different version.
+**Cause:** The bump skips when the target branch has no app config or the
+source branch version differs from the target. The bump commit itself updates
+the PR, so the next PR run always prints the skip. That run is expected.
 
 **Fix:**
 
 1. Run pull request validation when a version bump is needed.
 2. Add `package/default/app.conf` to the app repo if it is missing.
-3. If the target version already changed, review that version before merging.
+3. If the PR has no `Release <app> <version>` commit, compare the two printed
+   versions and fix `app.conf` on the source branch.
 
 **Docs:** [Conditions](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/conditions),
 [Git commands](https://learn.microsoft.com/en-us/azure/devops/pipelines/scripts/git-commands).

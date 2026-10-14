@@ -129,8 +129,10 @@ def bump():
         print("target app.conf is missing, skipping bump")
         return
     text = CONF.read_text(**TEXT)
-    if app_conf_version(text) != app_conf_version(target_text):
-        print("version already changed, skipping bump")
+    source_version, target_version = app_conf_version(text), app_conf_version(target_text)
+    print(f"{source} app.conf version {source_version}, {target} app.conf version {target_version}")
+    if source_version != target_version:
+        print(f"{source} already changes the version, skipping bump")
         return
     text, new = bump_conf(
         text, bump_level(os.environ.get("BUILD_SOURCEVERSIONMESSAGE", ""))
