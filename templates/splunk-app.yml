@@ -51,32 +51,30 @@ stages:
           - ${{ parameters.setup }}
           - download: current
             artifact: dist
-          - script: >-
-              python $(Pipeline.Workspace)/tools/release.py appinspect
-              $(Pipeline.Workspace)/dist
+          - script: python $(Pipeline.Workspace)/tools/release.py appinspect $(Pipeline.Workspace)/dist
             displayName: Run AppInspect
             env: # secrets reach scripts only when mapped
               SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
-          - script: |
-              mkdir -p "$(Pipeline.Workspace)/appinspect-report"
-              for ext in html json; do
-                report="$(Pipeline.Workspace)/dist/appinspect-report.$ext"
-                if [ -f "$report" ]; then
-                  cp "$report" "$(Pipeline.Workspace)/appinspect-report/"
-                fi
-              done
+          - task: CopyFiles@2
             displayName: Collect AppInspect reports
+            inputs:
+              SourceFolder: $(Pipeline.Workspace)/dist
+              Contents: appinspect-report.*
+              TargetFolder: $(Pipeline.Workspace)/appinspect-report
             condition: succeededOrFailed()
           # Each job attempt publishes its own artifact.
           - publish: $(Pipeline.Workspace)/appinspect-report
             artifact: appinspect-report-$(System.JobAttempt)
             condition: succeededOrFailed()
-          - script: cat "$(Pipeline.Workspace)/appinspect-report/appinspect-report.json"
+          - script: python -m json.tool $(Pipeline.Workspace)/appinspect-report/appinspect-report.json
             displayName: Show AppInspect JSON report
             condition: succeededOrFailed()
-          - script: >-
-              echo "$(System.CollectionUri)$(System.TeamProjectId)/_build/results?buildId=$(Build.BuildId)&view=artifacts&pathAsName=false&type=publishedArtifacts"
+          - script: python $(Pipeline.Workspace)/tools/release.py appinspect-link
             displayName: Show AppInspect HTML report link
+            env:
+              SYSTEM_COLLECTIONURI: $(System.CollectionUri)
+              SYSTEM_TEAMPROJECTID: $(System.TeamProjectId)
+              BUILD_BUILDID: $(Build.BuildId)
             condition: succeededOrFailed()
 
   - stage: nonprod
@@ -97,9 +95,7 @@ stages:
                 - download: current
                   artifact: dist
                 - template: acs-cli.yml
-                - script: >-
-                    python $(Pipeline.Workspace)/tools/release.py deploy
-                    $(Pipeline.Workspace)/dist
+                - script: python $(Pipeline.Workspace)/tools/release.py deploy $(Pipeline.Workspace)/dist
                   displayName: Deploy to nonprod via ACS
                   env:
                     SPLUNK_USERNAME: $(SPLUNK_USERNAME)
@@ -129,10 +125,7 @@ stages:
               STACK_TOKEN: $(ACS_TOKEN)
           - script: python -m pip install --quiet ksconf==0.13.10 splunk-sdk==2.1.0
             displayName: Install diff dependencies
-          - script: >-
-              python $(Pipeline.Workspace)/tools/release.py diff
-              $(Pipeline.Workspace)/prod-export $(Pipeline.Workspace)/dist
-              $(Pipeline.Workspace)/prod-diff
+          - script: python $(Pipeline.Workspace)/tools/release.py diff $(Pipeline.Workspace)/prod-export $(Pipeline.Workspace)/dist $(Pipeline.Workspace)/prod-diff
             displayName: Diff production against this package
           - publish: $(Pipeline.Workspace)/prod-diff
             artifact: prod-diff-$(System.JobAttempt)
@@ -182,9 +175,7 @@ stages:
                     - download: current
                       artifact: dist
                     - template: acs-cli.yml
-                    - script: >-
-                        python $(Pipeline.Workspace)/tools/release.py deploy
-                        $(Pipeline.Workspace)/dist
+                    - script: python $(Pipeline.Workspace)/tools/release.py deploy $(Pipeline.Workspace)/dist
                       displayName: Deploy to prod via ACS
                       env:
                         SPLUNK_USERNAME: $(SPLUNK_USERNAME)

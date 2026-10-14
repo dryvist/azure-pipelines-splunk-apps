@@ -3,6 +3,8 @@
 import io
 import json
 import os
+import subprocess
+import sys
 import tarfile
 import tempfile
 from contextlib import redirect_stdout
@@ -39,6 +41,33 @@ for count in ("failure", "error", "manual_check"):
     assert not release.appinspect_passed(
         "SUCCESS", {"summary": {**clean["summary"], count: 1}}
     )
+
+# ACS install downloads this platform's pinned archive, unpacks it, and rejects a bad checksum.
+payload = io.BytesIO()
+with tarfile.open(fileobj=payload, mode="w:gz") as archive:
+    info = tarfile.TarInfo("acs")
+    info.size = 7
+    archive.addfile(info, io.BytesIO(b"acs cli"))
+for checksum in ("9450ee04be42c633af4b0db932d28139232815704bc4410c0908ea8ee38a8e49", "bad"):
+    with tempfile.TemporaryDirectory() as tmp:
+        output = io.StringIO()
+        with (
+            patch.dict(os.environ, {"AGENT_TEMPDIRECTORY": tmp}),
+            patch("release.os.name", "posix"),
+            patch("release.urllib.request.urlopen", return_value=io.BytesIO(payload.getvalue())) as urlopen,
+            patch("release.hashlib.sha256") as sha256,
+            redirect_stdout(output),
+        ):
+            sha256.return_value.hexdigest.return_value = checksum
+            try:
+                release.install_acs()
+            except SystemExit as error:
+                assert checksum == "bad" and "checksum mismatch" in str(error)
+            else:
+                assert checksum != "bad"
+                assert urlopen.call_args.args[0].endswith("/v2.26.0/acs_v2.26.0_linux_amd64.tar.gz")
+                assert Path(tmp, "acs").read_bytes() == b"acs cli"
+                assert f"##vso[task.prependpath]{tmp}" in output.getvalue()
 
 
 def write_tgz(path, files):
@@ -215,6 +244,13 @@ with tempfile.TemporaryDirectory() as tmp:
         for path in [token.split("\t", 1)[0]]
     ]
     assert patch_paths
+    assert "--- target/default/props.conf" in patch_text
+    assert "+++ source/default/props.conf" in patch_text
+    assert "@@ " in patch_text, patch_text
+    assert any(
+        line.startswith(("+", "-")) and not line.startswith(("+++", "---"))
+        for line in patch_text.splitlines()
+    )
     assert all(
         path.startswith(("target/default/", "source/default/"))
         or path in (
@@ -257,6 +293,27 @@ with tempfile.TemporaryDirectory() as tmp:
         assert "access = read : [*]" in archive.extractfile(
             "my_ta/metadata/default.meta"
         ).read().decode()
+
+
+# The smoke result command passes only when all three jobs succeeded.
+result_script = Path(__file__).parent / "smoke-test" / "smoke_test.py"
+passed = subprocess.run(
+    [sys.executable, str(result_script), "result", "Succeeded", "Succeeded", "Succeeded"],
+    capture_output=True,
+    text=True,
+    check=False,
+)
+assert passed.returncode == 0
+assert "RESULT: ALL PASS" in passed.stdout
+failed = subprocess.run(
+    [sys.executable, str(result_script), "result", "Succeeded", "Failed", "Succeeded"],
+    capture_output=True,
+    text=True,
+    check=False,
+)
+assert failed.returncode == 1
+assert "RESULT: ALL PASS" not in failed.stdout
+assert "RESULT: FAILED - open each failed job for its FAIL or Error line" in failed.stdout
 
 
 # Tagging sets Azure Pipelines variables after pushing the version tag.

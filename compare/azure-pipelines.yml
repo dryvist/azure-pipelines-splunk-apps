@@ -24,6 +24,8 @@ jobs:
             inputs:
               versionSpec: "3.13"
           - template: ../templates/acs-cli.yml
+            parameters:
+              releaseScript: $(Build.SourcesDirectory)/release.py
           - script: python release.py export $(Pipeline.Workspace)/${{ env }}-export ${{ parameters.apps }}
             displayName: Export apps from ${{ env }} via ACS
             env:
@@ -42,10 +44,7 @@ jobs:
       - download: current
       - script: python -m pip install --quiet ksconf==0.13.10 splunk-sdk==2.1.0
         displayName: Install diff dependencies
-      - script: >-
-          python release.py diff
-          $(Pipeline.Workspace)/prod-export $(Pipeline.Workspace)/nonprod-export
-          $(Pipeline.Workspace)/compare
+      - script: python release.py diff $(Pipeline.Workspace)/prod-export $(Pipeline.Workspace)/nonprod-export $(Pipeline.Workspace)/compare
         displayName: Compare prod with nonprod
       - publish: $(Pipeline.Workspace)/compare
         artifact: compare
