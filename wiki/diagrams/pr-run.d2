@@ -62,30 +62,41 @@ classes: {
 
 
 
-title: "Pull Request Run" {class: title; near: top-center}
-
 page: "" {
   class: columns
   grid-columns: 1
   grid-gap: 10
-
-
-
-  stages: "" {
+  title_row: "" {
     class: columns
-    direction: down
-    policy: "Pull request branch policy" {class: card; width: 620}
-    build: "Build stage" {class: card; width: 620}
-    inspect: "Package inspection stage" {class: card; width: 620}
-    nonprod: "Deploy: nonproduction" {class: [card; emphasis]; width: 620}
-    diff: "Production comparison stage" {class: card; width: 620}
-    release: "Skipped: release requires a main branch run" {class: [card; ghost]; width: 620}
-    prod: "Skipped: production needs a main release and enabled parameter" {class: [card; ghost]; width: 620}
-    policy -> build: {class: link}
-    build -> inspect: {class: link}
-    inspect -> nonprod: {class: link}
-    nonprod -> diff: {class: link}
-    inspect -> release: {class: link-planned}
-    release -> prod: {class: link-planned}
+    grid-columns: 3
+    grid-gap: 0
+    pad_left: "." {shape: text; width: 308; style.opacity: 0}
+    title: "Pull Request Run" {class: title}
+    pad_right: "." {shape: text; width: 308; style.opacity: 0}
   }
+  first: "" {
+    class: columns
+    direction: right
+    policy: "01 · Pull request branch policy" {class: card; width: 320}
+    build: "02 · Build stage" {class: card; width: 320}
+    policy -> build: {class: link}
+  }
+  second: "" {
+    class: columns
+    direction: left
+    nonprod: "04 · Nonprod stage" {class: card; width: 320}
+    inspect: "03 · AppInspect stage" {class: card; width: 320}
+    inspect -> nonprod: {class: link}
+  }
+  third: "" {
+    class: columns
+    direction: right
+    proddiff: "05 · Proddiff stage" {class: [card; emphasis]; width: 320}
+    release: "06 · Release stage" {class: [card; ghost]; width: 320}
+    proddiff -> release: "main only" {class: link-planned}
+  }
+  first.build -> second.inspect: {class: link}
+  second.nonprod -> third.proddiff: {class: link-emphasis}
+
+
 }

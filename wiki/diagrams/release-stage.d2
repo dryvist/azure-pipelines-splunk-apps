@@ -61,26 +61,38 @@ classes: {
 }
 
 
-title: "Release Stage" {class: title; near: top-center}
 
 page: "" {
   class: columns
   grid-columns: 1
   grid-gap: 10
-
-
-
+  title_row: "" {
+    class: columns
+    grid-columns: 3
+    grid-gap: 0
+    pad_left: "." {shape: text; width: 501; style.opacity: 0}
+    title: "Release Stage" {class: title}
+    pad_right: "." {shape: text; width: 501; style.opacity: 0}
+  }
+  subtitle_row: "" {
+    class: columns
+    grid-columns: 3
+    grid-gap: 0
+    pad_left: "." {shape: text; width: 464; style.opacity: 0}
+    subtitle: "Runs on main after proddiff succeeds" {class: subtitle}
+    pad_right: "." {shape: text; width: 464; style.opacity: 0}
+  }
   stages: "" {
     class: columns
     direction: down
-    release: "Release stage · main branch only" {class: card; width: 480}
-    tag: "Tag the release version" {class: card; width: 480}
-    publish: "Focus: publish versioned package" {class: [card; emphasis]; width: 480}
-    feed: "Artifact: versioned package" {class: card; width: 480}
-    failure: "Failure: tag push rejected" {class: [card; exception]; width: 480}
+    release: "Release stage · main only · after proddiff" {class: card; width: 520}
+    tag: "Tag the release version" {class: card; width: 520}
+    publish: "Publish versioned package to the feed" {class: [card; emphasis]; width: 520}
+    output: "Output: app id and version package" {class: card; width: 520}
+    tag_fail: "Failure: release tag push rejected" {class: [card; exception]; width: 520}
     release -> tag: {class: link}
-    tag -> publish: {class: link-emphasis}
-    publish -> feed: {class: link}
-    tag -> failure: {class: link-exception}
+    tag -> publish: "push succeeded" {class: link-emphasis}
+    publish -> output: {class: link}
+    tag -> tag_fail: "push rejected" {class: link-exception}
   }
 }

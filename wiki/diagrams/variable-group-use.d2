@@ -61,35 +61,43 @@ classes: {
 }
 
 
-title: "Variable Group Use" {class: title; near: top-center}
 
 page: "" {
   class: columns
   grid-columns: 1
-  grid-gap: 0
-
-
-  inspection: "Shared inspection settings\nMain: inspection + nonprod + prod\nSmoke: inspection" {class: columns; width: 650; height: 100}
-
-  scopes: "" {
+  grid-gap: 16
+  title_row: "" {
     class: columns
-    grid-columns: 2
+    grid-columns: 3
+    grid-gap: 0
+    pad_left: "." {shape: text; width: 237; style.opacity: 0}
+    title: "Variable Group Use" {class: title}
+    pad_right: "." {shape: text; width: 237; style.opacity: 0}
+  }
+  subtitle_row: "" {
+    class: columns
+    grid-columns: 3
+    grid-gap: 0
+    pad_left: "." {shape: text; width: 204; style.opacity: 0}
+    subtitle: "Groups selected by pipeline and environment" {class: subtitle}
+    pad_right: "." {shape: text; width: 204; style.opacity: 0}
+  }
+
+  app: "App pipeline" {
+    class: boundary
+    grid-columns: 3
     grid-gap: 16
+    appinspect: "splunk-appinspect\nAppInspect + Nonprod" {class: card; width: 210}
+    nonprod: "splunk-nonprod\nNonprod deployment" {class: card; width: 210}
+    prod: "splunk-prod\nProddiff comparison" {class: card; width: 210}
+  }
 
-    main: "Main pipeline settings" {
-      class: boundary
-      grid-columns: 1
-      grid-gap: 8
-      main_nonprod: "Main nonprod settings\nNonprod deploy" {class: card}
-      main_prod: "Main prod settings\nProddiff + prod" {class: card}
-    }
-
-    compare_smoke: "Compare + smoke settings" {
-      class: boundary
-      grid-columns: 1
-      grid-gap: 8
-      target_nonprod: "Target nonprod settings\nCompare + smoke: nonprod" {class: card}
-      target_prod: "Target prod settings\nCompare + smoke: prod" {class: card}
-    }
+  manual: "Manual pipelines" {
+    class: boundary
+    grid-columns: 3
+    grid-gap: 16
+    deploy: "Deploy\nAppInspect group:\nsplunk-appinspect\nEnvironment group:\nsplunk-<environment>" {class: card; width: 210}
+    restart: "Restart\nVariable group:\n<target>-<environment>" {class: card; width: 210}
+    compare_smoke: "Compare + Smoke test\nCompare groups:\n<prefix>-<source>\n<prefix>-<target>\nSmoke AppInspect:\nsplunk-appinspect\nSmoke environment:\n<target>-<environment>" {class: card; width: 210}
   }
 }

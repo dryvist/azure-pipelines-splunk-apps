@@ -61,27 +61,44 @@ classes: {
 }
 
 
-title: "Deployment Job" {class: title; near: top-center}
 
 page: "" {
   class: columns
   grid-columns: 1
   grid-gap: 10
+  title_row: "" {
+    class: columns
+    grid-columns: 3
+    grid-gap: 0
+    pad_left: "." {shape: text; width: 290; style.opacity: 0}
+    title: "Shared Per-app Deployment Steps" {class: title}
+    pad_right: "." {shape: text; width: 290; style.opacity: 0}
+  }
   vertical-gap: 24
 
   first: "" {
     class: columns
     direction: right
-    prepare: "1. Prepare: checkout app + runtime\nDownload dist · install deployment CLI\nInstall diff dependencies" {class: card; width: 340}
-    export: "2. Export the target app" {class: card; width: 340}
-    prepare -> export: {class: link}
+    before: "Check status before deploy" {class: card; width: 245}
+    export: "Export installed app" {class: card; width: 245}
+    compare: "Compare with package" {class: card; width: 245}
+    before -> export: {class: link}
+    export -> compare: {class: link}
   }
   second: "" {
     class: columns
     direction: left
-    compare: "3. Then compare target with package\nPublish attempt diff" {class: card; width: 340}
-    deploy: "4. Deploy: install package\nThrough deployment API" {class: [card; emphasis]; width: 340}
-    compare -> deploy: {class: link-emphasis}
+    wait: "Wait for package version" {class: card; width: 245}
+    install: "Install package via ACS" {class: [card; emphasis]; width: 245}
+    artifact: "Publish attempt diff" {class: card; width: 245}
+    artifact -> install: {class: link-emphasis}
+    install -> wait: {class: link}
   }
-  first.export -> second.compare: {class: link}
+  finish: "" {
+    class: columns
+    grid-columns: 1
+    after: "Check status after deploy" {class: card; width: 245}
+  }
+  first.compare -> second.artifact: {class: link}
+  second.wait -> finish.after: {class: link}
 }
