@@ -5,16 +5,16 @@ import shutil
 from pathlib import Path
 
 from splunk_release.azure import run
-from splunk_release.version import APP, DIST, MANIFEST, SRC, STAGE
+from splunk_release.version import DIST, SRC, STAGE
 
-# AppInspect rejects hidden files and compiled Python. Tests are excluded from the package.
+# Exclude hidden files, bytecode, and tests from the package.
 EXCLUDE = shutil.ignore_patterns(".*", "__pycache__", "*.pyc", "*.pyo", "tests")
 
 def sort_confs(root):
     """Sort stanzas and keys in every .conf file under root with ksconf, one blank line apart."""
     confs = sorted(str(p) for p in Path(root).rglob("*.conf"))
     if confs:
-        # ksconf exits 9 when it rewrote a file.
+        # ksconf uses exit code 9 after rewriting a file.
         run(["ksconf", "sort", "--inplace", "--quiet", *confs], check=False)
 
 def stage():
@@ -23,8 +23,7 @@ def stage():
     shutil.copytree(SRC, STAGE, ignore=EXCLUDE)
 
 def slim(*args):
-    # slim loads this environment into a case-insensitive ConfigParser and fails when keys
-    # differ only by case, such as SHELL and shell. Pass one entry per case-folded key.
+    # Pass one entry per case-folded environment key.
     env = dict({k.lower(): (k, v) for k, v in os.environ.items()}.values())
     run(["slim", *args], check=True, env=env)
 

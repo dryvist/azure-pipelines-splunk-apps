@@ -14,6 +14,14 @@
 | `splunk_release/appinspect.py` | AppInspect requests, polling, and reports. |
 | `splunk_release/acs.py` | ACS CLI install, sessions, deployment, and export. |
 | `splunk_release/compare.py` | Archive comparison and deployment reports. |
+| `smoke-test/smoke_test.py` | AppInspect and read-only ACS checks. |
+| `templates/acs-cli.yml` | ACS CLI setup for a job. |
+| `templates/acs-step.yml` | Python step with the shared ACS environment. |
+| `templates/diff-tools.yml` | Diff dependency installation. |
+| `templates/python.yml` | Python 3.13 selection. |
+| `templates/deploy.yml` | Per-package deploy steps. |
+| `templates/splunk-app.yml` | Shared app pipeline stages. |
+| `tests/` | Unit tests for release commands. |
 
 The app id comes from `[id] name` in `package/default/app.conf`. If absent,
 `release.py` uses `BUILD_REPOSITORY_NAME`, then the working directory name.

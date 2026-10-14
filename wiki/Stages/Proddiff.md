@@ -29,17 +29,22 @@ Steps, in order:
   **Inputs:** `versionSpec: 3.13`. **Outputs:** Python on `PATH`.
 - **Download artifact (`download: current`, `dist`):** Gets the package.
   **Inputs:** `dist` artifact. **Outputs:** `dist/` in the workspace.
-- **Set up ACS CLI 2.26.0 for the stack:** Downloads, verifies, and unpacks
-  the CLI, prints its version, adds the stack, and logs in once per job.
-  **Inputs:** Agent OS, `curl`, checksum, `SPLUNK_STACK`, `ACS_TOKEN`.
-  **Outputs:** `acs` on `PATH` and its configuration for later steps.
+- **Set up ACS CLI 2.26.0 for $(SPLUNK_STACK):** Prepares the ACS CLI
+  session before export. **Inputs:** Agent OS, `curl`, checksum,
+  `SPLUNK_STACK`, and `ACS_TOKEN`. **Outputs:** `acs` on `PATH` and its
+  configuration for later steps. See the
+  [ACS setup lifecycle](/Reference/Release.py-commands).
 - **Export the app from production via ACS:** Exports the configured app.
-  **Inputs:** `SPLUNK_STACK` and mapped `ACS_TOKEN` as `STACK_TOKEN`.
+  **Inputs:** `SPLUNK_STACK` and `ACS_TOKEN`.
   **Outputs:** `prod-export/`.
 - **Install diff dependencies:** Installs `ksconf` and Splunk SDK.
   **Inputs:** Python package index. **Outputs:** Diff tools in Python.
-- **Diff production against this package:** Compares exports and writes
-  review files. **Inputs:** `prod-export/` and `dist/`. **Outputs:**
+- **Diff production against this package (local files vs default):** Runs
+  `release.py local-diff`. **Inputs:** `prod-export/` and `dist/`.
+  **Outputs:** Local-versus-default reports in `prod-diff/`.
+- **Diff production against this package (merged defaults):** Runs
+  `release.py diff`. **Inputs:** `prod-export/` and `dist/`.
+  **Outputs:** Patch, summary, HTML, and merged archive reports in
   `prod-diff/`.
 - **Publish artifact (`prod-diff-$(System.JobAttempt)`):** Publishes this
   attempt's reports. **Inputs:** `prod-diff/`. **Outputs:** Attempt-named

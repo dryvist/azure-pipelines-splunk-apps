@@ -18,26 +18,31 @@
   package in the `splunk-nonprod` environment.
 - **Inputs:** `dist`, groups `splunk-appinspect` and `splunk-nonprod`, Python
   setup, `SPLUNK_STACK`, `ACS_TOKEN`, and AppInspect username/password.
-- **Outputs:** `nonprod-diff-<attempt>` artifact and installed private app.
+- **Outputs:** `nonprod-diff-<app>-<attempt>` artifact and installed private
+app.
 
-The deployment job installs Python, ACS CLI, and diff dependencies once, then
-downloads `dist`. `templates/deploy.yml` runs these steps for the package:
+The deployment job selects Python 3.13, installs diff dependencies once,
+downloads `dist`, and includes shared ACS setup before package steps. See
+[release.py commands](/Reference/Release.py-commands) for the ACS setup
+lifecycle. `templates/deploy.yml` runs these steps for the package:
 
-- **Check stack status:** Reports current status and warns if restart is
-  required. **Inputs:** Nonprod ACS session.
-- **Export the app from nonprod via ACS:** Gets the app id from the package
+- **Check stack status before deploy:** Reports status and warns if restart
+  is required. **Inputs:** Nonprod ACS session.
+- **Export this app from nonprod via ACS:** Gets the app id from the package
   filename and exports the installed app.
-  **Inputs:** `SPLUNK_STACK` and mapped `ACS_TOKEN` as `STACK_TOKEN`.
+  **Inputs:** `SPLUNK_STACK` and `ACS_TOKEN`.
   **Outputs:** `nonprod-export/`.
-- **Compare nonprod with this package:** Writes local, patch, summary, and
-  merged archive reports. **Inputs:** Nonprod export and `dist` package.
-  **Outputs:** `nonprod-diff/`.
+- **Compare nonprod with this package (local files vs default):** Writes the
+  local-versus-default report. **Inputs:** Nonprod export and `dist` package.
+- **Compare nonprod with this package (merged defaults):** Writes the patch,
+  summary, HTML report, and merged archive. **Inputs:** Nonprod export and
+  `dist` package. **Outputs:** `nonprod-diff/`.
 - **Publish artifact (`nonprod-diff-<app>-$(System.JobAttempt)`):** Publishes
   this app's diff. **Inputs:** App diff directory. **Outputs:** Attempt-named
   pipeline artifact.
 - **Deploy to nonprod via ACS:** Installs the package as a private app.
   **Inputs:** `dist`, `SPLUNK_USERNAME`, `SPLUNK_PASSWORD`, `SPLUNK_STACK`,
-  and `ACS_TOKEN` mapped to `STACK_TOKEN`. **Outputs:** App install result.
+  and `ACS_TOKEN`. **Outputs:** App install result.
 - **Wait for the deployed version:** Checks `acs apps describe` every three
   seconds for up to 300 seconds. **Inputs:** Package version and ACS session.
   **Outputs:** Confirmed app version or a timeout error.

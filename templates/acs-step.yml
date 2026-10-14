@@ -1,0 +1,22 @@
+parameters:
+  - name: command
+    type: string
+  - name: displayName
+    type: string
+  - name: workingDirectory
+    type: string
+    default: ''
+  - name: additionalEnv
+    type: object
+    default: {}
+
+steps:
+  - script: python ${{ parameters.command }}
+    displayName: ${{ parameters.displayName }}
+    ${{ if ne(parameters.workingDirectory, '') }}:
+      workingDirectory: ${{ parameters.workingDirectory }}
+    env:
+      SPLUNK_STACK: $(SPLUNK_STACK)
+      SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
+      STACK_TOKEN: $(ACS_TOKEN)
+      ${{ insert }}: ${{ parameters.additionalEnv }}

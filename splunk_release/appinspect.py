@@ -12,8 +12,7 @@ from pathlib import Path
 
 from splunk_release.acs import package_identity
 
-# AppInspect result views: private_victoria approves Splunk Cloud (Victoria) private apps;
-# future reports checks scheduled to become cloud vetting failures.
+# Request checks for private Victoria apps and future cloud vetting.
 APPINSPECT_TAGS = "private_victoria,future"
 
 def http(url, headers, data=None, timeout=900):

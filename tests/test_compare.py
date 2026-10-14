@@ -2,7 +2,6 @@
 
 from unittest import TestCase
 
-import _common
 import io
 import tarfile
 import tempfile

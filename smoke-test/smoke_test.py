@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from splunk_release.acs import acs_env, configured_value
 from splunk_release.appinspect import appinspect_token
-from splunk_release.azure import run
+from splunk_release.azure import report_command_error, run
 
 
 def require(group, *names):
@@ -60,9 +60,13 @@ def result(*results):
 
 if __name__ == "__main__":
     command, *args = sys.argv[1:] or ["help"]
-    if command == "result":
-        result(*args)
-    elif command == "appinspect":
-        appinspect()
-    else:
-        stack(command)
+    try:
+        if command == "result":
+            result(*args)
+        elif command == "appinspect":
+            appinspect()
+        else:
+            stack(command)
+    except subprocess.CalledProcessError as error:
+        report_command_error(error)
+        sys.exit(error.returncode)

@@ -4,9 +4,7 @@ parameters:
     default: $(Pipeline.Workspace)/tools/release.py
 
 steps:
-  - script: python ${{ parameters.releaseScript }} install-acs
-    displayName: Set up ACS CLI 2.26.0 for $(SPLUNK_STACK)
-    env:
-      SPLUNK_STACK: $(SPLUNK_STACK)
-      SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
-      STACK_TOKEN: $(ACS_TOKEN)
+  - template: acs-step.yml
+    parameters:
+      command: ${{ parameters.releaseScript }} install-acs
+      displayName: Set up ACS CLI 2.26.0 for $(SPLUNK_STACK)

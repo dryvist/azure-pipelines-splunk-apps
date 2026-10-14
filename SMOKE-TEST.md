@@ -2,8 +2,9 @@
 
 One pipeline run checks the AppInspect account, the selected target's nonprod
 and prod stack names and ACS tokens, ITSI search head names when selected, and
-the `export_apps` capability. It only reads. It changes nothing on any Splunk
-stack.
+the `export_apps` capability. ACS jobs run the shared setup before their
+check step. See [release.py commands](wiki/Reference/Release.py-commands.md)
+for the per-job setup lifecycle. The pipeline only reads and changes no stack.
 
 ## Before you run it
 
@@ -52,6 +53,9 @@ RESULT: FAILED - open each failed job for its FAIL or Error line
 ```
 
 ## What each job checks
+
+The steps are **Check AppInspect credentials**, **Check nonprod ACS access and
+export**, **Check prod ACS access and export**, and **Result**.
 
 | Job | Checks | Variable group |
 | --- | --- | --- |

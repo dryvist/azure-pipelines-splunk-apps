@@ -8,7 +8,7 @@ Set up the shared Splunk app pipeline in an Azure DevOps project.
 | --- | --- |
 | Step 1 | Create the package feed and grant publish access. |
 | Step 2 | Create the five variable groups. |
-| Step 3 | Create the four deployment environments. |
+| Step 3 | Create the two deployment environments. |
 | Step 4 | Create ACS tokens and grant export access. |
 | Step 5 | Create an app repository and add its pipeline files. |
 | Step 6 | Grant the Build Service app repository permissions. |
@@ -194,12 +194,6 @@ use `splunk-nonprod` or `splunk-prod`.
 4. Select **Create environment**.
 5. Enter `splunk-prod` as the environment name.
 6. Create the environment.
-7. Select **Create environment**.
-8. Enter `splunk-itsi-nonprod` as the environment name.
-9. Create the environment.
-10. Select **Create environment**.
-11. Enter `splunk-itsi-prod` as the environment name.
-12. Create the environment.
 
 To require approval before production deployment:
 
@@ -211,9 +205,7 @@ To require approval before production deployment:
 
 1. Confirm `splunk-nonprod` appears in the environments list.
 2. Confirm `splunk-prod` appears in the environments list.
-3. Confirm `splunk-itsi-nonprod` appears in the environments list.
-4. Confirm `splunk-itsi-prod` appears in the environments list.
-5. If configured, confirm `splunk-prod` shows its approval check.
+3. If configured, confirm `splunk-prod` shows its approval check.
 
 ## Step 4: Create ACS tokens and grant export access
 
@@ -579,7 +571,8 @@ package file as added.
 1. Confirm the `source` job succeeds.
 2. Confirm the `target` job succeeds.
 3. Confirm the `compare` job succeeds.
-4. Confirm the `compare` artifact holds `<app-id>-diff.html` for each app.
+4. Confirm the `compare` artifact holds `<app-id>-diff.html` and
+   `<app-id>-local-vs-default.diff` for each app.
 5. Confirm the `compare` artifact holds `<app-id>-summary.md` for each app.
 6. Confirm each summary appears on the run summary tab.
 

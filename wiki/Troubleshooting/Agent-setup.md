@@ -21,19 +21,18 @@ version is not in `_work/_tool/Python/3.13.x/x64`.
 
 ## `Unable to locate executable file: 'bash'`
 
-**Symptom:** The job reports `Unable to locate executable file: 'bash'` on a
-Windows agent.
+**Symptom:** A job step reports `Unable to locate executable file: 'bash'`.
 
-**Cause:** The selected agent does not provide the shell expected by the
-pipeline task. The YAML uses one command per `script` step. Most commands call
-Python; the ACS version step calls `acs version` directly.
+**Cause:** The run uses a Bash task, or its Linux script task cannot find Bash.
+The current repository YAML has no explicit Bash task or multiline script;
+its script steps each contain one Python command.
 
 **Fix:**
 
-1. Select a Linux agent pool for this pipeline.
-2. For compare and smoke-test pipelines, set **Default agent pool for YAML**
-   under **Edit → … → Triggers → YAML**.
-3. For an app pipeline, set it in the app repo's `pool` template parameter.
+1. Confirm the run uses the expected branch and shared templates.
+2. Check the expanded job for an explicit Bash task from another template.
+3. Use a configured agent shell and keep this repository's steps as one
+   Python command or a built-in task.
 
 **Docs:** [Agents](https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/agents),
 [runtime parameters](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/runtime-parameters).

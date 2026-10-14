@@ -11,9 +11,7 @@ parameters:
     default:
       - checkout: tools
         path: tools
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: "3.13"
+      - template: python.yml
 
 stages:
   - stage: build
@@ -97,8 +95,7 @@ stages:
             deploy:
               steps:
                 - ${{ parameters.setup }}
-                - script: python -m pip install --quiet ksconf==0.13.10 splunk-sdk==2.1.0
-                  displayName: Install diff dependencies
+                - template: diff-tools.yml
                 - template: acs-cli.yml
                 - download: current
                   artifact: dist
@@ -124,14 +121,12 @@ stages:
           - download: current
             artifact: dist
           - template: acs-cli.yml
-          - script: python ../tools/release.py export $(Pipeline.Workspace)/prod-export
-            workingDirectory: $(Pipeline.Workspace)/app
-            displayName: Export the app from production via ACS
-            env:
-              SPLUNK_STACK: $(SPLUNK_STACK)
-              STACK_TOKEN: $(ACS_TOKEN)
-          - script: python -m pip install --quiet ksconf==0.13.10 splunk-sdk==2.1.0
-            displayName: Install diff dependencies
+          - template: acs-step.yml
+            parameters:
+              command: ../tools/release.py export $(Pipeline.Workspace)/prod-export
+              displayName: Export the app from production via ACS
+              workingDirectory: $(Pipeline.Workspace)/app
+          - template: diff-tools.yml
           - script: python $(Pipeline.Workspace)/tools/release.py local-diff $(Pipeline.Workspace)/prod-export $(Pipeline.Workspace)/dist $(Pipeline.Workspace)/prod-diff
             displayName: Diff production against this package (local files vs default)
           - script: python $(Pipeline.Workspace)/tools/release.py diff $(Pipeline.Workspace)/prod-export $(Pipeline.Workspace)/dist $(Pipeline.Workspace)/prod-diff

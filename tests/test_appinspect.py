@@ -2,7 +2,6 @@
 
 from unittest import TestCase
 
-import _common
 import tempfile
 from pathlib import Path
 

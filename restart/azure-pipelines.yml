@@ -23,27 +23,19 @@ jobs:
     variables:
       - group: ${{ parameters.target }}-${{ parameters.environment }}
     steps:
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: "3.13"
+      - template: ../templates/python.yml
       - template: ../templates/acs-cli.yml
         parameters:
           releaseScript: $(Build.SourcesDirectory)/release.py
-      - script: python release.py status
-        displayName: Check stack status before restart
-        env:
-          SPLUNK_STACK: $(SPLUNK_STACK)
-          SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
-          STACK_TOKEN: $(ACS_TOKEN)
-      - script: python release.py restart
-        displayName: Restart the current stack
-        env:
-          SPLUNK_STACK: $(SPLUNK_STACK)
-          SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
-          STACK_TOKEN: $(ACS_TOKEN)
-      - script: python release.py status
-        displayName: Check stack status after restart
-        env:
-          SPLUNK_STACK: $(SPLUNK_STACK)
-          SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
-          STACK_TOKEN: $(ACS_TOKEN)
+      - template: ../templates/acs-step.yml
+        parameters:
+          command: release.py status
+          displayName: Check stack status before restart
+      - template: ../templates/acs-step.yml
+        parameters:
+          command: release.py restart
+          displayName: Restart the current stack
+      - template: ../templates/acs-step.yml
+        parameters:
+          command: release.py status
+          displayName: Check stack status after restart

@@ -2,7 +2,6 @@
 
 from unittest import TestCase
 
-import _common
 import io
 import tempfile
 from contextlib import redirect_stdout

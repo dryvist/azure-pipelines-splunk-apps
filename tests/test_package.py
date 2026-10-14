@@ -2,7 +2,6 @@
 
 from unittest import TestCase
 
-import _common
 import io
 import tempfile
 from contextlib import redirect_stdout
@@ -17,7 +16,6 @@ def check_package():
     with tempfile.TemporaryDirectory() as tmp:
         stage, dist = Path(tmp, "build", "my_ta"), Path(tmp, "dist")
         with (
-            patch("splunk_release.package.APP", "my_ta"),
             patch("splunk_release.package.STAGE", stage),
             patch("splunk_release.package.DIST", dist),
             patch("splunk_release.package.stage") as stage_source,
