@@ -124,22 +124,7 @@ cannot resolve its service.
 
 ## Build stage
 
-::: mermaid
-flowchart LR
-    Build[Stage: build] --> Plan([Step: Show stage plan])
-    Plan --> Bump([Step: Bump PR version and manifest])
-    Bump --> Package([Step: Package app])
-    Package --> Dist[(Artifact: dist package)]
-    classDef step fill:#FFFFFF,stroke:#CBD5E1,color:#101828,stroke-width:1px
-    classDef stage fill:#EFF6FF,stroke:#0054A3,color:#101828,stroke-width:2px
-    classDef deploy fill:#0054A3,stroke:#0054A3,color:#FFFFFF,stroke-width:2px
-    classDef risk fill:#FFF7ED,stroke:#B54708,color:#101828,stroke-width:2px
-    classDef skip fill:#F1F5F9,stroke:#CBD5E1,color:#475467,stroke-dasharray:4 3
-    linkStyle default stroke:#475467
-    class Build stage
-    class Plan,Bump,Package step
-    class Dist step
-:::
+![Build stage from plan through the dist artifact.](diagrams/build-stage.png)
 
 ### A stage after AppInspect is skipped
 
@@ -244,22 +229,7 @@ artifacts have fixed names.
 
 ## AppInspect stage
 
-::: mermaid
-flowchart LR
-    Inspect[Stage: appinspect] --> Dist[(Artifact: dist package)]
-    Dist --> Run([Step: Run AppInspect])
-    Run --> Reports[(Artifact: appinspect report for this attempt)]
-    Run --> Result([Step: show JSON and HTML report link])
-    classDef step fill:#FFFFFF,stroke:#CBD5E1,color:#101828,stroke-width:1px
-    classDef stage fill:#EFF6FF,stroke:#0054A3,color:#101828,stroke-width:2px
-    classDef deploy fill:#0054A3,stroke:#0054A3,color:#FFFFFF,stroke-width:2px
-    classDef risk fill:#FFF7ED,stroke:#B54708,color:#101828,stroke-width:2px
-    classDef skip fill:#F1F5F9,stroke:#CBD5E1,color:#475467,stroke-dasharray:4 3
-    linkStyle default stroke:#475467
-    class Inspect stage
-    class Run,Result step
-    class Dist,Reports step
-:::
+![AppInspect inputs, outputs, and login failure point.](diagrams/package-check-stage.png)
 
 ### `KeyError: 'SPLUNK_USERNAME'`
 
@@ -336,22 +306,7 @@ warning, but does not fail this check.
 
 ## Nonprod stage
 
-::: mermaid
-flowchart LR
-    Nonprod[Stage: nonprod] --> Export([Step: export target app])
-    Export --> Diff[(Artifact: nonprod diff for this attempt)]
-    Diff --> Deploy([Step: install package through ACS])
-    classDef step fill:#FFFFFF,stroke:#CBD5E1,color:#101828,stroke-width:1px
-    classDef stage fill:#EFF6FF,stroke:#0054A3,color:#101828,stroke-width:2px
-    classDef deploy fill:#0054A3,stroke:#0054A3,color:#FFFFFF,stroke-width:2px
-    classDef risk fill:#FFF7ED,stroke:#B54708,color:#101828,stroke-width:2px
-    classDef skip fill:#F1F5F9,stroke:#CBD5E1,color:#475467,stroke-dasharray:4 3
-    linkStyle default stroke:#475467
-    class Nonprod stage
-    class Export step
-    class Diff step
-    class Deploy deploy
-:::
+![Nonprod export, comparison artifact, and deployment path.](diagrams/nonprod-stage.png)
 
 ### ACS token is rejected or lacks access
 
@@ -393,21 +348,7 @@ features used by the pipeline.
 
 ## Proddiff stage
 
-::: mermaid
-flowchart LR
-    Proddiff[Stage: proddiff] --> Export([Step: export production app])
-    Export --> Compare([Step: compare production with package])
-    Compare --> Reports[(Artifact: prod diff for this attempt)]
-    classDef step fill:#FFFFFF,stroke:#CBD5E1,color:#101828,stroke-width:1px
-    classDef stage fill:#EFF6FF,stroke:#0054A3,color:#101828,stroke-width:2px
-    classDef deploy fill:#0054A3,stroke:#0054A3,color:#FFFFFF,stroke-width:2px
-    classDef risk fill:#FFF7ED,stroke:#B54708,color:#101828,stroke-width:2px
-    classDef skip fill:#F1F5F9,stroke:#CBD5E1,color:#475467,stroke-dasharray:4 3
-    linkStyle default stroke:#475467
-    class Proddiff stage
-    class Export,Compare step
-    class Reports step
-:::
+![Proddiff export, package comparison, and attempt artifact.](diagrams/proddiff-stage.png)
 
 ### Diff output is missing or unexpected
 
@@ -432,21 +373,7 @@ script promotes local files, sorts defaults, and compares deployed defaults.
 
 ## Release stage
 
-::: mermaid
-flowchart LR
-    Release[Stage: release] --> Tag([Step: tag release version])
-    Tag --> Feed([Step: publish package])
-    Feed --> Package[(Artifact feed: versioned package)]
-    classDef step fill:#FFFFFF,stroke:#CBD5E1,color:#101828,stroke-width:1px
-    classDef stage fill:#EFF6FF,stroke:#0054A3,color:#101828,stroke-width:2px
-    classDef deploy fill:#0054A3,stroke:#0054A3,color:#FFFFFF,stroke-width:2px
-    classDef risk fill:#FFF7ED,stroke:#B54708,color:#101828,stroke-width:2px
-    classDef skip fill:#F1F5F9,stroke:#CBD5E1,color:#475467,stroke-dasharray:4 3
-    linkStyle default stroke:#475467
-    class Release stage
-    class Tag,Feed step
-    class Package step
-:::
+![Release tagging, package publishing, and tag failure point.](diagrams/release-stage.png)
 
 ### Tag push is rejected
 
@@ -536,22 +463,7 @@ The compare pipeline selects source and target environments at run time. An
 empty app list exports every custom app. The compare job uses target as the
 first diff input and source as the second.
 
-::: mermaid
-flowchart LR
-    Source([Job: export source]) --> SourceFiles[(Artifact: source export)]
-    Target([Job: export target]) --> TargetFiles[(Artifact: target export)]
-    SourceFiles --> Compare([Job: compare target with source])
-    TargetFiles --> Compare
-    Compare --> Reports[(Artifact: compare)]
-    classDef step fill:#FFFFFF,stroke:#CBD5E1,color:#101828,stroke-width:1px
-    classDef stage fill:#EFF6FF,stroke:#0054A3,color:#101828,stroke-width:2px
-    classDef deploy fill:#0054A3,stroke:#0054A3,color:#FFFFFF,stroke-width:2px
-    classDef risk fill:#FFF7ED,stroke:#B54708,color:#101828,stroke-width:2px
-    classDef skip fill:#F1F5F9,stroke:#CBD5E1,color:#475467,stroke-dasharray:4 3
-    linkStyle default stroke:#475467
-    class Source,Target,Compare step
-    class SourceFiles,TargetFiles,Reports step
-:::
+![Environment exports feeding a comparison artifact.](diagrams/compare-pipeline.png)
 
 ### Search head is empty or not configured
 
@@ -578,19 +490,7 @@ not added.
 
 ## Smoke-test pipeline
 
-::: mermaid
-flowchart LR
-    AppInspect([Job: check login]) --> Result([Job: report results])
-    Nonprod([Job: check nonprod ACS and export]) --> Result
-    Prod([Job: check prod ACS and export]) --> Result
-    classDef step fill:#FFFFFF,stroke:#CBD5E1,color:#101828,stroke-width:1px
-    classDef stage fill:#EFF6FF,stroke:#0054A3,color:#101828,stroke-width:2px
-    classDef deploy fill:#0054A3,stroke:#0054A3,color:#FFFFFF,stroke-width:2px
-    classDef risk fill:#FFF7ED,stroke:#B54708,color:#101828,stroke-width:2px
-    classDef skip fill:#F1F5F9,stroke:#CBD5E1,color:#475467,stroke-dasharray:4 3
-    linkStyle default stroke:#475467
-    class AppInspect,Nonprod,Prod,Result step
-:::
+![Smoke test login and export jobs feeding the result job.](diagrams/smoke-test-pipeline.png)
 
 ### ACS reports `WITH SEARCH APPS ONLY LOCAL AND USERS CONFIGS ALLOWED`
 
