@@ -303,9 +303,13 @@ search head, and **Settings → Roles** for roles. To enter token values, use
 
    extends:
      template: templates/splunk-app.yml@tools
+     parameters:
+       pool:
+         name: <agent-pool>
    ```
 
-6. If the shared repository is in another project, set `name` to
+6. Replace `<agent-pool>` with your agent pool name.
+7. If the shared repository is in another project, set `name` to
    `<project>/azure-pipelines-splunk-apps`.
 
 **Verify:**
@@ -537,6 +541,8 @@ package file as added.
    extends:
      template: templates/splunk-app.yml@tools
      parameters:
+       pool:
+         name: <agent-pool>
        prod: true
    ```
 
@@ -578,16 +584,21 @@ package file as added.
 3. Select `/compare/azure-pipelines.yml`.
 4. Enter `compare-nonprod-prod` as the pipeline name.
 5. Save the pipeline.
-6. Select **Run pipeline**.
-7. In **Agent pool**, type your self-hosted agent pool name, or keep
-   `Azure Pipelines`.
-8. Select `splunk` or `splunk-itsi` for `target` in the Run panel.
-9. In **App IDs, separated by spaces**, enter the app ids to compare, for
-   example `my_app other_app`. Use the app folder names from `[id] name`, not
-   the display labels.
-10. Select **Run**.
-11. When asked, permit the selected nonprod variable group.
-12. When asked, permit the selected prod variable group.
+6. Select **Edit**.
+7. Select **⋮** (More actions) at the top right.
+8. Select **Triggers**.
+9. Select the **YAML** tab.
+10. In **Default agent pool for YAML**, select your agent pool.
+11. Select the arrow next to **Save & queue**.
+12. Select **Save**.
+13. Select **Run pipeline**.
+14. Select `splunk` or `splunk-itsi` for `target` in the Run panel.
+15. In **App IDs, separated by spaces**, enter the app ids to compare, for
+    example `my_app other_app`. Use the app folder names from `[id] name`, not
+    the display labels.
+16. Select **Run**.
+17. When asked, permit the selected nonprod variable group.
+18. When asked, permit the selected prod variable group.
 
 **Verify:**
 
