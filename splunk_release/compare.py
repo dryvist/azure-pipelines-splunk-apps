@@ -45,8 +45,10 @@ def merge_local(root):
     for local, default in pairs:
         default.parent.mkdir(parents=True, exist_ok=True)
         if local.suffix in (".conf", ".meta"):
-            in_place = ["--in-place"] if default.exists() else []
-            run(["ksconf", "merge", *in_place, "--target", str(default), str(local)], check=True)
+            # Windows locks a file ksconf merge --in-place reads and writes; merge into a new file instead.
+            merged = default.with_name(default.name + ".merged")
+            run(["ksconf", "merge", "--ignore-missing", "--target", str(merged), str(default), str(local)], check=True)
+            merged.replace(default)
         else:
             shutil.copy2(local, default)
     sort_confs(root / "default")
@@ -184,7 +186,7 @@ def local_diff(target_dir, source_dir, out_dir):
         text = local_vs_default(target, source, work) or "No local configuration files.\n"
         (out / f"{app}-local-vs-default.diff").write_text(text, encoding="utf-8")
         print(f"##[section]{app}: target local files vs the same stanzas in the source default")
-        print(text, end="")
+        print_colored_patch(text.encode())
 
 def diff(target_dir, source_dir, out_dir):
     """Write each app's merged archive, default-only diffs, and Markdown summary."""
