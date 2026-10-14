@@ -7,7 +7,7 @@ release.py appinspect <dir>             submit the package in <dir> to AppInspec
 release.py deploy <dir>                 install the single .tar.gz in <dir> with the ACS CLI
 release.py status                       report current-stack status and pending restart
 release.py wait-version <dir>           wait until ACS reports the packaged app version
-release.py restart                      restart current-stack and wait for completion
+release.py restart                      restart current-stack only when a restart is required, then wait
 release.py export <out-dir> [app-id...] export app data, custom apps (--custom), or a package directory
 release.py local-diff <target> <source> <out> compare target local files with the same source default stanzas
 release.py diff <target> <source> <out> merge local into default on both sides, compare, write artifacts

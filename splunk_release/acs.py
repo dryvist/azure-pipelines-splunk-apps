@@ -4,7 +4,6 @@ import hashlib
 import inspect
 import json
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -82,8 +81,7 @@ def stack_status(env):
         raise SystemExit(1)
 
 def restart_required(response):
-    # shortcut: finds restartRequired anywhere in the response; read the exact path once ACS documents it
-    return bool(re.search(r'"restartRequired"\s*:\s*true', json.dumps(response), re.I))
+    return response.get("messages", {}).get("restartRequired") is True
 
 def status():
     env = acs_env()
@@ -116,6 +114,9 @@ def wait_version(directory):
 
 def restart():
     env = acs_env()
+    if not restart_required(stack_status(env)):
+        print(f"##[section]No restart required on {os.environ['SPLUNK_STACK']}, skipping restart")
+        return
     acs(env, "restart", "current-stack", main=True)
     deadline = time.monotonic() + 30 * 60
     while time.monotonic() < deadline:
