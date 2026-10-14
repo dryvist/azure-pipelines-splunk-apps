@@ -235,6 +235,10 @@ with tempfile.TemporaryDirectory() as tmp:
     output = io.StringIO()
     with redirect_stdout(output):
         release.diff(target_dir, source_dir, out)
+    local_text = (out / "my_ta-local-vs-default.diff").read_text()
+    assert "=== local/props.conf vs the same stanzas" in local_text
+    assert "-value = package" in local_text and "+value = local" in local_text
+    assert "[new]" in local_text
     patch_text = (out / "my_ta.patch").read_text()
     summary = (out / "my_ta-summary.md").read_text()
     patch_paths = [
