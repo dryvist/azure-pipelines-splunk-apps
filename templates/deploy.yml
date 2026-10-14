@@ -1,35 +1,44 @@
-# Export the app from the target environment, compare it with the package, then install the package.
+# Shared per-package steps for app validation and deployment.
 parameters:
   - name: environment
     type: string
-  - name: setup
-    type: stepList
-    default: []
+  - name: packageDirectory
+    type: string
 
 steps:
-  - checkout: self
-    path: app
-  - ${{ parameters.setup }}
-  - download: current
-    artifact: dist
-  - template: acs-cli.yml
-  - script: python -m pip install --quiet ksconf==0.13.10 splunk-sdk==2.1.0
-    displayName: Install diff dependencies
-  - script: python ../tools/release.py export $(Pipeline.Workspace)/${{ parameters.environment }}-export
-    workingDirectory: $(Pipeline.Workspace)/app
-    displayName: Export the app from ${{ parameters.environment }} via ACS
+  - script: python "$(Pipeline.Workspace)/tools/release.py" status
+    displayName: Check stack status before deploy
     env:
       SPLUNK_STACK: $(SPLUNK_STACK)
+      SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
       STACK_TOKEN: $(ACS_TOKEN)
-  - script: python $(Pipeline.Workspace)/tools/release.py diff $(Pipeline.Workspace)/${{ parameters.environment }}-export $(Pipeline.Workspace)/dist $(Pipeline.Workspace)/${{ parameters.environment }}-diff
+  - script: python "$(Pipeline.Workspace)/tools/release.py" export "$(Pipeline.Workspace)/${{ parameters.environment }}-export" "${{ parameters.packageDirectory }}"
+    displayName: Export this app from ${{ parameters.environment }} via ACS
+    env:
+      SPLUNK_STACK: $(SPLUNK_STACK)
+      SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
+      STACK_TOKEN: $(ACS_TOKEN)
+  - script: python "$(Pipeline.Workspace)/tools/release.py" diff "$(Pipeline.Workspace)/${{ parameters.environment }}-export/$(APP_ID)" "${{ parameters.packageDirectory }}" "$(Pipeline.Workspace)/${{ parameters.environment }}-diff/$(APP_ID)"
     displayName: Compare ${{ parameters.environment }} with this package
-  # Each job attempt publishes its own artifact.
-  - publish: $(Pipeline.Workspace)/${{ parameters.environment }}-diff
-    artifact: ${{ parameters.environment }}-diff-$(System.JobAttempt)
-  - script: python $(Pipeline.Workspace)/tools/release.py deploy $(Pipeline.Workspace)/dist
+  - publish: $(Pipeline.Workspace)/${{ parameters.environment }}-diff/$(APP_ID)
+    artifact: ${{ parameters.environment }}-diff-$(APP_ID)-$(System.JobAttempt)
+  - script: python "$(Pipeline.Workspace)/tools/release.py" deploy "${{ parameters.packageDirectory }}"
     displayName: Deploy to ${{ parameters.environment }} via ACS
     env:
       SPLUNK_USERNAME: $(SPLUNK_USERNAME)
       SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
       SPLUNK_STACK: $(SPLUNK_STACK)
+      SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
+      STACK_TOKEN: $(ACS_TOKEN)
+  - script: python "$(Pipeline.Workspace)/tools/release.py" wait-version "${{ parameters.packageDirectory }}"
+    displayName: Wait for the deployed version
+    env:
+      SPLUNK_STACK: $(SPLUNK_STACK)
+      SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
+      STACK_TOKEN: $(ACS_TOKEN)
+  - script: python "$(Pipeline.Workspace)/tools/release.py" status
+    displayName: Check stack status after deploy
+    env:
+      SPLUNK_STACK: $(SPLUNK_STACK)
+      SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
       STACK_TOKEN: $(ACS_TOKEN)

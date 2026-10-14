@@ -143,21 +143,20 @@ flowchart LR
 
 ### A stage after AppInspect is skipped
 
-**Symptom:** `nonprod`, `proddiff`, `release`, or `prod` is marked skipped.
+**Symptom:** `nonprod`, `proddiff`, or `release` is marked skipped.
 
-**Cause:** `Show stage plan` prints the run reason, branch, `prod` parameter,
-and the condition for each stage. `nonprod` requires a pull request. `proddiff`
-depends on `nonprod`. `release` requires `refs/heads/main`. `prod` requires a
-successful release and `prod: true` in the app repo template parameters.
+**Cause:** `Show stage plan` prints the run reason, branch, and the condition
+for each stage. `nonprod` and `proddiff` require a pull request or
+`refs/heads/main`. `proddiff` depends on `nonprod`. `release` requires
+`refs/heads/main`.
 
 **Fix:**
 
 1. Open the build job and read **Show stage plan**.
-2. For `nonprod` and `proddiff`, run validation for a pull request.
+2. For pull requests, confirm the target branch has a Build Validation policy.
 3. Add a Build Validation branch policy on the pull request target branch.
 4. For `release`, run a build from `main` so the source ref is
    `refs/heads/main`.
-5. For `prod`, set `prod: true` in the app repo's template parameters.
 
 **Docs:** [Conditions](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/conditions),
 [expressions](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/expressions),
@@ -481,52 +480,68 @@ already exists.
 **Docs:** [Universal Packages](https://learn.microsoft.com/en-us/azure/devops/artifacts/quickstarts/universal-packages),
 [packaging toolkit](https://dev.splunk.com/enterprise/docs/releaseapps/packagingtoolkit/).
 
-## Prod stage
+## Manual deploy pipeline
 
-::: mermaid
-flowchart LR
-    Prod[Stage: prod] --> Export([Step: export production app])
-    Export --> Diff[(Artifact: prod diff for this attempt)]
-    Diff --> Deploy([Step: install package through ACS])
-    classDef step fill:#FFFFFF,stroke:#CBD5E1,color:#101828,stroke-width:1px
-    classDef stage fill:#EFF6FF,stroke:#0054A3,color:#101828,stroke-width:2px
-    classDef deploy fill:#0054A3,stroke:#0054A3,color:#FFFFFF,stroke-width:2px
-    classDef risk fill:#FFF7ED,stroke:#B54708,color:#101828,stroke-width:2px
-    classDef skip fill:#F1F5F9,stroke:#CBD5E1,color:#475467,stroke-dasharray:4 3
-    linkStyle default stroke:#475467
-    class Prod stage
-    class Export step
-    class Diff step
-    class Deploy deploy
-:::
+**Symptom:** A selected app does not start deploying or the job waits.
 
-### Production deployment does not start
-
-**Symptom:** The `prod` stage is absent or skipped.
-
-**Cause:** The template adds it only when `prod: true`; it also depends on a
-successful `release` stage from `refs/heads/main`.
+**Cause:** The pipeline cannot access the selected feed package, variable
+group, deployment environment, or its approval checks.
 
 **Fix:**
 
-1. Set `prod: true` in the app repo template parameters.
-2. Run the pipeline from `main`.
-3. Read **Show stage plan** in the build job.
+1. Confirm `apps` contains feed package ids separated by spaces.
+2. Confirm each package exists in `splunk-apps`.
+3. Permit the selected `splunk-<environment>` group and environment.
+4. Complete any approval check on the selected environment.
 
-**Docs:** [Conditions](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/conditions),
-[runtime parameters](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/runtime-parameters).
+The pipeline deploys each selected package in order. It restarts the stack
+only after all app steps pass.
+
+## Deployment status and version wait
+
+### Deployment reports that a restart is required
+
+**Symptom:** A deploy job prints `Restart required on <stack>` in its status
+step.
+
+**Cause:** `acs status current-stack` reports that a restart is required. The
+status step warns and continues; it does not restart the stack.
+
+**Fix:**
+
+1. Run the restart pipeline.
+2. Select the same environment used by the deploy job.
+3. Select `splunk` for the restart pipeline target.
+4. Confirm the restart job completes and the final status has no restart
+   requirement.
+
+### Version wait times out
+
+**Symptom:** `Wait for the deployed version` reports a timeout after 300
+seconds.
+
+**Cause:** `acs apps describe` did not report the version in the package name
+before the wait deadline.
+
+**Fix:**
+
+1. Confirm the deploy step succeeded.
+2. Compare the package filename version with the version ACS reports for the
+   app.
+3. Rerun the deployment after the app reports the expected version.
 
 ## Compare pipeline
 
-The compare pipeline exports each selected app from nonprod and prod, then
-compares prod as the target with nonprod as the source.
+The compare pipeline selects source and target environments at run time. An
+empty app list exports every custom app. The compare job uses target as the
+first diff input and source as the second.
 
 ::: mermaid
 flowchart LR
-    Nonprod([Job: export nonprod]) --> NonprodFiles[(Artifact: nonprod-export)]
-    Prod([Job: export prod]) --> ProdFiles[(Artifact: prod-export)]
-    NonprodFiles --> Compare([Job: compare prod with nonprod])
-    ProdFiles --> Compare
+    Source([Job: export source]) --> SourceFiles[(Artifact: source export)]
+    Target([Job: export target]) --> TargetFiles[(Artifact: target export)]
+    SourceFiles --> Compare([Job: compare target with source])
+    TargetFiles --> Compare
     Compare --> Reports[(Artifact: compare)]
     classDef step fill:#FFFFFF,stroke:#CBD5E1,color:#101828,stroke-width:1px
     classDef stage fill:#EFF6FF,stroke:#0054A3,color:#101828,stroke-width:2px
@@ -534,8 +549,8 @@ flowchart LR
     classDef risk fill:#FFF7ED,stroke:#B54708,color:#101828,stroke-width:2px
     classDef skip fill:#F1F5F9,stroke:#CBD5E1,color:#475467,stroke-dasharray:4 3
     linkStyle default stroke:#475467
-    class Nonprod,Prod,Compare step
-    class NonprodFiles,ProdFiles,Reports step
+    class Source,Target,Compare step
+    class SourceFiles,TargetFiles,Reports step
 :::
 
 ### Search head is empty or not configured

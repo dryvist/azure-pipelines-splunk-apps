@@ -6,5 +6,5 @@ parameters:
 steps:
   - script: python ${{ parameters.releaseScript }} install-acs
     displayName: Install ACS CLI 2.26.0
-  - script: acs version
+  - script: python -c "import subprocess; subprocess.run(['acs', 'version'], check=True)"
     displayName: ACS CLI version

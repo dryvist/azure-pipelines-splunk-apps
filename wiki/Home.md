@@ -1,8 +1,8 @@
 # Home
 
-This pipeline packages apps from each app repo, validates them, deploys pull
-request packages to nonprod, compares them with production, and publishes
-versioned packages from `main` with an optional production deployment.
+The app pipeline packages, validates, deploys to nonprod, compares with
+production, and publishes versioned packages from `main`. The manual deploy
+pipeline installs selected feed packages in nonprod or production.
 
 Setup steps are in `AZURE-DEVOPS-SETUP.md` at the root of the repository.
 Open it from **Repos → Files**.
@@ -14,7 +14,7 @@ Open it from **Repos → Files**.
    - [Run paths](How-it-works.md#run-paths)
    - [Pull request run](How-it-works.md#pull-request-run)
    - [Main run](How-it-works.md#main-run)
-   - [One deployment job](How-it-works.md#one-deployment-job)
+   - [Shared deploy steps](How-it-works.md#shared-deploy-steps)
    - [How the diff is built](How-it-works.md#how-the-diff-is-built)
    - [Smoke-test jobs](How-it-works.md#smoke-test-jobs)
    - [Variable group use](How-it-works.md#variable-group-use)
@@ -25,7 +25,7 @@ Open it from **Repos → Files**.
    - [nonprod](Pipeline-stages.md#stage-nonprod)
    - [proddiff](Pipeline-stages.md#stage-proddiff)
    - [release](Pipeline-stages.md#stage-release)
-   - [prod](Pipeline-stages.md#stage-prod)
+   - [Manual deploy pipeline](Pipeline-stages.md#manual-deploy-pipeline)
    - [Compare pipeline](Pipeline-stages.md#compare-pipeline)
    - [Smoke-test pipeline](Pipeline-stages.md#smoke-test-pipeline)
 3. [Releases and versions](Releases-and-versions.md)
@@ -42,7 +42,7 @@ Open it from **Repos → Files**.
    - [Nonprod stage](Troubleshooting.md#nonprod-stage)
    - [Proddiff stage](Troubleshooting.md#proddiff-stage)
    - [Release stage](Troubleshooting.md#release-stage)
-   - [Prod stage](Troubleshooting.md#prod-stage)
+   - [Manual deploy pipeline](Troubleshooting.md#manual-deploy-pipeline)
    - [Compare pipeline](Troubleshooting.md#compare-pipeline)
    - [Smoke-test pipeline](Troubleshooting.md#smoke-test-pipeline)
    - [Read the run log](Troubleshooting.md#read-the-run-log)

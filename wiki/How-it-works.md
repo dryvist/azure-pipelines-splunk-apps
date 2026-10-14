@@ -30,7 +30,6 @@ flowchart LR
     Inspect --> Nonprod[Stage: nonprod]
     Nonprod --> Diff[Stage: proddiff]
     Inspect --> Release[Skipped stage: release on pull request]
-    Release --> Prod[Skipped stage: prod needs a main release]
     classDef step fill:#FFFFFF,stroke:#CBD5E1,color:#101828,stroke-width:1px
     classDef stage fill:#EFF6FF,stroke:#0054A3,color:#101828,stroke-width:2px
     classDef deploy fill:#0054A3,stroke:#0054A3,color:#FFFFFF,stroke-width:2px
@@ -39,12 +38,11 @@ flowchart LR
     linkStyle default stroke:#475467
     class Policy step
     class Build,Inspect,Nonprod,Diff stage
-    class Release,Prod skip
+    class Release skip
 :::
 
-The `nonprod` stage requires a pull request run. `proddiff` follows a
-successful `nonprod` stage. A pull request does not meet the `release` stage
-condition, so `prod` cannot run.
+The `nonprod` stage and `proddiff` run on pull requests and `main`. A pull
+request does not meet the `release` stage condition.
 
 ### Main run
 
@@ -53,9 +51,8 @@ flowchart LR
     Commit[/External: main branch update/] --> Build[Stage: build]
     Build --> Inspect[Stage: appinspect]
     Inspect --> Release[Stage: release]
-    Build --> PRStages[Skipped stages: nonprod and proddiff need a pull request]
-    Release --> Enabled{Decision: prod parameter is true}
-    Enabled --> Prod[Stage: prod]
+    Inspect --> Nonprod[Stage: nonprod]
+    Nonprod --> Diff[Stage: proddiff]
     classDef step fill:#FFFFFF,stroke:#CBD5E1,color:#101828,stroke-width:1px
     classDef stage fill:#EFF6FF,stroke:#0054A3,color:#101828,stroke-width:2px
     classDef deploy fill:#0054A3,stroke:#0054A3,color:#FFFFFF,stroke-width:2px
@@ -63,35 +60,35 @@ flowchart LR
     classDef skip fill:#F1F5F9,stroke:#CBD5E1,color:#475467,stroke-dasharray:4 3
     linkStyle default stroke:#475467
     class Commit step
-    class Build,Inspect,Release,Prod stage
-    class PRStages skip
-    class Enabled risk
+    class Build,Inspect,Release,Nonprod,Diff stage
 :::
 
 The `release` stage requires `Build.SourceBranch` to equal
-`refs/heads/main`. The `prod` stage is added only when the app repo sets the
-template parameter `prod: true`.
+`refs/heads/main`. Production installation runs through the separate manual
+deploy pipeline.
 
-## One deployment job
+## Shared deploy steps
 
-The `nonprod` and `prod` deployment jobs use the same `templates/deploy.yml`
-steps. The selected environment and variable groups differ.
+The `nonprod` deployment job and the manual deploy pipeline use the same
+`templates/deploy.yml` steps. Each deployment selects its environment and
+variable groups.
 
 ::: mermaid
 flowchart LR
-    Setup([Step 1: checkout and Python]) --> Package[(Artifact: dist])
-    Package --> Cli([Step 2: install and check ACS CLI])
-    Cli --> Deps([Step 3: install diff dependencies])
-    Deps --> Export([Step 4: export the target app])
-    Export --> Compare([Step 5: compare and publish the diff])
-    Compare --> Install([Step 6: install the package through ACS])
+    Setup([Checkout tools and select Python]) --> Package[(Package directory)]
+    Package --> Cli([Install ACS CLI and diff dependencies once])
+    Cli --> Status([Check stack status])
+    Status --> Export([Export this app])
+    Export --> Compare([Diff and publish this app])
+    Compare --> Install([Install and wait for package version])
+    Install --> After([Check stack status])
     classDef step fill:#FFFFFF,stroke:#CBD5E1,color:#101828,stroke-width:1px
     classDef stage fill:#EFF6FF,stroke:#0054A3,color:#101828,stroke-width:2px
     classDef deploy fill:#0054A3,stroke:#0054A3,color:#FFFFFF,stroke-width:2px
     classDef risk fill:#FFF7ED,stroke:#B54708,color:#101828,stroke-width:2px
     classDef skip fill:#F1F5F9,stroke:#CBD5E1,color:#475467,stroke-dasharray:4 3
     linkStyle default stroke:#475467
-    class Setup,Cli,Deps,Export,Compare step
+    class Setup,Cli,Status,Export,Compare,After step
     class Package step
     class Install deploy
 :::
@@ -156,12 +153,16 @@ flowchart TD
     ItsiProd[/Variable group: splunk-itsi-prod/]
     Main[/External: main app pipeline/]
     Other[/External: compare and smoke-test pipelines/]
+    Deploy[/External: manual deploy pipeline/]
     AppInspectGroup --> Main
     AppInspectGroup --> Other
+    AppInspectGroup --> Deploy
     NonprodGroup --> Main
     NonprodGroup --> Other
+    NonprodGroup --> Deploy
     ProdGroup --> Main
     ProdGroup --> Other
+    ProdGroup --> Deploy
     ItsiNonprod --> Other
     ItsiProd --> Other
     classDef step fill:#FFFFFF,stroke:#CBD5E1,color:#101828,stroke-width:1px
@@ -171,12 +172,13 @@ flowchart TD
     classDef skip fill:#F1F5F9,stroke:#CBD5E1,color:#475467,stroke-dasharray:4 3
     linkStyle default stroke:#475467
     class AppInspectGroup,NonprodGroup,ProdGroup,ItsiNonprod,ItsiProd step
-    class Main,Other step
+    class Main,Other,Deploy step
 :::
 
-The main pipeline uses `splunk-appinspect` in `appinspect`, `nonprod`, and
-`prod`; `splunk-nonprod` in `nonprod`; and `splunk-prod` in `proddiff` and
-`prod`. The smoke-test pipeline also uses `splunk-appinspect` in `appinspect`.
+The app pipeline uses `splunk-appinspect` in `appinspect` and `nonprod`,
+`splunk-nonprod` in `nonprod`, and `splunk-prod` in `proddiff`. The manual
+deploy pipeline uses `splunk-appinspect` and the selected environment group.
+The smoke-test pipeline also uses `splunk-appinspect` in `appinspect`.
 Compare and smoke-test select `splunk-nonprod` and `splunk-prod` when
 `target` is `splunk`. They select `splunk-itsi-nonprod` and
 `splunk-itsi-prod` when `target` is `splunk-itsi`.
