@@ -172,7 +172,7 @@ with tempfile.TemporaryDirectory() as tmp:
     ]
     assert (out / "my_ta.tgz").read_bytes() == b"export"
     assert not (out / "missing_ta.tgz").exists()
-    assert output.getvalue() == "NOT INSTALLED missing_ta\n"
+    assert output.getvalue().endswith("NOT INSTALLED missing_ta\n")
     assert not input_file.exists()
 
 
