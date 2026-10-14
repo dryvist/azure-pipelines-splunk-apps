@@ -579,13 +579,15 @@ package file as added.
 4. Enter `compare-nonprod-prod` as the pipeline name.
 5. Save the pipeline.
 6. Select **Run pipeline**.
-7. Select `splunk` or `splunk-itsi` for `target` in the Run panel.
-8. In **App IDs, separated by spaces**, enter the app ids to compare, for
+7. In **Agent pool**, type your self-hosted agent pool name, or keep
+   `Azure Pipelines`.
+8. Select `splunk` or `splunk-itsi` for `target` in the Run panel.
+9. In **App IDs, separated by spaces**, enter the app ids to compare, for
    example `my_app other_app`. Use the app folder names from `[id] name`, not
    the display labels.
-9. Select **Run**.
-10. When asked, permit the selected nonprod variable group.
-11. When asked, permit the selected prod variable group.
+10. Select **Run**.
+11. When asked, permit the selected nonprod variable group.
+12. When asked, permit the selected prod variable group.
 
 **Verify:**
 
