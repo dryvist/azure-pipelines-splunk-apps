@@ -45,7 +45,7 @@ def merge_local(root):
     for local, default in pairs:
         default.parent.mkdir(parents=True, exist_ok=True)
         if local.suffix in (".conf", ".meta"):
-            # Windows locks a file ksconf merge --in-place reads and writes; merge into a new file instead.
+            # Write the merge to a separate file before replacing the default.
             merged = default.with_name(default.name + ".merged")
             run(["ksconf", "merge", "--ignore-missing", "--target", str(merged), str(default), str(local)], check=True)
             merged.replace(default)
@@ -159,7 +159,7 @@ def local_vs_default(target, source, work):
             print(f"##[warning]{name}: ksconf could not parse a file; skipped. {failed.stderr.strip()}")
             report.append(f"=== {name} skipped: {failed.stderr.strip()} ===\n")
             continue
-        # ksconf diff exits 3 when the files differ.
+        # ksconf diff output and exit code report file differences.
         result = run(["ksconf", "diff", str(subset), str(local)], capture_output=True, text=True)
         report.append(f"=== {name} vs the same stanzas in the deployed default ===\n{result.stdout}\n")
     return "".join(report)

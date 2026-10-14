@@ -25,7 +25,7 @@ import sys
 
 from splunk_release.acs import deploy, export, install_acs, restart, status, wait_version
 from splunk_release.appinspect import appinspect
-from splunk_release.azure import appinspect_link, plan
+from splunk_release.azure import appinspect_link, plan, report_command_error
 from splunk_release.compare import diff, local_diff
 from splunk_release.package import package
 from splunk_release.version import bump, tag
@@ -53,5 +53,5 @@ if __name__ == "__main__":
     try:
         commands[sys.argv[1]](*sys.argv[2:])
     except subprocess.CalledProcessError as error:
-        print(f"##[error]{' '.join(map(str, error.cmd))} exited with code {error.returncode}")
+        report_command_error(error)
         sys.exit(error.returncode)

@@ -25,23 +25,22 @@ step maps the password, but reads the unlocked username variable directly.
 **Docs:** [Secret variables](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/set-secret-variables),
 [variable groups](https://learn.microsoft.com/en-us/azure/devops/pipelines/library/variable-groups).
 
-### `ValueError: too many values to unpack (expected 1)`
+### `Expected one .tar.gz package`
 
-**Symptom:** `Run AppInspect` or a deploy step stops at
-`(pkg,) = Path(artifact_dir).glob("*.tar.gz")`.
+**Symptom:** `Run AppInspect` or a deploy step prints
+`Expected one .tar.gz package in <dir>, found <count>`.
 
-**Cause:** The `dist` folder holds more than one package. Self-hosted agents
-keep files between runs unless the job cleans its workspace.
+**Cause:** The selected package directory contains zero or more than one `.tar.gz`
+file. AppInspect and deploy require exactly one package.
 
 **Fix:**
 
-1. Open `templates/splunk-app.yml` in `azure-pipelines-splunk-apps`.
-2. Check that every job has `workspace:` with `clean: all`.
-3. Run the pipeline again.
+1. Open the `dist` artifact or selected feed package directory.
+2. Confirm it contains exactly one `.tar.gz` package.
+3. Rerun the build or deployment after correcting the package contents.
 
-**Docs:**
-[Pipeline artifacts](https://learn.microsoft.com/en-us/azure/devops/pipelines/artifacts/pipeline-artifacts),
-[Agents](https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/agents)
+**Docs:** [Artifacts](/Reference/Artifacts),
+[Pipeline artifacts](https://learn.microsoft.com/en-us/azure/devops/pipelines/artifacts/pipeline-artifacts).
 
 ### AppInspect login returns 401 or 403
 

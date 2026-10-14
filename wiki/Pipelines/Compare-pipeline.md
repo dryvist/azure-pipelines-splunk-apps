@@ -19,9 +19,11 @@ exports the listed app ids. The compare job diffs target against source.
   `SPLUNK_SEARCH_HEAD`, `ACS_TOKEN`, and `apps`.
 - **Outputs:** `<environment>-export` artifact.
 
-Each job selects Python 3.13 and installs ACS CLI 2.26.0 through the shared
-template. It calls either `release.py export` or `release.py export --custom`,
-then publishes its export directory.
+Each export job selects Python 3.13 and runs **Set up ACS CLI 2.26.0 for
+$(SPLUNK_STACK)** before export. The step calls either `release.py export`
+or `release.py export --custom`, then publishes its export directory. See
+[release.py commands](/Reference/Release.py-commands) for the ACS setup
+lifecycle.
 
 ### Job `compare` in the compare pipeline
 
@@ -30,7 +32,7 @@ then publishes its export directory.
   Splunk SDK.
 - **Outputs:** `compare` artifact.
 
-Steps:
+Steps, in order:
 
 - **UsePythonVersion@0:** Selects Python 3.13. **Inputs:** `versionSpec`.
   **Outputs:** Python on `PATH`.
@@ -38,13 +40,16 @@ Steps:
   **Inputs:** Published artifacts. **Outputs:** Export directories.
 - **Install diff dependencies:** Installs `ksconf` and Splunk SDK.
   **Inputs:** Python package index. **Outputs:** Diff tools in Python.
-- **Compare target with source:** Writes per-app reports.
-  **Inputs:** Target and source exports. **Outputs:**
-  `$(Pipeline.Workspace)/compare`.
-- **Upload summary:** Adds each Markdown summary to the run summary tab.
-  **Inputs:** Per-app summary paths. **Outputs:** Run summary entries.
+- **Compare `<target>` with `<source>` (local files vs default):** Runs
+  `release.py local-diff`. **Inputs:** Target and source exports.
+  **Outputs:** `<app-id>-local-vs-default.diff` in `compare/`.
+- **Compare `<target>` with `<source>` (merged defaults):** Runs
+  `release.py diff`. **Inputs:** Target and source exports.
+  **Outputs:** HTML, patch, summary, and merged archive files in `compare/`.
+The `release.py diff` step adds each Markdown summary to the run summary
+tab.
 - **Publish artifact (`compare`):** Publishes the reports.
-  **Inputs:** HTML diff, patch, summary, local comparison, and merged archive.
+  **Inputs:** Per-app reports from both compare steps.
   **Outputs:** `compare` artifact.
 
 ![Compare any two environments.](../diagrams/compare-any-environments.png)

@@ -15,11 +15,20 @@ the latest package from `splunk-apps` and runs
 when ACS reports `messages.restartRequired` as true, then checks status.
 
 The deploy job checks out the tools repo, selects Python 3.13, installs the
-ACS CLI and diff dependencies once, then runs the shared steps for each app:
+diff dependencies once, and includes shared ACS setup before the per-app
+steps. See [release.py commands](/Reference/Release.py-commands) for the
+ACS setup lifecycle. The job runs these steps for each app:
 
-- Check status and export the installed app.
-- Create and publish `<environment>-diff-<app>-<attempt>`.
-- Install the package, wait for its version, and check status again.
+- **Check stack status before deploy:** Reads the selected stack status.
+- **Export this app from `<environment>` via ACS:** Exports the installed app.
+- **Compare `<environment>` with this package (local files vs default):**
+  Writes the local-versus-default report.
+- **Compare `<environment>` with this package (merged defaults):** Writes the
+  merged-default reports.
+- **Publish:** Publishes `<environment>-diff-<app>-<attempt>`.
+- **Deploy to `<environment>` via ACS:** Installs the package.
+- **Wait for the deployed version:** Confirms the package version.
+- **Check stack status after deploy:** Reads the selected stack status.
 
 ![Manual deploy pipeline flow.](../diagrams/deploy-pipeline.png)
 

@@ -8,6 +8,12 @@ The manual pipeline checks AppInspect credentials and read-only ACS access
 for nonprod and prod. It selects the `splunk` or `splunk-itsi` target. The
 `result` job runs even if a check fails and reports all three results.
 
+The nonprod and prod jobs run the shared ACS setup before **Check nonprod
+ACS access and export** or **Check prod ACS access and export**. The
+AppInspect job runs **Check AppInspect credentials**. The result job runs
+**Result**. See [release.py commands](/Reference/Release.py-commands) for
+the ACS setup lifecycle.
+
 The ACS jobs check login, list apps, and export only local and user
 configuration files from the built-in `search` app. Compare exports full app
 content, so do not include `search` in its app list.

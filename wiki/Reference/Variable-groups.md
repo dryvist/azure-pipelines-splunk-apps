@@ -6,14 +6,14 @@
 
 ## App pipeline
 
-- `splunk-appinspect`: AppInspect and Nonprod.
+- `splunk-appinspect`: AppInspect stage; also declared by the Nonprod job.
 - `splunk-nonprod`: Nonprod deployment.
 - `splunk-prod`: Proddiff comparison.
 
 ## Manual pipelines
 
-- Deploy uses `splunk-<environment>` for AppInspect and the selected
-  environment.
+- Deploy declares `splunk-appinspect` and the selected
+  `splunk-<environment>` group.
 - Restart selects the prefix and environment group for stack and optional
   search-head settings.
 - Compare with target `splunk` uses `splunk-nonprod` and `splunk-prod`.

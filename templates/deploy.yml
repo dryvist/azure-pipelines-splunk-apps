@@ -6,41 +6,32 @@ parameters:
     type: string
 
 steps:
-  - script: python "$(Pipeline.Workspace)/tools/release.py" status
-    displayName: Check stack status before deploy
-    env:
-      SPLUNK_STACK: $(SPLUNK_STACK)
-      SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
-      STACK_TOKEN: $(ACS_TOKEN)
-  - script: python "$(Pipeline.Workspace)/tools/release.py" export "$(Pipeline.Workspace)/${{ parameters.environment }}-export" "${{ parameters.packageDirectory }}"
-    displayName: Export this app from ${{ parameters.environment }} via ACS
-    env:
-      SPLUNK_STACK: $(SPLUNK_STACK)
-      SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
-      STACK_TOKEN: $(ACS_TOKEN)
+  - template: acs-step.yml
+    parameters:
+      command: '"$(Pipeline.Workspace)/tools/release.py" status'
+      displayName: Check stack status before deploy
+  - template: acs-step.yml
+    parameters:
+      command: '"$(Pipeline.Workspace)/tools/release.py" export "$(Pipeline.Workspace)/${{ parameters.environment }}-export" "${{ parameters.packageDirectory }}"'
+      displayName: Export this app from ${{ parameters.environment }} via ACS
   - script: python "$(Pipeline.Workspace)/tools/release.py" local-diff "$(Pipeline.Workspace)/${{ parameters.environment }}-export/$(APP_ID)" "${{ parameters.packageDirectory }}" "$(Pipeline.Workspace)/${{ parameters.environment }}-diff/$(APP_ID)"
     displayName: Compare ${{ parameters.environment }} with this package (local files vs default)
   - script: python "$(Pipeline.Workspace)/tools/release.py" diff "$(Pipeline.Workspace)/${{ parameters.environment }}-export/$(APP_ID)" "${{ parameters.packageDirectory }}" "$(Pipeline.Workspace)/${{ parameters.environment }}-diff/$(APP_ID)"
     displayName: Compare ${{ parameters.environment }} with this package (merged defaults)
   - publish: $(Pipeline.Workspace)/${{ parameters.environment }}-diff/$(APP_ID)
     artifact: ${{ parameters.environment }}-diff-$(APP_ID)-$(System.JobAttempt)
-  - script: python "$(Pipeline.Workspace)/tools/release.py" deploy "${{ parameters.packageDirectory }}"
-    displayName: Deploy to ${{ parameters.environment }} via ACS
-    env:
-      SPLUNK_USERNAME: $(SPLUNK_USERNAME)
-      SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
-      SPLUNK_STACK: $(SPLUNK_STACK)
-      SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
-      STACK_TOKEN: $(ACS_TOKEN)
-  - script: python "$(Pipeline.Workspace)/tools/release.py" wait-version "${{ parameters.packageDirectory }}"
-    displayName: Wait for the deployed version
-    env:
-      SPLUNK_STACK: $(SPLUNK_STACK)
-      SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
-      STACK_TOKEN: $(ACS_TOKEN)
-  - script: python "$(Pipeline.Workspace)/tools/release.py" status
-    displayName: Check stack status after deploy
-    env:
-      SPLUNK_STACK: $(SPLUNK_STACK)
-      SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
-      STACK_TOKEN: $(ACS_TOKEN)
+  - template: acs-step.yml
+    parameters:
+      command: '"$(Pipeline.Workspace)/tools/release.py" deploy "${{ parameters.packageDirectory }}"'
+      displayName: Deploy to ${{ parameters.environment }} via ACS
+      additionalEnv:
+        SPLUNK_USERNAME: $(SPLUNK_USERNAME)
+        SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
+  - template: acs-step.yml
+    parameters:
+      command: '"$(Pipeline.Workspace)/tools/release.py" wait-version "${{ parameters.packageDirectory }}"'
+      displayName: Wait for the deployed version
+  - template: acs-step.yml
+    parameters:
+      command: '"$(Pipeline.Workspace)/tools/release.py" status'
+      displayName: Check stack status after deploy

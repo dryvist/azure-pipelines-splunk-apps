@@ -9,8 +9,8 @@
 - `package` (no arguments) runs `slim package` and writes
   `dist/<app-id>-<version>.tar.gz`.
 - `appinspect <dir>` uses `SPLUNK_USERNAME` and `SPLUNK_PASSWORD`.
-- `deploy <dir>` runs `acs apps install private` with `SPLUNK_STACK`,
-  `STACK_TOKEN`, `SPLUNK_USERNAME`, and `SPLUNK_PASSWORD`.
+- `deploy <dir>` runs `acs apps install private` with `SPLUNK_STACK` and
+  `STACK_TOKEN`.
 - `status` runs `acs status current-stack -f structured` and warns when the
   output reports `restartRequired: true`.
 - `wait-version <dir>` reads the version from the single
@@ -38,17 +38,20 @@
   diffs. The summary lists the tree, deployed changes, local files, and user
   files, and is uploaded to the run summary.
 - `install-acs` downloads ACS CLI 2.26.0 for Linux or Windows x64 agents,
-  verifies its SHA-256 checksum, extracts it to `AGENT_TEMPDIRECTORY`, and
-  prepends that directory to the Azure Pipelines path.
+  verifies its SHA-256 checksum, extracts it to `AGENT_TEMPDIRECTORY`, prepends
+  that directory to `PATH`, runs `acs version`, adds the selected stack, and
+  logs in.
 - `appinspect-link` prints the current build's AppInspect artifact link.
 - `tag` (no arguments) uses no environment variables beyond the app id
   fallback above.
 
+ACS setup maps the variable-group `ACS_TOKEN` to `STACK_TOKEN`. It runs
+once per job; later steps reuse the CLI configuration.
+`SPLUNK_SEARCH_HEAD` selects a target search head when configured.
+
 `bump` only changes versions on pull request runs with `refs/heads/...`
 source and target branches. The `tag` command writes `APP_ID` and
 `APP_VERSION` as Azure Pipelines variables for the feed publish step.
-
-Azure Pipelines maps the variable group's `ACS_TOKEN` to `STACK_TOKEN`.
 
 ## Related
 

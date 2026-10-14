@@ -21,10 +21,11 @@ A Proddiff `prod-diff-<attempt>` contains five reports:
 - `<app-id>-merged.tar.gz`: merged app without `local/`,
   `metadata/local.meta`, or `users/`.
 
-The same summary is added to the run summary tab. The compare artifact contains
-the HTML report, summary, patch, local-versus-default report, and merged
-archive for each app. Compare can select two environments and export all custom
-apps when the app list is empty.
+The nonprod artifact is named `nonprod-diff-<app-id>-<attempt>`. The same
+summary is added to the run summary tab. The compare artifact contains the
+HTML report, summary, patch, local-versus-default report, and merged
+archive for each app. Compare can select two environments and export all
+custom apps when the app list is empty.
 
 ## Compare release tags
 

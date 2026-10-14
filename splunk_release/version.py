@@ -118,7 +118,7 @@ def bump():
         f"+refs/heads/{target}:refs/remotes/origin/{target}",
         f"+refs/heads/{source}:refs/remotes/origin/{source}",
     )
-    # PR builds use a detached merge commit. The bump updates and pushes the PR source branch.
+    # Check out the PR source branch before writing the bump commit.
     git("checkout", "-B", source, f"origin/{source}")
     sort_confs(SRC)
     try:
@@ -139,7 +139,7 @@ def bump():
     )
     CONF.write_text(text, **TEXT)
     stage()
-    # A new manifest ends with commented template lines and is invalid JSON. --update writes valid JSON.
+    # Generate the initial manifest before updating it.
     if not (STAGE / MANIFEST.name).exists():
         slim("generate-manifest", str(STAGE), "-o", str(STAGE / MANIFEST.name))
     slim("generate-manifest", "--update", str(STAGE), "-o", str(MANIFEST))
@@ -153,6 +153,6 @@ def tag():
     version = app_conf_version(CONF.read_text(**TEXT))
     git("tag", "--force", f"v{version}")
     git("push", "origin", f"refs/tags/v{version}")
-    # The package feed step reads these.
+    # Set the package feed variables.
     print(f"##vso[task.setvariable variable=APP_ID]{APP.lower()}")
     print(f"##vso[task.setvariable variable=APP_VERSION]{version}")

@@ -2,13 +2,17 @@
 
 import os
 import subprocess
-import sys
-from pathlib import Path
 
 def run(cmd, **kwargs):
     """Print a command, then run it."""
     print("##[command]" + " ".join(str(c) for c in cmd), flush=True)
     return subprocess.run(cmd, **kwargs)
+
+
+def report_command_error(error):
+    """Print one Azure Pipelines error with the failed command and exit code."""
+    print(f"##[error]{' '.join(map(str, error.cmd))} exited with code {error.returncode}")
+
 
 def plan():
     """Print which stages this run executes and the rule behind each."""

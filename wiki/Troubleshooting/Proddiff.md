@@ -14,8 +14,9 @@
 shows added, changed, or removed defaults.
 
 **Cause:** The export or diff command failed, or production differs from the
-package. Local files are compared with matching package defaults before the
-script promotes local files, sorts defaults, and compares deployed defaults.
+package. Local files are compared with matching package defaults in a separate
+step. The merged-default step runs `ksconf merge`, sorts defaults, and
+compares deployed files.
 
 **Fix:**
 
@@ -24,9 +25,9 @@ script promotes local files, sorts defaults, and compares deployed defaults.
 3. Review the local-versus-default report, patch, and summary.
 4. Update the app package or resolve the production difference before merge.
 
-**Docs:** [ksconf filter](https://ksconf.readthedocs.io/en/stable/cmd_filter.html),
+**Docs:** [release.py commands](/Reference/Release.py-commands),
+[ksconf filter](https://ksconf.readthedocs.io/en/stable/cmd_filter.html),
 [ksconf diff](https://ksconf.readthedocs.io/en/stable/cmd_diff.html),
-[ksconf promote](https://ksconf.readthedocs.io/en/stable/cmd_promote.html),
 [ksconf sort](https://ksconf.readthedocs.io/en/stable/cmd_sort.html).
 
 ## Related
