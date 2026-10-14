@@ -17,6 +17,10 @@ from unittest.mock import patch
 from splunk_release import acs
 
 
+def structured(response):
+    return json.dumps([{"response": json.dumps(response)}])
+
+
 def check_acs():
     # ACS install downloads this platform's pinned archive, unpacks it, and rejects a bad checksum.
     payload = io.BytesIO()
@@ -64,7 +68,17 @@ def check_acs():
             ["acs", "config", "add-stack", "example-stack", "--use", *target],
             ["acs", "login"],
         ]
-        assert all(call.kwargs["check"] for call in run.call_args_list)
+
+    # A failed ACS command closes its group first, prints its output, and raises.
+    with patch("splunk_release.acs.run") as run, redirect_stdout(io.StringIO()) as output:
+        run.return_value = subprocess.CompletedProcess(["acs", "login"], 1, stdout="", stderr="Stack login failed")
+        try:
+            acs.acs({}, "login")
+        except subprocess.CalledProcessError as error:
+            assert error.returncode == 1
+        else:
+            raise AssertionError("expected CalledProcessError")
+    assert output.getvalue().index("##[endgroup]") < output.getvalue().index("Stack login failed")
 
     with (
         patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
@@ -73,7 +87,7 @@ def check_acs():
     ):
         session.return_value.__enter__.return_value = {}
         run.return_value = subprocess.CompletedProcess(
-            ["acs"], 0, stdout='{"Status":{"RestartRequired":true}}', stderr=""
+            ["acs"], 0, stdout=structured({"Status": {"RestartRequired": True}}), stderr=""
         )
         output = io.StringIO()
         with redirect_stdout(output):
@@ -82,6 +96,24 @@ def check_acs():
         assert "##[warning]Restart required on stack" in output.getvalue()
         assert "##[group]acs status current-stack -f structured" in output.getvalue()
         assert "##[endgroup]" in output.getvalue()
+        assert '"RestartRequired": true' in output.getvalue()
+
+    # Status fails when the output has no "response" JSON.
+    with (
+        patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
+        patch("splunk_release.acs.acs_session") as session,
+        patch("splunk_release.acs.run") as run,
+        redirect_stdout(io.StringIO()) as output,
+    ):
+        session.return_value.__enter__.return_value = {}
+        run.return_value = subprocess.CompletedProcess(["acs"], 0, stdout="[{}]", stderr="")
+        try:
+            acs.status()
+        except SystemExit:
+            pass
+        else:
+            raise AssertionError("expected SystemExit")
+    assert '##[error]acs status output has no JSON "response" field' in output.getvalue()
 
     # Restart polls restartRequired every 30 seconds until it clears.
     with (
@@ -92,8 +124,8 @@ def check_acs():
         session.return_value.__enter__.return_value = {}
         run.side_effect = [
             subprocess.CompletedProcess(["acs"], 0, stdout="", stderr=""),
-            subprocess.CompletedProcess(["acs"], 0, stdout='{"restartRequired":true}', stderr=""),
-            subprocess.CompletedProcess(["acs"], 0, stdout='{"restartRequired":false}', stderr=""),
+            subprocess.CompletedProcess(["acs"], 0, stdout=structured({"restartRequired": True}), stderr=""),
+            subprocess.CompletedProcess(["acs"], 0, stdout=structured({"restartRequired": False}), stderr=""),
         ]
         now = [0]
         with patch("splunk_release.acs.time.monotonic", side_effect=lambda: now[0]), patch(
