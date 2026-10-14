@@ -6,6 +6,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -46,14 +47,18 @@ def configured_value(name):
     value = os.environ.get(name, "").strip()
     return value if value and not value.startswith("$(") else None
 
-def acs(env, *args):  # run an ACS CLI command, print its output in a ##[group], return stdout
-    print(f"##[group]acs {' '.join(args)}")
-    try:
-        result = run(["acs", *args], capture_output=True, text=True, check=True, env=env)
-    finally:
-        result = locals().get("result", sys.exc_info()[1])
-        print(getattr(result, "stdout", "") or "", getattr(result, "stderr", "") or "", sep="\n")
+def acs(env, *args, main=False):
+    """Run an ACS CLI command and return stdout; output is grouped unless main or failed."""
+    if not main:
+        print(f"##[group]acs {' '.join(args)}")
+    result = run(["acs", *args], capture_output=True, text=True, env=env)
+    if not main and result.returncode:
         print("##[endgroup]")
+    print(result.stdout, result.stderr, sep="\n")
+    if not main and not result.returncode:
+        print("##[endgroup]")
+    if result.returncode:
+        raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
     return result.stdout
 
 @contextmanager
@@ -63,20 +68,33 @@ def acs_session():
     search_head = configured_value("SPLUNK_SEARCH_HEAD")
     with tempfile.TemporaryDirectory() as home:
         env = {**os.environ, "HOME": home, "USERPROFILE": home}
+        account = {k: env.pop(k) for k in ("SPLUNK_USERNAME", "SPLUNK_PASSWORD") if k in env}
         print(f"##[section]ACS stack {stack}, search head {search_head or 'not set (all search heads)'}")
         target = [f"--target-sh={search_head}"] if search_head else []
         acs(env, "config", "add-stack", stack, "--use", *target)
         acs(env, "login")
-        yield env
+        yield {**env, **account}
 
-def restart_required(env):
-    # shortcut: matches the documented restartRequired field; parse JSON if ACS changes format
-    return bool(re.search(r'"restartRequired"\s*:\s*true', acs(env, "status", "current-stack", "-f", "structured"), re.I))
+def stack_status(env):
+    """Return the decoded "response" JSON from the single object acs status prints."""
+    raw = acs(env, "status", "current-stack", "-f", "structured")
+    try:
+        return json.loads(json.loads(raw)[0]["response"])
+    except (ValueError, LookupError, TypeError):
+        print("##[error]acs status output has no JSON \"response\" field")
+        raise SystemExit(1)
+
+def restart_required(response):
+    # shortcut: finds restartRequired anywhere in the response; read the exact path once ACS documents it
+    return bool(re.search(r'"restartRequired"\s*:\s*true', json.dumps(response), re.I))
 
 def status():
     with acs_session() as env:
-        if restart_required(env):
-            print(f"##[warning]Restart required on {os.environ['SPLUNK_STACK']}")
+        response = stack_status(env)
+    print(f"##[section]Stack status of {os.environ['SPLUNK_STACK']}")
+    print(json.dumps(response, indent=2))
+    if restart_required(response):
+        print(f"##[warning]Restart required on {os.environ['SPLUNK_STACK']}")
 
 def package_identity(directory):
     packages = list(Path(directory).glob("*.tar.gz"))
@@ -101,10 +119,10 @@ def wait_version(directory):
 
 def restart():
     with acs_session() as env:
-        acs(env, "restart", "current-stack")
+        acs(env, "restart", "current-stack", main=True)
         deadline = time.monotonic() + 30 * 60
         while time.monotonic() < deadline:
-            if not restart_required(env):
+            if not restart_required(stack_status(env)):
                 return
             time.sleep(min(30, max(0, deadline - time.monotonic())))
     print("##[error]Timed out after 30 minutes waiting for restart completion")
@@ -114,7 +132,7 @@ def deploy(directory):
     package, app, version = package_identity(directory)
     print(f"##[section]Installing {app} {version} as a private app")
     with acs_session() as env:
-        acs(env, "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(package))
+        acs(env, "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(package), main=True)
 
 def listed_apps(env, splunkbase=False):
     apps, offset = [], 0
@@ -157,7 +175,7 @@ def export(out_dir, *app_ids):
             for app in apps:
                 apps_file.write_text(json.dumps({"Apps": [app]}))
                 acs(env, "apps", "export", f"--file={apps_file}", "--default=true", "--local=true",
-                    "--users=true", "--confs-only=false", f"--export-dir={out}")
+                    "--users=true", "--confs-only=false", f"--export-dir={out}", main=True)
                 exported = out / f"{app}.tar.gz"
                 if exported.exists():
                     exported.rename(out / f"{app}.tgz")

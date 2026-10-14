@@ -159,15 +159,19 @@ def local_vs_default(target, source, work):
     report = []
     for number, (local, default) in enumerate(pairs):
         stanzas, subset = work / f"{number}.txt", work / f"{number}.conf"
-        run(["ksconf", "filter", str(local), "--brief", "-o", str(stanzas)], check=True)
+        name = local.relative_to(target).as_posix()
+        subset.write_text("")
+        filters = [["ksconf", "filter", str(local), "--brief", "-o", str(stanzas)]]
         if default.exists():
-            run(["ksconf", "filter", str(default), "--match", "string", "--stanza", f"file://{stanzas}",
-                 "-o", str(subset)], check=True)
-        else:
-            subset.write_text("")
+            filters.append(["ksconf", "filter", str(default), "--match", "string", "--stanza",
+                            f"file://{stanzas}", "-o", str(subset)])
+        failed = next((r for r in (run(f, capture_output=True, text=True) for f in filters) if r.returncode), None)
+        if failed:
+            print(f"##[warning]{name}: ksconf could not parse a file; skipped. {failed.stderr.strip()}")
+            report.append(f"=== {name} skipped: {failed.stderr.strip()} ===\n")
+            continue
         # ksconf diff exits 3 when the files differ.
         result = run(["ksconf", "diff", str(subset), str(local)], capture_output=True, text=True)
-        name = local.relative_to(target).as_posix()
         report.append(f"=== {name} vs the same stanzas in the deployed default ===\n{result.stdout}\n")
     return "".join(report)
 

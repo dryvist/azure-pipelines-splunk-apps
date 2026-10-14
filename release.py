@@ -19,6 +19,7 @@ The ACS CLI reads STACK_TOKEN. Azure Pipelines maps ACS_TOKEN to STACK_TOKEN.
 SPLUNK_SEARCH_HEAD selects a target search head for compare and smoke tests.
 """
 
+import subprocess
 import sys
 
 from splunk_release.acs import deploy, export, install_acs, restart, status, wait_version
@@ -47,4 +48,8 @@ commands = {
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in commands:
         sys.exit(__doc__)
-    commands[sys.argv[1]](*sys.argv[2:])
+    try:
+        commands[sys.argv[1]](*sys.argv[2:])
+    except subprocess.CalledProcessError as error:
+        print(f"##[error]{' '.join(map(str, error.cmd))} exited with code {error.returncode}")
+        sys.exit(error.returncode)
