@@ -255,6 +255,7 @@ def bump():
 
 
 def package():
+    shutil.rmtree(DIST, ignore_errors=True)
     sort_confs(SRC)
     stage()
     DIST.mkdir(parents=True, exist_ok=True)
@@ -275,6 +276,7 @@ def http(url, headers, data=None, timeout=900):
     req = urllib.request.Request(
         url, data=data, headers=headers, method="POST" if data else "GET"
     )
+    print(f"##[command]{req.get_method()} {url}", flush=True)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.read()
