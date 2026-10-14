@@ -10,8 +10,7 @@ use fixed names.
 
 A Proddiff `prod-diff-<attempt>` contains five reports:
 
-- `<app-id>-diff.html`: folder tree, side-by-side changed-file tables, and the
-  local-versus-default report.
+- `<app-id>-diff.html`: folder tree and side-by-side changed-file tables.
 - `<app-id>-summary.md`: deployed changes, target local files, source local
   files,
   and user files. Target local files remain after deployment, override defaults,

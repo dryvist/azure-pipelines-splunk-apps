@@ -43,6 +43,7 @@ def check_compare():
         )
         output = io.StringIO()
         with redirect_stdout(output):
+            compare.local_diff(target_dir, source_dir, out)
             compare.diff(target_dir, source_dir, out)
         local_text = (out / "my_ta-local-vs-default.diff").read_text()
         html_text = (out / "my_ta-diff.html").read_text()
@@ -52,7 +53,7 @@ def check_compare():
         assert "my_ta deployed diff" in html_text
         assert "default/" in html_text and "props.conf [changed]" in html_text
         assert '<table class="diff"' in html_text
-        assert "Local vs default" in html_text and "same stanzas" in html_text
+        assert "Local vs default" not in html_text
         assert "Added lines:" not in html_text
         patch_text = (out / "my_ta.patch").read_text()
         summary = (out / "my_ta-summary.md").read_text()
@@ -98,6 +99,7 @@ def check_compare():
         assert "  props.conf [changed]" in summary
         assert "##vso[task.uploadsummary]" in output.getvalue()
         assert output.getvalue().endswith(summary)
+        assert "##[section]Target (deployed): " in output.getvalue()
         merged_path = out / "my_ta-merged.tar.gz"
         assert merged_path.exists()
         with tarfile.open(merged_path, "r:gz") as archive:

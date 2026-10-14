@@ -9,7 +9,8 @@ release.py status                       report current-stack status and pending 
 release.py wait-version <dir>           wait until ACS reports the packaged app version
 release.py restart                      restart current-stack and wait for completion
 release.py export <out-dir> [app-id...] export app data, custom apps (--custom), or a package directory
-release.py diff <target> <source> <out> merge local, compare defaults, write artifacts
+release.py local-diff <target> <source> <out> compare target local files with the same source default stanzas
+release.py diff <target> <source> <out> merge local into default on both sides, compare, write artifacts
 release.py install-acs                  download, verify, and add the ACS CLI for this agent to PATH
 release.py appinspect-link              print the link to this build's published artifacts
 release.py plan                         print which stages this run executes and why
@@ -25,7 +26,7 @@ import sys
 from splunk_release.acs import deploy, export, install_acs, restart, status, wait_version
 from splunk_release.appinspect import appinspect
 from splunk_release.azure import appinspect_link, plan
-from splunk_release.compare import diff
+from splunk_release.compare import diff, local_diff
 from splunk_release.package import package
 from splunk_release.version import bump, tag
 
@@ -39,6 +40,7 @@ commands = {
     "restart": restart,
     "plan": plan,
     "export": export,
+    "local-diff": local_diff,
     "diff": diff,
     "install-acs": install_acs,
     "appinspect-link": appinspect_link,
