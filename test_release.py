@@ -54,7 +54,7 @@ for checksum in ("9450ee04be42c633af4b0db932d28139232815704bc4410c0908ea8ee38a8e
         with (
             patch.dict(os.environ, {"AGENT_TEMPDIRECTORY": tmp}),
             patch("release.os.name", "posix"),
-            patch("release.urllib.request.urlopen", return_value=io.BytesIO(payload.getvalue())) as urlopen,
+            patch("release.run", side_effect=lambda cmd, **_: Path(cmd[-2]).write_bytes(payload.getvalue())) as curl,
             patch("release.hashlib.sha256") as sha256,
             redirect_stdout(output),
         ):
@@ -65,7 +65,7 @@ for checksum in ("9450ee04be42c633af4b0db932d28139232815704bc4410c0908ea8ee38a8e
                 assert checksum == "bad" and "checksum mismatch" in str(error)
             else:
                 assert checksum != "bad"
-                assert urlopen.call_args.args[0].endswith("/v2.26.0/acs_v2.26.0_linux_amd64.tar.gz")
+                assert curl.call_args.args[0][-1].endswith("/v2.26.0/acs_v2.26.0_linux_amd64.tar.gz")
                 assert Path(tmp, "acs").read_bytes() == b"acs cli"
                 assert f"##vso[task.prependpath]{tmp}" in output.getvalue()
 

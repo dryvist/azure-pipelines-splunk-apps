@@ -139,9 +139,8 @@ def install_acs():
     directory = Path(os.environ["AGENT_TEMPDIRECTORY"])
     archive = directory / asset
     url = f"https://github.com/splunk/acs-cli/releases/download/v2.26.0/{asset}"
-    print(f"Downloading {url}", flush=True)
-    with urllib.request.urlopen(url) as response:
-        archive.write_bytes(response.read())
+    # curl uses the operating system's certificate store on Windows and Linux.
+    run(["curl", "--fail", "--silent", "--show-error", "--location", "--output", str(archive), url], check=True)
     actual = hashlib.sha256(archive.read_bytes()).hexdigest()
     if actual != sha256:
         sys.exit(f"ACS CLI checksum mismatch: expected {sha256}, got {actual}")
