@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from splunk_release.acs import acs_session, configured_value
+from splunk_release.acs import acs_env, configured_value
 from splunk_release.appinspect import appinspect_token
 from splunk_release.azure import run
 
@@ -34,7 +34,8 @@ def stack(group):
         names.append("SPLUNK_SEARCH_HEAD")
     require(group, *names)
     os.environ["STACK_TOKEN"] = os.environ["ACS_TOKEN"]
-    with tempfile.TemporaryDirectory() as out, acs_session() as env:
+    env = acs_env()
+    with tempfile.TemporaryDirectory() as out:
         run(["acs", "apps", "list"], check=True, env=env, capture_output=True)
         print(f"PASS {group} ACS login and app list")
         apps_file = Path(out, "apps.json")

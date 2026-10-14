@@ -29,11 +29,10 @@ Steps, in order:
   **Inputs:** `versionSpec: 3.13`. **Outputs:** Python on `PATH`.
 - **Download artifact (`download: current`, `dist`):** Gets the package.
   **Inputs:** `dist` artifact. **Outputs:** `dist/` in the workspace.
-- **Install ACS CLI 2.26.0:** Downloads, verifies, and unpacks the CLI.
-  **Inputs:** Agent OS, `curl`, GitHub release file, and checksum.
-  **Outputs:** `acs` on `PATH`.
-- **ACS CLI version:** Prints the installed CLI version.
-  **Inputs:** `acs` on `PATH`. **Outputs:** Version in the log.
+- **Set up ACS CLI 2.26.0 for the stack:** Downloads, verifies, and unpacks
+  the CLI, prints its version, adds the stack, and logs in once per job.
+  **Inputs:** Agent OS, `curl`, checksum, `SPLUNK_STACK`, `ACS_TOKEN`.
+  **Outputs:** `acs` on `PATH` and its configuration for later steps.
 - **Export the app from production via ACS:** Exports the configured app.
   **Inputs:** `SPLUNK_STACK` and mapped `ACS_TOKEN` as `STACK_TOKEN`.
   **Outputs:** `prod-export/`.

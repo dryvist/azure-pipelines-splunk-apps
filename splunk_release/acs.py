@@ -8,9 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
 import time
-from contextlib import contextmanager
 from pathlib import Path
 
 from splunk_release.azure import run
@@ -40,6 +38,14 @@ def install_acs():
         )
     shutil.unpack_archive(archive, directory, **unpack_options)
     print(f"##vso[task.prependpath]{directory}", flush=True)
+    os.environ["PATH"] = f"{directory}{os.pathsep}{os.environ['PATH']}"
+    env = acs_env()
+    Path(env["HOME"]).mkdir(exist_ok=True)
+    stack, search_head = os.environ["SPLUNK_STACK"], configured_value("SPLUNK_SEARCH_HEAD")
+    print(f"##[section]ACS stack {stack}, search head {search_head or 'not set (all search heads)'}")
+    acs(env, "version")
+    acs(env, "config", "add-stack", stack, "--use", *([f"--target-sh={search_head}"] if search_head else []))
+    acs(env, "login")
 
 
 def configured_value(name):
@@ -61,19 +67,10 @@ def acs(env, *args, main=False):
         raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
     return result.stdout
 
-@contextmanager
-def acs_session():
-    """Select the configured stack and search head, then log in with STACK_TOKEN."""
-    stack = os.environ["SPLUNK_STACK"]
-    search_head = configured_value("SPLUNK_SEARCH_HEAD")
-    with tempfile.TemporaryDirectory() as home:
-        env = {**os.environ, "HOME": home, "USERPROFILE": home}
-        account = {k: env.pop(k) for k in ("SPLUNK_USERNAME", "SPLUNK_PASSWORD") if k in env}
-        print(f"##[section]ACS stack {stack}, search head {search_head or 'not set (all search heads)'}")
-        target = [f"--target-sh={search_head}"] if search_head else []
-        acs(env, "config", "add-stack", stack, "--use", *target)
-        acs(env, "login")
-        yield {**env, **account}
+def acs_env():
+    """Environment whose HOME holds the ACS CLI configuration written by install-acs."""
+    home = str(Path(os.environ["AGENT_TEMPDIRECTORY"]) / "acs-home")
+    return {**os.environ, "HOME": home, "USERPROFILE": home}
 
 def stack_status(env):
     """Return the decoded "response" JSON from the single object acs status prints."""
@@ -89,8 +86,8 @@ def restart_required(response):
     return bool(re.search(r'"restartRequired"\s*:\s*true', json.dumps(response), re.I))
 
 def status():
-    with acs_session() as env:
-        response = stack_status(env)
+    env = acs_env()
+    response = stack_status(env)
     print(f"##[section]Stack status of {os.environ['SPLUNK_STACK']}")
     print(json.dumps(response, indent=2))
     if restart_required(response):
@@ -109,30 +106,30 @@ def package_identity(directory):
 def wait_version(directory):
     _, app, version = package_identity(directory)
     deadline = time.monotonic() + 300
-    with acs_session() as env:
-        while time.monotonic() < deadline:
-            if version in acs(env, "apps", "describe", app):
-                return
-            time.sleep(min(3, max(0, deadline - time.monotonic())))
+    env = acs_env()
+    while time.monotonic() < deadline:
+        if version in acs(env, "apps", "describe", app):
+            return
+        time.sleep(min(3, max(0, deadline - time.monotonic())))
     print(f"##[error]Timed out after 300 seconds waiting for {app} version {version}")
     raise SystemExit(1)
 
 def restart():
-    with acs_session() as env:
-        acs(env, "restart", "current-stack", main=True)
-        deadline = time.monotonic() + 30 * 60
-        while time.monotonic() < deadline:
-            if not restart_required(stack_status(env)):
-                return
-            time.sleep(min(30, max(0, deadline - time.monotonic())))
+    env = acs_env()
+    acs(env, "restart", "current-stack", main=True)
+    deadline = time.monotonic() + 30 * 60
+    while time.monotonic() < deadline:
+        if not restart_required(stack_status(env)):
+            return
+        time.sleep(min(30, max(0, deadline - time.monotonic())))
     print("##[error]Timed out after 30 minutes waiting for restart completion")
     raise SystemExit(1)
 
 def deploy(directory):
     package, app, version = package_identity(directory)
     print(f"##[section]Installing {app} {version} as a private app")
-    with acs_session() as env:
-        acs(env, "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(package), main=True)
+    env = acs_env()
+    acs(env, "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(package), main=True)
 
 def listed_apps(env, splunkbase=False):
     apps, offset = [], 0
@@ -167,19 +164,19 @@ def export(out_dir, *app_ids):
     out.mkdir(parents=True, exist_ok=True)
     apps_file = out / "apps.json"
     try:
-        with acs_session() as env:
-            if custom:
-                installed = listed_apps(env)
-                splunkbase = {app.casefold() for app in listed_apps(env, True)}
-                apps = sorted({app for app in installed if app.casefold() not in splunkbase})
-            for app in apps:
-                apps_file.write_text(json.dumps({"Apps": [app]}))
-                acs(env, "apps", "export", f"--file={apps_file}", "--default=true", "--local=true",
-                    "--users=true", "--confs-only=false", f"--export-dir={out}", main=True)
-                exported = out / f"{app}.tar.gz"
-                if exported.exists():
-                    exported.rename(out / f"{app}.tgz")
-                else:
-                    print(f"##[warning]NOT INSTALLED {app}")
+        env = acs_env()
+        if custom:
+            installed = listed_apps(env)
+            splunkbase = {app.casefold() for app in listed_apps(env, True)}
+            apps = sorted({app for app in installed if app.casefold() not in splunkbase})
+        for app in apps:
+            apps_file.write_text(json.dumps({"Apps": [app]}))
+            acs(env, "apps", "export", f"--file={apps_file}", "--default=true", "--local=true",
+                "--users=true", "--confs-only=false", f"--export-dir={out}", main=True)
+            exported = out / f"{app}.tar.gz"
+            if exported.exists():
+                exported.rename(out / f"{app}.tgz")
+            else:
+                print(f"##[warning]NOT INSTALLED {app}")
     finally:
         apps_file.unlink(missing_ok=True)
