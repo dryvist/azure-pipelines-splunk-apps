@@ -305,13 +305,8 @@ def acs_session():
     search_head = configured_value("SPLUNK_SEARCH_HEAD")
     with tempfile.TemporaryDirectory() as home:
         env = {**os.environ, "HOME": home}
-        subprocess.run(["acs", "config", "add-stack", stack, "--use"], check=True, env=env)
-        if search_head:
-            subprocess.run(
-                ["acs", "config", "use-stack", stack, f"--target-sh={search_head}"],
-                check=True,
-                env=env,
-            )
+        target = [f"--target-sh={search_head}"] if search_head else []
+        subprocess.run(["acs", "config", "add-stack", stack, "--use", *target], check=True, env=env)
         subprocess.run(["acs", "login"], check=True, env=env)
         yield env
 

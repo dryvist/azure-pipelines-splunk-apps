@@ -94,12 +94,11 @@ for search_head in (None, "", "premium-sh", "$(SPLUNK_SEARCH_HEAD)"):
         with release.acs_session():
             pass
     commands = [call.args[0] for call in run.call_args_list]
-    expected = [["acs", "config", "add-stack", "example-stack", "--use"]]
-    if search_head == "premium-sh":
-        expected.append(
-            ["acs", "config", "use-stack", "example-stack", "--target-sh=premium-sh"]
-        )
-    expected.append(["acs", "login"])
+    target = ["--target-sh=premium-sh"] if search_head == "premium-sh" else []
+    expected = [
+        ["acs", "config", "add-stack", "example-stack", "--use", *target],
+        ["acs", "login"],
+    ]
     assert commands == expected
     assert all(call.kwargs["check"] for call in run.call_args_list)
 
