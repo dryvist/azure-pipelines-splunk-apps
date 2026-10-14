@@ -11,6 +11,8 @@ parameters:
 
 jobs:
   - job: appinspect
+    workspace:
+      clean: all
     variables:
       - group: splunk-appinspect
     steps:
@@ -24,6 +26,8 @@ jobs:
           SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
 
   - job: nonprod
+    workspace:
+      clean: all
     variables:
       - group: ${{ parameters.target }}-nonprod
     steps:
@@ -41,6 +45,8 @@ jobs:
           ACS_TOKEN: $(ACS_TOKEN)
 
   - job: prod
+    workspace:
+      clean: all
     variables:
       - group: ${{ parameters.target }}-prod
     steps:
@@ -58,6 +64,8 @@ jobs:
           ACS_TOKEN: $(ACS_TOKEN)
 
   - job: result
+    workspace:
+      clean: all
     dependsOn: [appinspect, nonprod, prod]
     condition: always()
     variables:
