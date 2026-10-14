@@ -509,6 +509,28 @@ def summary(target, source, target_before, source_before):
     ]) + "\n"
 
 
+def local_vs_default(target, source, work):
+    """Compare each target local file with the same stanzas in the source default file, using ksconf."""
+    pairs = [(c, source / "default" / c.relative_to(target / "local"))
+             for c in sorted((target / "local").rglob("*.conf"))]
+    if (target / "metadata" / "local.meta").exists():
+        pairs.append((target / "metadata" / "local.meta", source / "metadata" / "default.meta"))
+    report = []
+    for number, (local, default) in enumerate(pairs):
+        stanzas, subset = work / f"{number}.txt", work / f"{number}.conf"
+        run(["ksconf", "filter", str(local), "--brief", "-o", str(stanzas)], check=True)
+        if default.exists():
+            run(["ksconf", "filter", str(default), "--match", "string", "--stanza", f"file://{stanzas}",
+                 "-o", str(subset)], check=True)
+        else:
+            subset.write_text("")
+        # ksconf diff exits 3 when the files differ.
+        result = run(["ksconf", "diff", str(subset), str(local)], capture_output=True, text=True)
+        name = local.relative_to(target).as_posix()
+        report.append(f"=== {name} vs the same stanzas in the deployed default ===\n{result.stdout}\n")
+    return "".join(report)
+
+
 def diff(target_dir, source_dir, out_dir):
     """Write each app's merged archive, deployed patch, and Markdown summary."""
     targets, sources = archives(target_dir), archives(source_dir)
@@ -520,6 +542,12 @@ def diff(target_dir, source_dir, out_dir):
             extract(targets.get(app), target)
             extract(sources.get(app), source)
             target_before, source_before = files(target), files(source)
+            work = Path(tmp, "local-vs-default")
+            work.mkdir()
+            local_text = local_vs_default(target, source, work)
+            (out / f"{app}-local-vs-default.diff").write_text(local_text, encoding="utf-8")
+            print(f"##[section]{app}: target local files vs the deployed default")
+            print(local_text or "No local configuration files.\n", end="")
             merge_local(target)
             merge_local(source)
             text = summary(target, source, target_before, source_before)
