@@ -86,7 +86,7 @@ def check_acs():
     ):
         pass
         run.return_value = subprocess.CompletedProcess(
-            ["acs"], 0, stdout=structured({"Status": {"RestartRequired": True}}), stderr=""
+            ["acs"], 0, stdout=structured({"messages": {"restartRequired": True}}), stderr=""
         )
         output = io.StringIO()
         with redirect_stdout(output):
@@ -95,7 +95,7 @@ def check_acs():
         assert "##[warning]Restart required on stack" in output.getvalue()
         assert "##[group]acs status current-stack -f structured" in output.getvalue()
         assert "##[endgroup]" in output.getvalue()
-        assert '"RestartRequired": true' in output.getvalue()
+        assert '"restartRequired": true' in output.getvalue()
 
     # Status fails when the output has no "response" JSON.
     with (
@@ -122,9 +122,10 @@ def check_acs():
     ):
         pass
         run.side_effect = [
+            subprocess.CompletedProcess(["acs"], 0, stdout=structured({"messages": {"restartRequired": True}}), stderr=""),
             subprocess.CompletedProcess(["acs"], 0, stdout="", stderr=""),
-            subprocess.CompletedProcess(["acs"], 0, stdout=structured({"restartRequired": True}), stderr=""),
-            subprocess.CompletedProcess(["acs"], 0, stdout=structured({"restartRequired": False}), stderr=""),
+            subprocess.CompletedProcess(["acs"], 0, stdout=structured({"messages": {"restartRequired": True}}), stderr=""),
+            subprocess.CompletedProcess(["acs"], 0, stdout=structured({"messages": {"restartRequired": False}}), stderr=""),
         ]
         now = [0]
         with patch("splunk_release.acs.time.monotonic", side_effect=lambda: now[0]), patch(
@@ -132,11 +133,26 @@ def check_acs():
         ), redirect_stdout(io.StringIO()):
             acs.restart()
         assert [call.args[0] for call in run.call_args_list] == [
+            ["acs", "status", "current-stack", "-f", "structured"],
             ["acs", "restart", "current-stack"],
             ["acs", "status", "current-stack", "-f", "structured"],
             ["acs", "status", "current-stack", "-f", "structured"],
         ]
         assert now == [30]
+
+    # Restart is skipped when no restart is required.
+    with (
+        patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
+        patch("splunk_release.acs.acs_env", return_value={}),
+        patch("splunk_release.acs.run") as run,
+        redirect_stdout(io.StringIO()) as output,
+    ):
+        run.return_value = subprocess.CompletedProcess(
+            ["acs"], 0, stdout=structured({"messages": {"restartRequired": False}}), stderr=""
+        )
+        acs.restart()
+    assert [call.args[0] for call in run.call_args_list] == [["acs", "status", "current-stack", "-f", "structured"]]
+    assert "No restart required on stack" in output.getvalue()
 
     # The package filename supplies the app id and version for install and polling.
     with tempfile.TemporaryDirectory() as tmp:
