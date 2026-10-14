@@ -96,7 +96,9 @@ jobs:
       - download: current
       - script: python -m pip install --quiet ksconf==0.13.10 splunk-sdk==2.1.0
         displayName: Install diff dependencies
+      - script: python release.py local-diff $(Pipeline.Workspace)/${{ parameters.target }}-export $(Pipeline.Workspace)/${{ parameters.source }}-export $(Pipeline.Workspace)/compare
+        displayName: Compare ${{ parameters.target }} with ${{ parameters.source }} (local files vs default)
       - script: python release.py diff $(Pipeline.Workspace)/${{ parameters.target }}-export $(Pipeline.Workspace)/${{ parameters.source }}-export $(Pipeline.Workspace)/compare
-        displayName: Compare ${{ parameters.target }} with ${{ parameters.source }}
+        displayName: Compare ${{ parameters.target }} with ${{ parameters.source }} (merged defaults)
       - publish: $(Pipeline.Workspace)/compare
         artifact: compare

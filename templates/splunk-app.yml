@@ -132,8 +132,10 @@ stages:
               STACK_TOKEN: $(ACS_TOKEN)
           - script: python -m pip install --quiet ksconf==0.13.10 splunk-sdk==2.1.0
             displayName: Install diff dependencies
+          - script: python $(Pipeline.Workspace)/tools/release.py local-diff $(Pipeline.Workspace)/prod-export $(Pipeline.Workspace)/dist $(Pipeline.Workspace)/prod-diff
+            displayName: Diff production against this package (local files vs default)
           - script: python $(Pipeline.Workspace)/tools/release.py diff $(Pipeline.Workspace)/prod-export $(Pipeline.Workspace)/dist $(Pipeline.Workspace)/prod-diff
-            displayName: Diff production against this package
+            displayName: Diff production against this package (merged defaults)
           - publish: $(Pipeline.Workspace)/prod-diff
             artifact: prod-diff-$(System.JobAttempt)
 

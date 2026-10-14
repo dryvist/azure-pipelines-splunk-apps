@@ -4,7 +4,6 @@ import difflib
 import filecmp
 import html
 import shutil
-import subprocess
 import tarfile
 import tempfile
 from pathlib import Path
@@ -39,28 +38,17 @@ def kept(path):
     return path.parts[0] in ("local", "users") or path.parts[:2] == ("metadata", "local.meta")
 
 def merge_local(root):
-    """Promote local configuration into default files and copy other local files."""
-    local = root / "local"
-    if local.exists():
-        for relative in sorted(files(local)):
-            source = local / relative
-            target = root / "default" / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
-            if source.suffix == ".conf":
-                subprocess.run(
-                    ["ksconf", "promote", "--batch", str(source), str(target)],
-                    check=True,
-                )
-            else:
-                shutil.copy2(source, target)
-    local_meta = root / "metadata" / "local.meta"
-    if local_meta.exists():
-        default_meta = root / "metadata" / "default.meta"
-        default_meta.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(
-            ["ksconf", "promote", "--batch", str(local_meta), str(default_meta)],
-            check=True,
-        )
+    """Merge local configuration into default files with ksconf and copy other local files."""
+    pairs = [(root / "local" / p, root / "default" / p) for p in sorted(files(root / "local"))]
+    if (root / "metadata" / "local.meta").exists():
+        pairs.append((root / "metadata" / "local.meta", root / "metadata" / "default.meta"))
+    for local, default in pairs:
+        default.parent.mkdir(parents=True, exist_ok=True)
+        if local.suffix in (".conf", ".meta"):
+            in_place = ["--in-place"] if default.exists() else []
+            run(["ksconf", "merge", *in_place, "--target", str(default), str(local)], check=True)
+        else:
+            shutil.copy2(local, default)
     sort_confs(root / "default")
 
 def deployed(path):
@@ -125,8 +113,7 @@ def summary(target, source, target_before, source_before):
         "Source:", *listed(p for p in source_before if p.parts[0] == "users"),
     ]) + "\n"
 
-def write_html_diff(app, target, source, changes, local_text, out):
-    local = html.escape(local_text or "No local configuration files.\n")
+def write_html_diff(app, target, source, changes, out):
     tables = "".join(
         f"<section><h2>{html.escape(path.as_posix())} ({status})</h2>"
         + difflib.HtmlDiff().make_table(
@@ -147,7 +134,7 @@ def write_html_diff(app, target, source, changes, local_text, out):
     page += ".diff_sub{background:#fcc}.diff_chg{background:#ffc}</style></head><body>"
     page += f"<h1>{html.escape(app)} deployed diff</h1><pre>{html.escape(change_tree(changes))}</pre>"
     page += tables or "<p>No deployed file changes.</p>"
-    page += f"<h2>Local vs default</h2><pre>{local}</pre></body></html>\n"
+    page += "</body></html>\n"
     (out / f"{app}-diff.html").write_text(page, encoding="utf-8")
 
 def local_vs_default(target, source, work):
@@ -175,45 +162,53 @@ def local_vs_default(target, source, work):
         report.append(f"=== {name} vs the same stanzas in the deployed default ===\n{result.stdout}\n")
     return "".join(report)
 
-def diff(target_dir, source_dir, out_dir):
-    """Write each app's merged archive, readable diffs, and Markdown summary."""
+def each_app(target_dir, source_dir, out_dir):
+    """Yield app id, extracted target and source folders, and the output folder for every app."""
     targets, sources = archives(target_dir), archives(source_dir)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
+    print(f"##[section]Target (deployed): {target_dir}")
+    print(f"##[section]Source (new): {source_dir}")
     for app in sorted(targets.keys() | sources.keys()):
         with tempfile.TemporaryDirectory() as tmp:
             target, source = Path(tmp, "target"), Path(tmp, "source")
             extract(targets.get(app), target)
             extract(sources.get(app), source)
-            target_before, source_before = files(target), files(source)
-            work = Path(tmp, "local-vs-default")
-            work.mkdir()
-            local_text = local_vs_default(target, source, work)
-            (out / f"{app}-local-vs-default.diff").write_text(local_text, encoding="utf-8")
-            print(f"##[section]{app}: target local files vs the deployed default")
-            print(local_text or "No local configuration files.\n", end="")
-            merge_local(target)
-            merge_local(source)
-            changes = deployed_changes(target, source)
-            text = summary(target, source, target_before, source_before)
-            write_html_diff(app, target, source, changes, local_text, out)
-            merged_archive(app, target if app in targets else source, out / f"{app}-merged.tar.gz")
-            for root in (target, source):
-                for p in files(root):
-                    if not deployed(p):
-                        (root / p).unlink()
-            patch = []
-            for path in sorted(p for p in files(target) | files(source) if deployed(p)):
-                old, new = (r / path for r in (target, source))
-                patch.extend(difflib.diff_bytes(
-                    difflib.unified_diff,
-                    old.read_bytes().splitlines(keepends=True) if old.exists() else [],
-                    new.read_bytes().splitlines(keepends=True) if new.exists() else [],
-                    f"target/{path.as_posix()}".encode(), f"source/{path.as_posix()}".encode(),
-                ))
+            yield app, target, source, out, app in targets
+
+def local_diff(target_dir, source_dir, out_dir):
+    """Compare each target local file with the same stanzas in the source default file."""
+    for app, target, source, out, _ in each_app(target_dir, source_dir, out_dir):
+        work = target.with_name("local-vs-default")
+        work.mkdir()
+        text = local_vs_default(target, source, work) or "No local configuration files.\n"
+        (out / f"{app}-local-vs-default.diff").write_text(text, encoding="utf-8")
+        print(f"##[section]{app}: target local files vs the same stanzas in the source default")
+        print(text, end="")
+
+def diff(target_dir, source_dir, out_dir):
+    """Write each app's merged archive, default-only diffs, and Markdown summary."""
+    for app, target, source, out, in_target in each_app(target_dir, source_dir, out_dir):
+        target_before, source_before = files(target), files(source)
+        merge_local(target)
+        merge_local(source)
+        changes = deployed_changes(target, source)
+        text = summary(target, source, target_before, source_before)
+        write_html_diff(app, target, source, changes, out)
+        merged_archive(app, target if in_target else source, out / f"{app}-merged.tar.gz")
+        patch = []
+        for path in sorted(p for p in files(target) | files(source) if deployed(p)):
+            old, new = (r / path for r in (target, source))
+            patch.extend(difflib.diff_bytes(
+                difflib.unified_diff,
+                old.read_bytes().splitlines(keepends=True) if old.exists() else [],
+                new.read_bytes().splitlines(keepends=True) if new.exists() else [],
+                f"target/{path.as_posix()}".encode(), f"source/{path.as_posix()}".encode(),
+            ))
         patch_text = b"".join(patch)
         (out / f"{app}.patch").write_bytes(patch_text)
         (out / f"{app}-summary.md").write_text(text, encoding="utf-8")
+        print(f"##[section]{app}: merged default files, target vs source")
         print_colored_patch(patch_text)
         print(f"##vso[task.uploadsummary]{(out / f'{app}-summary.md').resolve()}")
         print(text, end="")

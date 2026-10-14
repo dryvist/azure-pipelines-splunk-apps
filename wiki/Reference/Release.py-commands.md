@@ -27,12 +27,14 @@
   the remaining apps.
 - `export <dir> <package-dir>` gets the app id from the package filename and
   exports it to `<dir>/<app-id>/`.
-- `diff <target-dir> <source-dir> <out-dir>` compares the archives for each
-  app id after promoting local configuration into default files. It writes
-  `<app-id>.patch`, `<app-id>-diff.html`, `<app-id>-summary.md`,
-  `<app-id>-local-vs-default.diff`, and `<app-id>-merged.tar.gz`. The HTML
-  report includes an indented folder tree, side-by-side file tables, and the
-  local-versus-default report. The patch compares deployed defaults as unified
+- `local-diff <target-dir> <source-dir> <out-dir>` compares each target local
+  file with the same stanzas in the source default file and writes
+  `<app-id>-local-vs-default.diff`. It runs as its own step.
+- `diff <target-dir> <source-dir> <out-dir>` merges local into default on both
+  sides with `ksconf merge`, then compares the archives for each app id. It
+  writes `<app-id>.patch`, `<app-id>-diff.html`, `<app-id>-summary.md`, and
+  `<app-id>-merged.tar.gz`. The HTML report includes an indented folder tree
+  and side-by-side file tables. The patch compares deployed defaults as unified
   diffs. The summary lists the tree, deployed changes, local files, and user
   files, and is uploaded to the run summary.
 - `install-acs` downloads ACS CLI 2.26.0 for Linux or Windows x64 agents,
