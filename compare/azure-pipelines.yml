@@ -20,8 +20,6 @@ parameters:
 
 pool:
   name: ${{ parameters.pool }}
-  ${{ if eq(parameters.pool, 'Azure Pipelines') }}:
-    vmImage: ubuntu-latest
 
 jobs:
   - ${{ each env in split('nonprod,prod', ',') }}:
