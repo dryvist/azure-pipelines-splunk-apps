@@ -17,6 +17,8 @@ parameters:
 jobs:
   - ${{ each env in split('nonprod,prod', ',') }}:
       - job: ${{ env }}
+        workspace:
+          clean: all
         variables:
           - group: ${{ parameters.target }}-${{ env }}
         steps:
@@ -36,6 +38,8 @@ jobs:
             artifact: ${{ env }}-export
 
   - job: compare
+    workspace:
+      clean: all
     dependsOn: [nonprod, prod]
     steps:
       - task: UsePythonVersion@0

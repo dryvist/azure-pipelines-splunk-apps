@@ -23,6 +23,8 @@ stages:
     jobs:
       - job: build
         pool: ${{ parameters.pool }}
+        workspace:
+          clean: all
         steps:
           - checkout: self
             path: app
@@ -51,6 +53,8 @@ stages:
     jobs:
       - job: appinspect
         pool: ${{ parameters.pool }}
+        workspace:
+          clean: all
         steps:
           - ${{ parameters.setup }}
           - download: current
@@ -87,6 +91,8 @@ stages:
     jobs:
       - deployment: deploy
         pool: ${{ parameters.pool }}
+        workspace:
+          clean: all
         environment: splunk-nonprod
         variables:
           - group: splunk-appinspect
@@ -107,6 +113,8 @@ stages:
     jobs:
       - job: proddiff
         pool: ${{ parameters.pool }}
+        workspace:
+          clean: all
         steps:
           - checkout: self
             path: app
@@ -133,6 +141,8 @@ stages:
     jobs:
       - job: release
         pool: ${{ parameters.pool }}
+        workspace:
+          clean: all
         steps:
           - checkout: self
             path: app
@@ -160,6 +170,8 @@ stages:
         jobs:
           - deployment: deploy
             pool: ${{ parameters.pool }}
+            workspace:
+              clean: all
             environment: splunk-prod
             variables:
               - group: splunk-appinspect
