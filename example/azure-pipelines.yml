@@ -16,3 +16,7 @@ resources:
 
 extends:
   template: templates/splunk-app.yml@tools
+  parameters:
+    # Remove pool to use Microsoft-hosted ubuntu-latest agents.
+    pool:
+      name: <agent-pool>

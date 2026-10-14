@@ -21,18 +21,23 @@ Complete Steps 1 to 4 of `AZURE-DEVOPS-SETUP.md`.
 8. Select **Continue**.
 9. Select the arrow next to **Run**.
 10. Select **Save**.
+11. Select **Edit**.
+12. Select **⋮** (More actions) at the top right.
+13. Select **Triggers**.
+14. Select the **YAML** tab.
+15. In **Default agent pool for YAML**, select your agent pool.
+16. Select the arrow next to **Save & queue**.
+17. Select **Save**.
 
 ## Run it
 
 1. Select **Run pipeline**.
-2. In **Agent pool**, type your self-hosted agent pool name, or keep
-   `Azure Pipelines`.
-3. Select `splunk` or `splunk-itsi` for `target` in the Run panel.
-4. Select **Run**.
-5. If the run shows **This pipeline needs permission**, select **View**.
-6. Select **Permit** for `splunk-appinspect`.
-7. Select **Permit** for the selected nonprod variable group.
-8. Select **Permit** for the selected prod variable group.
+2. Select `splunk` or `splunk-itsi` for `target` in the Run panel.
+3. Select **Run**.
+4. If the run shows **This pipeline needs permission**, select **View**.
+5. Select **Permit** for `splunk-appinspect`.
+6. Select **Permit** for the selected nonprod variable group.
+7. Select **Permit** for the selected prod variable group.
 
 ## Read the result
 

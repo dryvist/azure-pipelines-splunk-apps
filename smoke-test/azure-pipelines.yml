@@ -2,19 +2,12 @@ trigger: none
 pr: none
 
 parameters:
-  - name: pool
-    displayName: Agent pool
-    type: string
-    default: Azure Pipelines
   - name: target
     type: string
     default: splunk
     values:
       - splunk
       - splunk-itsi
-
-pool:
-  name: ${{ parameters.pool }}
 
 jobs:
   - job: appinspect

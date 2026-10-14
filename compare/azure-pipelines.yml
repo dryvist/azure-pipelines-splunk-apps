@@ -4,10 +4,6 @@ trigger: none
 pr: none
 
 parameters:
-  - name: pool
-    displayName: Agent pool
-    type: string
-    default: Azure Pipelines
   - name: target
     type: string
     default: splunk
@@ -17,9 +13,6 @@ parameters:
   - name: apps
     type: string
     displayName: App IDs, separated by spaces
-
-pool:
-  name: ${{ parameters.pool }}
 
 jobs:
   - ${{ each env in split('nonprod,prod', ',') }}:
