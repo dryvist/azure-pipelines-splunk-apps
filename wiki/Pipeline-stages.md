@@ -46,8 +46,8 @@ and environments.
   it compares each local file with the same stanzas in the package default
   files, using `ksconf filter` and `ksconf diff`. Then it promotes local
   configuration into default files, sorts them with `ksconf sort`, and
-  compares only `default/` and `metadata/default.meta` with the package. If the app is not
-  in production, the summary lists each package default file and
+  compares only `default/` and `metadata/default.meta` with the package. If
+  the app is not in production, the summary lists each package default file and
   `metadata/default.meta` as added.
 - **Leaves:** The `prod-diff-<attempt>` artifact with
   `<app-id>-local-vs-default.diff`, `<app-id>.patch`,
