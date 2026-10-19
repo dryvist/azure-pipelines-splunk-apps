@@ -2,7 +2,9 @@
 
 from unittest import TestCase
 
+import io
 import tempfile
+from contextlib import redirect_stdout
 from pathlib import Path
 
 from splunk_release import appinspect
@@ -16,6 +18,12 @@ def check_appinspect():
         assert not appinspect.appinspect_passed(
             "SUCCESS", {"summary": {**clean["summary"], count: 1}}
         )
+    out = io.StringIO()
+    with redirect_stdout(out):
+        appinspect.print_summary("SUCCESS", {"failure": 2, "warning": 5})
+    blocking, other = out.getvalue().split("##[section]Does not block deployment\n")
+    assert '"failure": 2' in blocking and '"status": "SUCCESS"' in blocking
+    assert '"warning": 5' in other and "failure" not in other
     # AppInspect multipart packaging retains the uploaded filename and bytes.
     with tempfile.TemporaryDirectory() as tmp:
         pkg = Path(tmp, "app.tgz")
