@@ -27,7 +27,7 @@ The nonprod artifact is named `nonprod-diff-<app-id>-<attempt>`. The same
 summary is added to the run summary tab. The compare artifact contains the raw
 file tree, HTML report, summary, patch, local-versus-default report, and merged
 archive for each app. Compare can select two environments and export all
-custom apps when the app list is empty.
+custom apps when the app list is `all` or empty.
 
 The app import run publishes `nonprod-diff-<app-id>-<attempt>` before it
 creates a pull request. Review this artifact alongside the proposed changes.
