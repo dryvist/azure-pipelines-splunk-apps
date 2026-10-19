@@ -193,7 +193,8 @@ def local_diff(target_dir, source_dir, out_dir):
             print(text, end="")
 
 def print_file_banner(path, status):
-    print(f"##[section]==== {path} ({status}) ====")
+    rule = "##[section]" + "=" * 100
+    print(f"\n\n\n{rule}\n##[section]{path} ({status})\n{rule}")
 
 def tree(target_dir, source_dir, out_dir):
     """Write and print the tree of raw target and source app files."""
