@@ -8,8 +8,10 @@ The `dist` artifact carries the package between app stages. AppInspect and
 diff artifacts include the job attempt. Compare export and compare artifacts
 use fixed names.
 
-A Proddiff `prod-diff-<attempt>` contains five reports:
+A Proddiff `prod-diff-<attempt>` contains these reports:
 
+- `<app-id>-tree.txt`: raw target and source file tree with added, removed,
+  and changed paths.
 - `<app-id>-diff.html`: folder tree and side-by-side changed-file tables.
 - `<app-id>-summary.md`: deployed changes, target local files, source local
   files,
@@ -22,8 +24,8 @@ A Proddiff `prod-diff-<attempt>` contains five reports:
   `metadata/local.meta`, or `users/`.
 
 The nonprod artifact is named `nonprod-diff-<app-id>-<attempt>`. The same
-summary is added to the run summary tab. The compare artifact contains the
-HTML report, summary, patch, local-versus-default report, and merged
+summary is added to the run summary tab. The compare artifact contains the raw
+file tree, HTML report, summary, patch, local-versus-default report, and merged
 archive for each app. Compare can select two environments and export all
 custom apps when the app list is empty.
 

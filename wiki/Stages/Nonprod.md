@@ -32,6 +32,8 @@ lifecycle. `templates/deploy.yml` runs these steps for the package:
   filename and exports the installed app.
   **Inputs:** `SPLUNK_STACK` and `ACS_TOKEN`.
   **Outputs:** `nonprod-export/`.
+- **Compare nonprod with this package (file tree, local and default):** Writes
+  `<app-id>-tree.txt` with raw file changes.
 - **Compare nonprod with this package (local files vs default):** Writes the
   local-versus-default report. **Inputs:** Nonprod export and `dist` package.
 - **Compare nonprod with this package (merged defaults):** Writes the patch,
