@@ -113,8 +113,9 @@ def check_compare():
         assert "## Deployed change tree" not in summary
         assert "  props.conf [changed]" not in summary
         logs = output.getvalue()
-        local_banner = "##[section]==== local/props.conf (Changed) ===="
-        patch_banner = "##[section]==== default/props.conf (Changed) ===="
+        rule = "##[section]" + "=" * 100
+        local_banner = f"\n\n\n{rule}\n##[section]local/props.conf (Changed)\n{rule}\n"
+        patch_banner = f"\n\n\n{rule}\n##[section]default/props.conf (Changed)\n{rule}\n"
         assert local_banner in logs
         assert patch_banner in logs
         assert logs.index(local_banner) < logs.index("=== local/props.conf vs the same stanzas")
