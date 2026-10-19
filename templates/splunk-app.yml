@@ -30,17 +30,21 @@ stages:
           - script: python -m pip install --quiet splunk-packaging-toolkit ksconf==0.13.10 splunk-sdk==2.1.0
             displayName: Install slim and ksconf
           - script: python ../tools/release.py bump
+            name: bump
             workingDirectory: $(Pipeline.Workspace)/app
             displayName: Bump PR version and manifest
             condition: eq(variables['Build.Reason'], 'PullRequest')
           - script: python ../tools/release.py package
             workingDirectory: $(Pipeline.Workspace)/app
             displayName: Package app
+            condition: and(succeeded(), ne(variables['bump.bumped'], 'true'))
           - publish: $(Pipeline.Workspace)/app/dist
             artifact: dist
+            condition: and(succeeded(), ne(variables['bump.bumped'], 'true'))
 
   - stage: appinspect
     dependsOn: build
+    condition: and(succeeded(), ne(dependencies.build.outputs['build.bump.bumped'], 'true'))
     variables:
       - group: splunk-appinspect
     jobs:

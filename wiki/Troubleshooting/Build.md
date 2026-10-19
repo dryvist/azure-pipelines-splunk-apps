@@ -15,7 +15,8 @@
 **Cause:** `Show stage plan` prints the run reason, branch, and the condition
 for each stage. `nonprod` and `proddiff` require a pull request or
 `refs/heads/main`. `proddiff` depends on `nonprod`. `release` requires
-`refs/heads/main`.
+`refs/heads/main`. On a pull request run that pushed a version bump,
+`appinspect` and every later stage skip, and the next run validates the bump.
 
 **Fix:**
 
@@ -36,8 +37,10 @@ or `<branch> already changes the version, skipping bump`. The line before it
 prints the source and target `app.conf` versions.
 
 **Cause:** The bump skips when the target branch has no app config or the
-source branch version differs from the target. The bump commit itself updates
-the PR, so the next PR run always prints the skip. That run is expected.
+source branch version differs from the target. The run that pushes a bump
+prints `<app> bumped to <version>` and skips packaging and every later stage.
+The bump commit starts the next PR run, which prints the skip and runs all
+stages. That pair of runs is expected.
 
 **Fix:**
 

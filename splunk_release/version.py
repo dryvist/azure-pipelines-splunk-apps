@@ -147,6 +147,8 @@ def bump():
     git("commit", "-m", f"Release {APP} {new}")
     git("push", "origin", f"HEAD:{source_ref}")
     print(f"{APP} bumped to {new}")
+    print("The bump commit starts the next validation run; this run stops here.")
+    print("##vso[task.setvariable variable=bumped;isOutput=true]true")
 
 def tag():
     """Tag HEAD as v<version>; git refuses a push if the tag points to another commit."""

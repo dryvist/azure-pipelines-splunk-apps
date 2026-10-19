@@ -25,7 +25,7 @@ def plan():
     print(f"Build.SourceBranch = {branch}")
     for stage, runs, rule in (
         ("build", True, "every run"),
-        ("appinspect", True, "every run, after build"),
+        ("appinspect", True, "after build, unless the build pushed a version bump"),
         ("nonprod", compare, "pull request or refs/heads/main"),
         ("proddiff", compare, "pull request or refs/heads/main"),
         ("release", main, "refs/heads/main, after proddiff"),
