@@ -8,9 +8,8 @@ and publish versioned releases.
 
 ### Set up
 
-Follow the [Azure DevOps setup guide](AZURE-DEVOPS-SETUP.md) to configure the
-shared repository, feed, variable groups, environments, app repository, and
-pipeline.
+Start with the [setup checklist](AZURE-DEVOPS-SETUP.md), which links to the
+prerequisites and setup procedures.
 
 ## Usage
 

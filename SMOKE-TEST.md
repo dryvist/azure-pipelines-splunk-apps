@@ -8,7 +8,7 @@ for the per-job setup lifecycle. The pipeline only reads and changes no stack.
 
 ## Before you run it
 
-Complete Steps 1 to 4 of `AZURE-DEVOPS-SETUP.md`.
+Complete Steps 1 to 4 in the [getting started guide](wiki/Getting-started.md).
 
 ## Create the pipeline
 
