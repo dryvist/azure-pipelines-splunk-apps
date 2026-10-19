@@ -47,6 +47,13 @@
 - `appinspect-link` prints the current build's AppInspect artifact link.
 - `tag` (no arguments) uses no environment variables beyond the app id
   fallback above.
+- `import-nonprod <export-dir>` merges local app configuration into default,
+  removes `local/`, `users/`, and `metadata/local.meta`, sets both version rows
+  to one patch above `main`, regenerates `app.manifest`, commits the package,
+  pushes a new import branch, and opens a pull request to `main`. It uses
+  `BUILD_BUILDID`, `BUILD_REPOSITORY_ID`, `BUILD_REPOSITORY_NAME`,
+  `SYSTEM_ACCESSTOKEN`, `SYSTEM_COLLECTIONURI`, `SYSTEM_TEAMPROJECT`, and
+  `SYSTEM_TEAMPROJECTID`.
 
 ACS setup maps the variable-group `ACS_TOKEN` to `STACK_TOKEN`. It runs
 once per job; later steps reuse the CLI configuration.
@@ -60,6 +67,7 @@ source and target branches. The `tag` command writes `APP_ID` and
 
 - [Code layout](/Reference/Code-layout)
 - [Artifacts](/Reference/Artifacts)
+- [Import from nonprod](/Pipelines/Nonprod-import)
 
 ---
 

@@ -79,11 +79,15 @@ def app_conf_version(text):
 
 def bump_conf(text, level):
     """Return updated text and version; preserve other text, including comments."""
-    lines = text.splitlines(keepends=True)
     new = bumped(app_conf_version(text), level)
+    return set_version(text, new), new
+
+def set_version(text, version):
+    """Set both app.conf version rows and preserve all other text."""
+    lines = text.splitlines(keepends=True)
     for i, match in version_rows(lines).values():
-        lines[i] = match[1] + new + lines[i][match.end() :]
-    return "".join(lines), new
+        lines[i] = match[1] + version + lines[i][match.end() :]
+    return "".join(lines)
 
 def git(*args):
     identity = [
@@ -94,8 +98,17 @@ def git(*args):
     ]
     run(["git", *identity, *args], check=True)
 
+def generate_manifest():
+    """Regenerate package/app.manifest with the packaging toolkit."""
+    from splunk_release.package import slim, stage
+
+    stage()
+    if not (STAGE / MANIFEST.name).exists():
+        slim("generate-manifest", str(STAGE), "-o", str(STAGE / MANIFEST.name))
+    slim("generate-manifest", "--update", str(STAGE), "-o", str(MANIFEST))
+
 def bump():
-    from splunk_release.package import slim, sort_confs, stage
+    from splunk_release.package import sort_confs
 
     target_ref = os.environ.get("SYSTEM_PULLREQUEST_TARGETBRANCH")
     if not target_ref:
@@ -138,11 +151,7 @@ def bump():
         text, bump_level(os.environ.get("BUILD_SOURCEVERSIONMESSAGE", ""))
     )
     CONF.write_text(text, **TEXT)
-    stage()
-    # Generate the initial manifest before updating it.
-    if not (STAGE / MANIFEST.name).exists():
-        slim("generate-manifest", str(STAGE), "-o", str(STAGE / MANIFEST.name))
-    slim("generate-manifest", "--update", str(STAGE), "-o", str(MANIFEST))
+    generate_manifest()
     git("add", str(SRC), str(MANIFEST))
     git("commit", "-m", f"Release {APP} {new}")
     git("push", "origin", f"HEAD:{source_ref}")

@@ -32,6 +32,12 @@ Steps 5 and 6 cover app repository files and Build Service permissions.
    # Keep this file identical across Splunk app repos. Shared logic is in
    # azure-pipelines-splunk-apps. Azure Repos queues PR validation through a
    # main branch Build validation policy and ignores YAML `pr:` triggers.
+   parameters:
+     - name: importFromNonprod
+       displayName: Import this app from nonprod into a new pull request
+       type: boolean
+       default: false
+
    trigger:
      batch: true
      branches:
@@ -48,6 +54,7 @@ Steps 5 and 6 cover app repository files and Build Service permissions.
    extends:
      template: templates/splunk-app.yml@tools
      parameters:
+       importFromNonprod: ${{ parameters.importFromNonprod }}
        pool:
          name: <agent-pool>
    ```
@@ -68,15 +75,19 @@ Steps 5 and 6 cover app repository files and Build Service permissions.
 **Do:**
 
 1. Find `<project> Build Service (<org>)`.
-2. Allow **Contribute** so the PR version bump can push to the PR source
-   branch.
-3. Allow **Create tag** so the release stage can push `v<version>`.
+2. Allow **Contribute** so the PR version bump and import branch can be
+   pushed to the app repository.
+3. Allow **Contribute to pull requests** so the pipeline can create the
+   import pull request.
+4. Allow **Create tag** so the release stage can push `v<version>`.
 
 **Verify:**
 
 1. Confirm **Contribute** shows **Allow** for the app repository's Build
    Service identity.
-2. Confirm **Create tag** shows **Allow** for the app repository's Build
+2. Confirm **Contribute to pull requests** shows **Allow** for the app
+   repository's Build Service identity.
+3. Confirm **Create tag** shows **Allow** for the app repository's Build
    Service identity.
 
 ## Related

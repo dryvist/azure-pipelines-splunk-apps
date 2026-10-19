@@ -5,26 +5,14 @@ import json
 import os
 import sys
 import time
-import urllib.error
-import urllib.request
 import uuid
 from pathlib import Path
 
 from splunk_release.acs import package_identity
+from splunk_release.azure import http
 
 # Request checks for private Victoria apps and future cloud vetting.
 APPINSPECT_TAGS = "private_victoria,future"
-
-def http(url, headers, data=None, timeout=900):
-    req = urllib.request.Request(
-        url, data=data, headers=headers, method="POST" if data else "GET"
-    )
-    print(f"##[command]{req.get_method()} {url}", flush=True)
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read()
-    except urllib.error.HTTPError as e:
-        sys.exit(f"HTTP {e.code} from {url}\n{e.read().decode(errors='replace')}")
 
 def appinspect_token():
     basic = base64.b64encode(

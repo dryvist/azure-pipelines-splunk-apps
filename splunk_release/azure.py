@@ -2,6 +2,9 @@
 
 import os
 import subprocess
+import sys
+import urllib.error
+import urllib.request
 
 def run(cmd, **kwargs):
     """Print a command, then run it."""
@@ -12,6 +15,18 @@ def run(cmd, **kwargs):
 def report_command_error(error):
     """Print one Azure Pipelines error with the failed command and exit code."""
     print(f"##[error]{' '.join(map(str, error.cmd))} exited with code {error.returncode}")
+
+
+def http(url, headers, data=None, timeout=900):
+    req = urllib.request.Request(
+        url, data=data, headers=headers, method="POST" if data else "GET"
+    )
+    print(f"##[command]{req.get_method()} {url}", flush=True)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.read()
+    except urllib.error.HTTPError as e:
+        sys.exit(f"HTTP {e.code} from {url}\n{e.read().decode(errors='replace')}")
 
 
 def plan():

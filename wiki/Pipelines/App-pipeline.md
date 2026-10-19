@@ -17,6 +17,12 @@ Build and AppInspect run first. Nonprod and Proddiff run on pull requests and
 `main`. Release depends on Proddiff and runs only on `main`. The app pipeline
 has no production stage; production installation uses manual deployment.
 
+The shared template also accepts the `importFromNonprod` boolean runtime
+parameter. Its default is `false`, which keeps the stages above. When selected,
+the run has one `import` stage that exports and compares the installed nonprod
+app, then opens a pull request in the app repository. See
+[Import from nonprod](/Pipelines/Nonprod-import).
+
 A pull request run that pushes a version bump stops after the build stage.
 The bump commit starts a new run that validates the bumped version.
 
@@ -28,7 +34,8 @@ The bump commit starts a new run that validates the bumped version.
 
 - [Stages](/Stages)
 - [Build stage](/Stages/Build)
+- [Import from nonprod](/Pipelines/Nonprod-import)
 
 ---
 
-[Next: Deploy pipeline >](/Pipelines/Deploy-pipeline)
+[Next: Import from nonprod >](/Pipelines/Nonprod-import)

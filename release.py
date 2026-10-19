@@ -16,6 +16,7 @@ release.py install-acs                  download and verify the ACS CLI, add it 
 release.py appinspect-link              print the link to this build's published artifacts
 release.py plan                         print which stages this run executes and why
 release.py tag                          tag HEAD as v<version>, push the tag, and set APP_ID/APP_VERSION (CI only)
+release.py import-nonprod <export-dir>  replace package/ from a nonprod export and open a pull request
 
 The ACS CLI reads STACK_TOKEN. Azure Pipelines maps ACS_TOKEN to STACK_TOKEN.
 SPLUNK_SEARCH_HEAD selects a target search head for compare and smoke tests.
@@ -28,6 +29,7 @@ from splunk_release.acs import deploy, export, install_acs, restart, status, wai
 from splunk_release.appinspect import appinspect
 from splunk_release.azure import appinspect_link, plan, report_command_error
 from splunk_release.compare import diff, local_diff, tree
+from splunk_release.import_nonprod import import_nonprod
 from splunk_release.package import package
 from splunk_release.version import bump, tag
 
@@ -47,6 +49,7 @@ commands = {
     "install-acs": install_acs,
     "appinspect-link": appinspect_link,
     "tag": tag,
+    "import-nonprod": import_nonprod,
 }
 
 if __name__ == "__main__":
