@@ -44,9 +44,12 @@ Steps, in order:
 - **Show stage plan:** Prints each stage and its run condition.
   **Inputs:** Build reason and source branch.
   **Outputs:** Stage plan in the job log.
-- **Install slim and ksconf:** Installs the packaging, sorting, and SDK
-  packages. **Inputs:** Python package index. **Outputs:** `slim`, `ksconf`,
-  and Splunk SDK in the Python environment.
+- **Install diff dependencies:** Installs pinned `ksconf` and Splunk SDK
+  packages through `templates/diff-tools.yml`. **Inputs:** Python package
+  index. **Outputs:** Compare commands in the Python environment.
+- **Install packaging toolkit:** The shared dependency template adds the
+  packaging toolkit for build and import jobs. **Inputs:** Python package
+  index. **Outputs:** `slim` in the Python environment.
 - **Bump PR version and manifest:** On pull request runs, sorts config files,
   checks the target version, updates matching version fields and manifest,
   commits, then pushes to the source branch. After a push it sets
@@ -66,6 +69,7 @@ Steps, in order:
 
 - [App pipeline](/Pipelines/App-pipeline)
 - [Artifacts](/Reference/Artifacts)
+- [Import from nonprod](/Pipelines/Nonprod-import)
 
 ---
 

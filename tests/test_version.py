@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from _common import CONF
 from splunk_release import version as version_module
-from splunk_release.version import bump_conf, bump_level
+from splunk_release.version import bump_conf, bump_level, set_version
 
 
 def check_version():
@@ -21,6 +21,7 @@ def check_version():
     text, version = bump_conf(CONF, "patch")
     assert version == "1.4.10"
     assert text == CONF.replace("1.4.9", "1.4.10")
+    assert set_version(CONF, "2.3.4") == CONF.replace("1.4.9", "2.3.4")
     assert bump_conf(CONF, "minor")[1] == "1.5.0"
     assert bump_conf(CONF, "major")[1] == "2.0.0"
     # Tagging sets Azure Pipelines variables after pushing the version tag.

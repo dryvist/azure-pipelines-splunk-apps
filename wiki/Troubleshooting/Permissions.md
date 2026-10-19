@@ -51,9 +51,27 @@ extend that template.
 [expressions](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/expressions),
 [agents](https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/agents).
 
+## Import pull request receives HTTP 403
+
+**Symptom:** `Open a pull request with the nonprod app` fails with HTTP 403.
+
+**Cause:** The app repository Build Service identity cannot create pull
+requests.
+
+**Fix:**
+
+1. Open **Project settings → Repositories → `<app-repo>` → Security**.
+2. Find `<project> Build Service (<org>)`.
+3. Allow **Contribute to pull requests**.
+4. Rerun the import pipeline.
+
+**Docs:** [App repository permissions](/Getting-started/App-repository),
+[Import from nonprod](/Pipelines/Nonprod-import).
+
 ## Related
 
 - [Agent setup](/Troubleshooting/Agent-setup)
+- [Import from nonprod](/Pipelines/Nonprod-import)
 
 ---
 

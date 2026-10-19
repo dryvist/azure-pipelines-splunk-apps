@@ -1,6 +1,12 @@
 # Keep this file identical across Splunk app repos. Shared logic is in
 # azure-pipelines-splunk-apps. Azure Repos queues PR validation through a main
 # branch Build validation policy and ignores YAML `pr:` triggers.
+parameters:
+  - name: importFromNonprod
+    displayName: Import this app from nonprod into a new pull request
+    type: boolean
+    default: false
+
 trigger:
   batch: true
   branches:
@@ -17,6 +23,7 @@ resources:
 extends:
   template: templates/splunk-app.yml@tools
   parameters:
+    importFromNonprod: ${{ parameters.importFromNonprod }}
     # Remove pool to use Microsoft-hosted ubuntu-latest agents.
     pool:
       name: <agent-pool>

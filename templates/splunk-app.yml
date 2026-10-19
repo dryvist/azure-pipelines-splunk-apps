@@ -2,6 +2,9 @@
 # (see example/azure-pipelines.yml). The pipeline derives app-specific values
 # from the repo.
 parameters:
+  - name: importFromNonprod
+    type: boolean
+    default: false
   - name: pool
     type: object
     default:
@@ -14,157 +17,190 @@ parameters:
       - template: python.yml
 
 stages:
-  - stage: build
-    jobs:
-      - job: build
-        pool: ${{ parameters.pool }}
-        workspace:
-          clean: all
-        steps:
-          - checkout: self
-            path: app
-            persistCredentials: true
-          - ${{ parameters.setup }}
-          - script: python $(Pipeline.Workspace)/tools/release.py plan
-            displayName: Show stage plan
-          - script: python -m pip install --quiet splunk-packaging-toolkit ksconf==0.13.10 splunk-sdk==2.1.0
-            displayName: Install slim and ksconf
-          - script: python ../tools/release.py bump
-            name: bump
-            workingDirectory: $(Pipeline.Workspace)/app
-            displayName: Bump PR version and manifest
-            condition: eq(variables['Build.Reason'], 'PullRequest')
-          - script: python ../tools/release.py package
-            workingDirectory: $(Pipeline.Workspace)/app
-            displayName: Package app
-            condition: and(succeeded(), ne(variables['bump.bumped'], 'true'))
-          - publish: $(Pipeline.Workspace)/app/dist
-            artifact: dist
-            condition: and(succeeded(), ne(variables['bump.bumped'], 'true'))
-
-  - stage: appinspect
-    dependsOn: build
-    condition: and(succeeded(), ne(dependencies.build.outputs['build.bump.bumped'], 'true'))
-    variables:
-      - group: splunk-appinspect
-    jobs:
-      - job: appinspect
-        pool: ${{ parameters.pool }}
-        workspace:
-          clean: all
-        steps:
-          - ${{ parameters.setup }}
-          - download: current
-            artifact: dist
-          - script: python $(Pipeline.Workspace)/tools/release.py appinspect $(Pipeline.Workspace)/dist
-            displayName: Run AppInspect
-            env: # secrets reach scripts only when mapped
-              SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
-          - task: CopyFiles@2
-            displayName: Collect AppInspect reports
-            inputs:
-              SourceFolder: $(Pipeline.Workspace)/dist
-              Contents: appinspect-report.*
-              TargetFolder: $(Pipeline.Workspace)/appinspect-report
-            condition: succeededOrFailed()
-          # Each job attempt publishes its own artifact.
-          - publish: $(Pipeline.Workspace)/appinspect-report
-            artifact: appinspect-report-$(System.JobAttempt)
-            condition: succeededOrFailed()
-          - script: python -m json.tool $(Pipeline.Workspace)/appinspect-report/appinspect-report.json
-            displayName: Show AppInspect JSON report
-            condition: succeededOrFailed()
-          - script: python $(Pipeline.Workspace)/tools/release.py appinspect-link
-            displayName: Show AppInspect HTML report link
-            env:
-              SYSTEM_COLLECTIONURI: $(System.CollectionUri)
-              SYSTEM_TEAMPROJECTID: $(System.TeamProjectId)
-              BUILD_BUILDID: $(Build.BuildId)
-            condition: succeededOrFailed()
-
-  - stage: nonprod
-    dependsOn: appinspect
-    condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
-    jobs:
-      - deployment: deploy
-        pool: ${{ parameters.pool }}
-        workspace:
-          clean: all
-        environment: splunk-nonprod
-        variables:
-          - group: splunk-appinspect
-          - group: splunk-nonprod
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - ${{ parameters.setup }}
-                - template: diff-tools.yml
-                - template: acs-cli.yml
-                - download: current
-                  artifact: dist
-                - template: deploy.yml
-                  parameters:
-                    environment: nonprod
-                    packageDirectory: $(Pipeline.Workspace)/dist
-
-  - stage: proddiff
-    dependsOn: nonprod
-    condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
-    variables:
-      - group: splunk-prod
-    jobs:
-      - job: proddiff
-        pool: ${{ parameters.pool }}
-        workspace:
-          clean: all
-        steps:
-          - checkout: self
-            path: app
-          - ${{ parameters.setup }}
-          - download: current
-            artifact: dist
-          - template: acs-cli.yml
-          - template: acs-step.yml
-            parameters:
-              command: ../tools/release.py export $(Pipeline.Workspace)/prod-export
-              displayName: Export the app from production via ACS
+  - ${{ if eq(parameters.importFromNonprod, true) }}:
+    - stage: import
+      jobs:
+        - job: import
+          pool: ${{ parameters.pool }}
+          workspace:
+            clean: all
+          variables:
+            - group: splunk-nonprod
+          steps:
+            - checkout: self
+              path: app
+              persistCredentials: true
+            - ${{ parameters.setup }}
+            - template: diff-tools.yml
+              parameters:
+                includePackagingToolkit: true
+            - script: python ../tools/release.py package
               workingDirectory: $(Pipeline.Workspace)/app
-          - template: diff-tools.yml
-          - template: compare-steps.yml
-            parameters:
-              target: $(Pipeline.Workspace)/prod-export
-              source: $(Pipeline.Workspace)/dist
-              out: $(Pipeline.Workspace)/prod-diff
-              label: production against this package
-          - publish: $(Pipeline.Workspace)/prod-diff
-            artifact: prod-diff-$(System.JobAttempt)
+              displayName: Package main app
+            - template: acs-cli.yml
+            - template: deploy.yml
+              parameters:
+                environment: nonprod
+                packageDirectory: $(Pipeline.Workspace)/app/dist
+                install: false
+            - script: python ../tools/release.py import-nonprod $(Pipeline.Workspace)/nonprod-export/$(APP_ID)
+              workingDirectory: $(Pipeline.Workspace)/app
+              displayName: Open a pull request with the nonprod app
+              env:
+                SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+  - ${{ else }}:
+    - stage: build
+      jobs:
+        - job: build
+          pool: ${{ parameters.pool }}
+          workspace:
+            clean: all
+          steps:
+            - checkout: self
+              path: app
+              persistCredentials: true
+            - ${{ parameters.setup }}
+            - script: python $(Pipeline.Workspace)/tools/release.py plan
+              displayName: Show stage plan
+            - template: diff-tools.yml
+              parameters:
+                includePackagingToolkit: true
+            - script: python ../tools/release.py bump
+              name: bump
+              workingDirectory: $(Pipeline.Workspace)/app
+              displayName: Bump PR version and manifest
+              condition: eq(variables['Build.Reason'], 'PullRequest')
+            - script: python ../tools/release.py package
+              workingDirectory: $(Pipeline.Workspace)/app
+              displayName: Package app
+              condition: and(succeeded(), ne(variables['bump.bumped'], 'true'))
+            - publish: $(Pipeline.Workspace)/app/dist
+              artifact: dist
+              condition: and(succeeded(), ne(variables['bump.bumped'], 'true'))
 
-  - stage: release
-    dependsOn: proddiff
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-    jobs:
-      - job: release
-        pool: ${{ parameters.pool }}
-        workspace:
-          clean: all
-        steps:
-          - checkout: self
-            path: app
-            persistCredentials: true
-          - ${{ parameters.setup }}
-          - download: current
-            artifact: dist
-          - script: python ../tools/release.py tag
-            workingDirectory: $(Pipeline.Workspace)/app
-            displayName: Tag the release version
-          - task: UniversalPackages@0
-            displayName: Publish the package to the splunk-apps feed
-            inputs:
-              command: publish
-              publishDirectory: $(Pipeline.Workspace)/dist
-              feedsToUsePublish: internal
-              vstsFeedPublish: $(System.TeamProject)/splunk-apps
-              vstsFeedPackagePublish: $(APP_ID)
-              versionOption: custom
-              versionPublish: $(APP_VERSION)
+    - stage: appinspect
+      dependsOn: build
+      condition: and(succeeded(), ne(dependencies.build.outputs['build.bump.bumped'], 'true'))
+      variables:
+        - group: splunk-appinspect
+      jobs:
+        - job: appinspect
+          pool: ${{ parameters.pool }}
+          workspace:
+            clean: all
+          steps:
+            - ${{ parameters.setup }}
+            - download: current
+              artifact: dist
+            - script: python $(Pipeline.Workspace)/tools/release.py appinspect $(Pipeline.Workspace)/dist
+              displayName: Run AppInspect
+              env: # secrets reach scripts only when mapped
+                SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
+            - task: CopyFiles@2
+              displayName: Collect AppInspect reports
+              inputs:
+                SourceFolder: $(Pipeline.Workspace)/dist
+                Contents: appinspect-report.*
+                TargetFolder: $(Pipeline.Workspace)/appinspect-report
+              condition: succeededOrFailed()
+            # Each job attempt publishes its own artifact.
+            - publish: $(Pipeline.Workspace)/appinspect-report
+              artifact: appinspect-report-$(System.JobAttempt)
+              condition: succeededOrFailed()
+            - script: python -m json.tool $(Pipeline.Workspace)/appinspect-report/appinspect-report.json
+              displayName: Show AppInspect JSON report
+              condition: succeededOrFailed()
+            - script: python $(Pipeline.Workspace)/tools/release.py appinspect-link
+              displayName: Show AppInspect HTML report link
+              env:
+                SYSTEM_COLLECTIONURI: $(System.CollectionUri)
+                SYSTEM_TEAMPROJECTID: $(System.TeamProjectId)
+                BUILD_BUILDID: $(Build.BuildId)
+              condition: succeededOrFailed()
+
+    - stage: nonprod
+      dependsOn: appinspect
+      condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
+      jobs:
+        - deployment: deploy
+          pool: ${{ parameters.pool }}
+          workspace:
+            clean: all
+          environment: splunk-nonprod
+          variables:
+            - group: splunk-appinspect
+            - group: splunk-nonprod
+          strategy:
+            runOnce:
+              deploy:
+                steps:
+                  - ${{ parameters.setup }}
+                  - template: diff-tools.yml
+                  - template: acs-cli.yml
+                  - download: current
+                    artifact: dist
+                  - template: deploy.yml
+                    parameters:
+                      environment: nonprod
+                      packageDirectory: $(Pipeline.Workspace)/dist
+
+    - stage: proddiff
+      dependsOn: nonprod
+      condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
+      variables:
+        - group: splunk-prod
+      jobs:
+        - job: proddiff
+          pool: ${{ parameters.pool }}
+          workspace:
+            clean: all
+          steps:
+            - checkout: self
+              path: app
+            - ${{ parameters.setup }}
+            - download: current
+              artifact: dist
+            - template: acs-cli.yml
+            - template: acs-step.yml
+              parameters:
+                command: ../tools/release.py export $(Pipeline.Workspace)/prod-export
+                displayName: Export the app from production via ACS
+                workingDirectory: $(Pipeline.Workspace)/app
+            - template: diff-tools.yml
+            - template: compare-steps.yml
+              parameters:
+                target: $(Pipeline.Workspace)/prod-export
+                source: $(Pipeline.Workspace)/dist
+                out: $(Pipeline.Workspace)/prod-diff
+                label: production against this package
+            - publish: $(Pipeline.Workspace)/prod-diff
+              artifact: prod-diff-$(System.JobAttempt)
+
+    - stage: release
+      dependsOn: proddiff
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+      jobs:
+        - job: release
+          pool: ${{ parameters.pool }}
+          workspace:
+            clean: all
+          steps:
+            - checkout: self
+              path: app
+              persistCredentials: true
+            - ${{ parameters.setup }}
+            - download: current
+              artifact: dist
+            - script: python ../tools/release.py tag
+              workingDirectory: $(Pipeline.Workspace)/app
+              displayName: Tag the release version
+            - task: UniversalPackages@0
+              displayName: Publish the package to the splunk-apps feed
+              inputs:
+                command: publish
+                publishDirectory: $(Pipeline.Workspace)/dist
+                feedsToUsePublish: internal
+                vstsFeedPublish: $(System.TeamProject)/splunk-apps
+                vstsFeedPackagePublish: $(APP_ID)
+                versionOption: custom
+                versionPublish: $(APP_VERSION)

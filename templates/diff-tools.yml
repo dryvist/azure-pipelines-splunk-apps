@@ -1,3 +1,12 @@
+# Shared dependency installation for package and diff commands.
+parameters:
+  - name: includePackagingToolkit
+    type: boolean
+    default: false
+
 steps:
   - script: python -m pip install --quiet ksconf==0.13.10 splunk-sdk==2.1.0
     displayName: Install diff dependencies
+  - ${{ if eq(parameters.includePackagingToolkit, true) }}:
+    - script: python -m pip install --quiet splunk-packaging-toolkit
+      displayName: Install packaging toolkit

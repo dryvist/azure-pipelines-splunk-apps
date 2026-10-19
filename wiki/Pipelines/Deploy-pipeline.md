@@ -43,5 +43,5 @@ ACS setup lifecycle. The job runs these steps for each app:
 
 ---
 
-[< Previous: App pipeline](/Pipelines/App-pipeline) |
+[< Previous: Import from nonprod](/Pipelines/Nonprod-import) |
 [Next: Compare pipeline >](/Pipelines/Compare-pipeline)

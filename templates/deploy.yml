@@ -4,6 +4,9 @@ parameters:
     type: string
   - name: packageDirectory
     type: string
+  - name: install
+    type: boolean
+    default: true
 
 steps:
   - template: acs-step.yml
@@ -23,18 +26,19 @@ steps:
       label: ${{ parameters.environment }} with this package
   - publish: $(Pipeline.Workspace)/${{ parameters.environment }}-diff/$(APP_ID)
     artifact: ${{ parameters.environment }}-diff-$(APP_ID)-$(System.JobAttempt)
-  - template: acs-step.yml
-    parameters:
-      command: '"$(Pipeline.Workspace)/tools/release.py" deploy "${{ parameters.packageDirectory }}"'
-      displayName: Deploy to ${{ parameters.environment }} via ACS
-      additionalEnv:
-        SPLUNK_USERNAME: $(SPLUNK_USERNAME)
-        SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
-  - template: acs-step.yml
-    parameters:
-      command: '"$(Pipeline.Workspace)/tools/release.py" wait-version "${{ parameters.packageDirectory }}"'
-      displayName: Wait for the deployed version
-  - template: acs-step.yml
-    parameters:
-      command: '"$(Pipeline.Workspace)/tools/release.py" status'
-      displayName: Check stack status after deploy
+  - ${{ if eq(parameters.install, true) }}:
+      - template: acs-step.yml
+        parameters:
+          command: '"$(Pipeline.Workspace)/tools/release.py" deploy "${{ parameters.packageDirectory }}"'
+          displayName: Deploy to ${{ parameters.environment }} via ACS
+          additionalEnv:
+            SPLUNK_USERNAME: $(SPLUNK_USERNAME)
+            SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
+      - template: acs-step.yml
+        parameters:
+          command: '"$(Pipeline.Workspace)/tools/release.py" wait-version "${{ parameters.packageDirectory }}"'
+          displayName: Wait for the deployed version
+      - template: acs-step.yml
+        parameters:
+          command: '"$(Pipeline.Workspace)/tools/release.py" status'
+          displayName: Check stack status after deploy

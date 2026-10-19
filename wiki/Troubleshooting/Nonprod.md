@@ -26,8 +26,8 @@ capability.
 5. Put the token in `ACS_TOKEN` in the matching variable group.
 6. Rerun the failed job.
 
-**Docs:** [ACS export apps](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.5.2605/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/export-apps-in-splunk-cloud-platform),
-[ACS CLI](https://github.com/splunk/acs-cli).
+**Docs:** [ACS CLI](https://github.com/splunk/acs-cli),
+[ACS export apps][acs-export].
 
 ### Agent address is missing from the ACS allowlist
 
@@ -43,8 +43,26 @@ features used by the pipeline.
 2. Add the agents' outbound addresses to the `search-api` feature allowlist.
 3. Rerun the failed job.
 
-**Docs:** [ACS export apps](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.5.2605/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/export-apps-in-splunk-cloud-platform),
-[agents](https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/agents).
+**Docs:** [agents](https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/agents),
+[ACS export apps][acs-export].
+
+### App is not installed in nonprod
+
+**Symptom:** The export logs `NOT INSTALLED <app-id>`, then the import step
+reports that the `.tgz` export is missing.
+
+**Cause:** The compare steps can continue without an installed target app,
+but the import command needs the exported app archive.
+
+**Fix:**
+
+1. Install the app in nonprod through the app deployment pipeline.
+2. Confirm the export step writes `<app-id>.tgz` under
+   `nonprod-export/<app-id>/`.
+3. Run the import option again.
+
+**Docs:** [Nonprod stage](/Stages/Nonprod),
+[Import from nonprod](/Pipelines/Nonprod-import).
 
 ## Related
 
@@ -54,3 +72,5 @@ features used by the pipeline.
 
 [< Previous: AppInspect troubleshooting](/Troubleshooting/AppInspect) |
 [Next: Proddiff troubleshooting >](/Troubleshooting/Proddiff)
+
+[acs-export]: https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.5.2605/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/export-apps-in-splunk-cloud-platform
