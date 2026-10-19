@@ -12,6 +12,22 @@ from _common import write_tgz
 from splunk_release import compare
 
 
+def check_install_checksum():
+    checksum = "[app/install/install_source_checksum]\ndata = abc\n\n"
+    with tempfile.TemporaryDirectory() as tmp:
+        meta = Path(tmp, "metadata", "local.meta")
+        meta.parent.mkdir()
+        meta.write_text(checksum + "[views]\naccess = read : [*]\n")
+        with redirect_stdout(io.StringIO()) as out:
+            compare.drop_install_checksum(Path(tmp))
+        assert "data = abc" in out.getvalue()
+        assert meta.read_text() == "[views]\naccess = read : [*]\n"
+        meta.write_text(checksum)
+        with redirect_stdout(io.StringIO()):
+            compare.drop_install_checksum(Path(tmp))
+        assert not meta.exists()
+
+
 def check_compare():
     # Diff promotes local files, compares defaults, and archives the merged target.
     with tempfile.TemporaryDirectory() as tmp:
@@ -60,7 +76,7 @@ def check_compare():
         assert "  local.meta [removed]" in tree_lines
         assert "users/" in tree_lines
         assert "      savedsearches.conf [removed]" in tree_lines
-        assert compare.change_tree([]) == "No file changes."
+        assert compare.change_tree([]) == "NO DIFFERENCES"
         assert "=== local/props.conf vs the same stanzas" in local_text
         assert "-value = package" in local_text and "+value = local" in local_text
         assert "[new]" in local_text
@@ -147,7 +163,11 @@ class CompareTests(TestCase):
     def test_compare(self):
         check_compare()
 
+    def test_install_checksum(self):
+        check_install_checksum()
+
 
 if __name__ == "__main__":
     check_compare()
+    check_install_checksum()
     print("ok")

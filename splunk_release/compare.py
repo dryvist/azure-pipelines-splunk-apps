@@ -3,6 +3,7 @@
 import difflib
 import filecmp
 import html
+import re
 import shutil
 import tarfile
 import tempfile
@@ -29,6 +30,22 @@ def extract(archive, dest):
             tar.extractall(raw, filter="data")
     entries = list(raw.iterdir())
     (entries[0] if len(entries) == 1 and entries[0].is_dir() else raw).rename(dest)
+    drop_install_checksum(dest)
+
+def drop_install_checksum(root):
+    """Print, then remove, the install checksum stanza Splunk Cloud writes to metadata/local.meta."""
+    meta = root / "metadata" / "local.meta"
+    text = meta.read_text(encoding="utf-8") if meta.exists() else ""
+    stanza = re.search(r"^\[app/install/install_source_checksum\]\n(?:(?!\[).*\n?)*", text, re.M)
+    if not stanza:
+        return
+    print(f"##[section]{root.name} metadata/local.meta install checksum (not compared)")
+    print(stanza[0].strip())
+    rest = text.replace(stanza[0], "")
+    if rest.strip():
+        meta.write_text(rest, encoding="utf-8", newline="\n")
+    else:
+        meta.unlink()
 
 def files(root):
     return {p.relative_to(root) for p in root.rglob("*") if p.is_file()}
@@ -93,7 +110,7 @@ def change_tree(changes):
                 lines.append("  " * (depth - 1) + f"{path.parts[depth - 1]}/")
                 folders.add(folder)
         lines.append("  " * (len(path.parts) - 1) + f"{path.name} [{status.lower()}]")
-    return "\n".join(lines) or "No file changes."
+    return "\n".join(lines) or "NO DIFFERENCES"
 
 def summary(target, source, target_before, source_before):
     changes = file_changes(target, source, deployed)
@@ -181,7 +198,7 @@ def local_diff(target_dir, source_dir, out_dir):
         work = target.with_name("local-vs-default")
         work.mkdir()
         reports = local_vs_default(target, source, work)
-        text = "".join(report for _, _, report in reports) or "No local configuration files.\n"
+        text = "".join(report for _, _, report in reports) or "NO DIFFERENCES: no local configuration files.\n"
         (out / f"{app}-local-vs-default.diff").write_text(text, encoding="utf-8")
         print(f"##[section]{app}: target local files vs the same stanzas in the source default")
         for path, status, report in reports:
@@ -228,6 +245,8 @@ def diff(target_dir, source_dir, out_dir):
             patch.append(file_patch)
             print_file_banner(path.as_posix(), status)
             print_colored_patch(file_patch)
+        if not changes:
+            print("NO DIFFERENCES")
         patch_text = b"".join(patch)
         (out / f"{app}.patch").write_bytes(patch_text)
         (out / f"{app}-summary.md").write_text(text, encoding="utf-8")
