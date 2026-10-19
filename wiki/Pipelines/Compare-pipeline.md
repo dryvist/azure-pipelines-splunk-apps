@@ -8,9 +8,11 @@
 
 The manual pipeline selects `source` and `target` environments independently, each
 `nonprod` or `prod`, and a `groupPrefix` of `splunk` or `splunk-itsi`. The
-default source is nonprod and the default target is prod. An empty `apps`
-parameter exports every custom app from both environments. Otherwise, it
-exports the listed app ids. The compare job diffs target against source.
+default source is nonprod and the default target is prod. The `apps`
+parameter defaults to `all`. `all`, or an empty value, exports every custom
+app (every app not from Splunkbase) from each environment. Otherwise, it
+exports the listed app ids. The compare job diffs target against source. An
+app installed in only one environment shows every file as added or removed.
 
 ### Jobs `source` and `target` in the compare pipeline
 

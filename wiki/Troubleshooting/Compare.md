@@ -7,8 +7,8 @@
 ## Compare pipeline
 
 The compare pipeline selects source and target environments at run time. An
-empty app list exports every custom app. The compare job uses target as the
-first diff input and source as the second.
+app list of `all`, or an empty one, exports every custom app. The compare job
+uses target as the first diff input and source as the second.
 
 ![Environment exports feeding a comparison artifact.](../diagrams/compare-any-environments.png)
 
@@ -32,7 +32,7 @@ not added.
 5. Rerun the failed job.
 
 **Docs:** [ACS CLI](https://github.com/splunk/acs-cli),
-[ACS export apps](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.5.2605/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/export-apps-in-splunk-cloud-platform),
+[ACS export apps][acs-export],
 [variable groups](https://learn.microsoft.com/en-us/azure/devops/pipelines/library/variable-groups).
 
 ## Related
@@ -44,3 +44,5 @@ not added.
 
 [< Previous: Deploy troubleshooting](/Troubleshooting/Deploy) |
 [Next: Smoke-test troubleshooting >](/Troubleshooting/Smoke-test)
+
+[acs-export]: https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.5.2605/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/export-apps-in-splunk-cloud-platform

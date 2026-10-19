@@ -28,9 +28,9 @@ Step 14 creates the compare pipeline.
 14. Select `splunk` or `splunk-itsi` for `groupPrefix` in the Run panel.
 15. Select `nonprod` or `prod` for `source`.
 16. Select `nonprod` or `prod` for `target`.
-17. Leave **App IDs, separated by spaces** empty to export every custom app,
-    or enter app ids such as `my_app other_app`. Use app folder names from
-    `[id] name`, not display labels.
+17. Leave `apps` as `all`, or empty, to compare every custom app. To compare
+    only some apps, replace it with app ids such as `my_app other_app`. Use
+    app folder names from `[id] name`, not display labels.
 18. Select **Run**.
 19. When asked, permit the selected source variable group.
 20. When asked, permit the selected target variable group.
