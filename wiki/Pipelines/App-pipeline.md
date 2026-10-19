@@ -17,6 +17,9 @@ Build and AppInspect run first. Nonprod and Proddiff run on pull requests and
 `main`. Release depends on Proddiff and runs only on `main`. The app pipeline
 has no production stage; production installation uses manual deployment.
 
+A pull request run that pushes a version bump stops after the build stage.
+The bump commit starts a new run that validates the bumped version.
+
 ![Pull request flow.](../diagrams/pr-run.png)
 
 ![Main branch flow.](../diagrams/main-run.png)

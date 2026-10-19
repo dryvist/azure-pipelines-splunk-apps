@@ -49,8 +49,11 @@ Steps, in order:
   and Splunk SDK in the Python environment.
 - **Bump PR version and manifest:** On pull request runs, sorts config files,
   checks the target version, updates matching version fields and manifest,
-  commits, then pushes to the source branch. **Inputs:** App files, target
-  and source refs, commit message, and repository credentials.
+  commits, then pushes to the source branch. After a push it sets
+  `bump.bumped`, and Package app, Publish artifact, and every later stage
+  skip in that run. The bump commit starts the next validation run.
+  **Inputs:** App files, target and source refs, commit message, and
+  repository credentials.
   **Outputs:** Updated source branch or a printed skip reason.
 - **Package app:** Sorts config files, stages the app, and creates the
   package. **Inputs:** `package/` and installed packaging tools.
