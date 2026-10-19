@@ -28,8 +28,7 @@
 | Run the read-only smoke test | [Smoke-test pipeline](/Pipelines/Smoke-test-pipeline) |
 | Read commands, warnings, and reports | [Reading logs](/Reference/Reading-logs) |
 
-The numbered procedures are in
-[AZURE-DEVOPS-SETUP.md](../AZURE-DEVOPS-SETUP.md).
+The numbered procedures are in [Getting started](/Getting-started).
 
 ## Related
 
