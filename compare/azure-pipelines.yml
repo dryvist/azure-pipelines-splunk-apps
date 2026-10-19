@@ -81,9 +81,12 @@ jobs:
       - template: ../templates/python.yml
       - download: current
       - template: ../templates/diff-tools.yml
-      - script: python release.py local-diff $(Pipeline.Workspace)/${{ parameters.target }}-export $(Pipeline.Workspace)/${{ parameters.source }}-export $(Pipeline.Workspace)/compare
-        displayName: Compare ${{ parameters.target }} with ${{ parameters.source }} (local files vs default)
-      - script: python release.py diff $(Pipeline.Workspace)/${{ parameters.target }}-export $(Pipeline.Workspace)/${{ parameters.source }}-export $(Pipeline.Workspace)/compare
-        displayName: Compare ${{ parameters.target }} with ${{ parameters.source }} (merged defaults)
+      - template: ../templates/compare-steps.yml
+        parameters:
+          release: release.py
+          target: $(Pipeline.Workspace)/${{ parameters.target }}-export
+          source: $(Pipeline.Workspace)/${{ parameters.source }}-export
+          out: $(Pipeline.Workspace)/compare
+          label: ${{ parameters.target }} with ${{ parameters.source }}
       - publish: $(Pipeline.Workspace)/compare
         artifact: compare

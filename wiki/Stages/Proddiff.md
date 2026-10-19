@@ -39,10 +39,13 @@ Steps, in order:
   **Outputs:** `prod-export/`.
 - **Install diff dependencies:** Installs `ksconf` and Splunk SDK.
   **Inputs:** Python package index. **Outputs:** Diff tools in Python.
-- **Diff production against this package (local files vs default):** Runs
+- **Compare production against this package (file tree, local and
+  default):** Runs `release.py tree`. **Inputs:** `prod-export/` and `dist/`.
+  **Outputs:** `<app-id>-tree.txt` in `prod-diff/`.
+- **Compare production against this package (local files vs default):** Runs
   `release.py local-diff`. **Inputs:** `prod-export/` and `dist/`.
   **Outputs:** Local-versus-default reports in `prod-diff/`.
-- **Diff production against this package (merged defaults):** Runs
+- **Compare production against this package (merged defaults):** Runs
   `release.py diff`. **Inputs:** `prod-export/` and `dist/`.
   **Outputs:** Patch, summary, HTML, and merged archive reports in
   `prod-diff/`.

@@ -451,7 +451,7 @@ pipeline run and **Artifacts**.
 21. Download `appinspect-report.html`.
 22. Open `appinspect-report.html` in a browser.
 23. Open `prod-diff-<attempt>` with the highest attempt number.
-24. Confirm it contains `<app-id>.patch`.
+24. Confirm it contains `<app-id>-tree.txt` and `<app-id>.patch`.
 25. Confirm it contains `<app-id>-summary.md`.
 
 Each job attempt publishes its own artifact, so a rerun keeps earlier
@@ -571,8 +571,8 @@ package file as added.
 1. Confirm the `source` job succeeds.
 2. Confirm the `target` job succeeds.
 3. Confirm the `compare` job succeeds.
-4. Confirm the `compare` artifact holds `<app-id>-diff.html` and
-   `<app-id>-local-vs-default.diff` for each app.
+4. Confirm the `compare` artifact holds `<app-id>-tree.txt`,
+   `<app-id>-diff.html`, and `<app-id>-local-vs-default.diff` for each app.
 5. Confirm the `compare` artifact holds `<app-id>-summary.md` for each app.
 6. Confirm each summary appears on the run summary tab.
 

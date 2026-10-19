@@ -14,10 +14,13 @@ steps:
     parameters:
       command: '"$(Pipeline.Workspace)/tools/release.py" export "$(Pipeline.Workspace)/${{ parameters.environment }}-export" "${{ parameters.packageDirectory }}"'
       displayName: Export this app from ${{ parameters.environment }} via ACS
-  - script: python "$(Pipeline.Workspace)/tools/release.py" local-diff "$(Pipeline.Workspace)/${{ parameters.environment }}-export/$(APP_ID)" "${{ parameters.packageDirectory }}" "$(Pipeline.Workspace)/${{ parameters.environment }}-diff/$(APP_ID)"
-    displayName: Compare ${{ parameters.environment }} with this package (local files vs default)
-  - script: python "$(Pipeline.Workspace)/tools/release.py" diff "$(Pipeline.Workspace)/${{ parameters.environment }}-export/$(APP_ID)" "${{ parameters.packageDirectory }}" "$(Pipeline.Workspace)/${{ parameters.environment }}-diff/$(APP_ID)"
-    displayName: Compare ${{ parameters.environment }} with this package (merged defaults)
+  - template: compare-steps.yml
+    parameters:
+      release: '"$(Pipeline.Workspace)/tools/release.py"'
+      target: '"$(Pipeline.Workspace)/${{ parameters.environment }}-export/$(APP_ID)"'
+      source: '"${{ parameters.packageDirectory }}"'
+      out: '"$(Pipeline.Workspace)/${{ parameters.environment }}-diff/$(APP_ID)"'
+      label: ${{ parameters.environment }} with this package
   - publish: $(Pipeline.Workspace)/${{ parameters.environment }}-diff/$(APP_ID)
     artifact: ${{ parameters.environment }}-diff-$(APP_ID)-$(System.JobAttempt)
   - template: acs-step.yml

@@ -40,16 +40,18 @@ Steps, in order:
   **Inputs:** Published artifacts. **Outputs:** Export directories.
 - **Install diff dependencies:** Installs `ksconf` and Splunk SDK.
   **Inputs:** Python package index. **Outputs:** Diff tools in Python.
+- **Compare `<target>` with `<source>` (file tree, local and default):** Runs
+  `release.py tree`. **Inputs:** Target and source exports.
+  **Outputs:** `<app-id>-tree.txt` in `compare/` with raw file changes.
 - **Compare `<target>` with `<source>` (local files vs default):** Runs
   `release.py local-diff`. **Inputs:** Target and source exports.
   **Outputs:** `<app-id>-local-vs-default.diff` in `compare/`.
 - **Compare `<target>` with `<source>` (merged defaults):** Runs
   `release.py diff`. **Inputs:** Target and source exports.
   **Outputs:** HTML, patch, summary, and merged archive files in `compare/`.
-The `release.py diff` step adds each Markdown summary to the run summary
-tab.
+The `release.py diff` step adds each Markdown summary to the run summary tab.
 - **Publish artifact (`compare`):** Publishes the reports.
-  **Inputs:** Per-app reports from both compare steps.
+  **Inputs:** Per-app reports from the three compare steps.
   **Outputs:** `compare` artifact.
 
 ![Compare any two environments.](../diagrams/compare-any-environments.png)

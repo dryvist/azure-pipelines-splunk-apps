@@ -21,6 +21,8 @@ ACS setup lifecycle. The job runs these steps for each app:
 
 - **Check stack status before deploy:** Reads the selected stack status.
 - **Export this app from `<environment>` via ACS:** Exports the installed app.
+- **Compare `<environment>` with this package (file tree, local and
+  default):** Writes `<app-id>-tree.txt` with raw file changes.
 - **Compare `<environment>` with this package (local files vs default):**
   Writes the local-versus-default report.
 - **Compare `<environment>` with this package (merged defaults):** Writes the

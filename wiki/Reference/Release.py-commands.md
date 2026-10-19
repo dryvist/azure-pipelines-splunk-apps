@@ -27,6 +27,9 @@
   the remaining apps.
 - `export <dir> <package-dir>` gets the app id from the package filename and
   exports it to `<dir>/<app-id>/`.
+- `tree <target-dir> <source-dir> <out-dir>` compares all raw files in each
+  app before merging and writes `<app-id>-tree.txt` with added, removed, and
+  changed paths.
 - `local-diff <target-dir> <source-dir> <out-dir>` compares each target local
   file with the same stanzas in the source default file and writes
   `<app-id>-local-vs-default.diff`. It runs as its own step.
@@ -35,8 +38,8 @@
   writes `<app-id>.patch`, `<app-id>-diff.html`, `<app-id>-summary.md`, and
   `<app-id>-merged.tar.gz`. The HTML report includes an indented folder tree
   and side-by-side file tables. The patch compares deployed defaults as unified
-  diffs. The summary lists the tree, deployed changes, local files, and user
-  files, and is uploaded to the run summary.
+  diffs. The summary lists deployed changes, local files, and user files, and
+  is uploaded to the run summary.
 - `install-acs` downloads ACS CLI 2.26.0 for Linux or Windows x64 agents,
   verifies its SHA-256 checksum, extracts it to `AGENT_TEMPDIRECTORY`, prepends
   that directory to `PATH`, runs `acs version`, adds the selected stack, and

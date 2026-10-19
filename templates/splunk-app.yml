@@ -131,10 +131,12 @@ stages:
               displayName: Export the app from production via ACS
               workingDirectory: $(Pipeline.Workspace)/app
           - template: diff-tools.yml
-          - script: python $(Pipeline.Workspace)/tools/release.py local-diff $(Pipeline.Workspace)/prod-export $(Pipeline.Workspace)/dist $(Pipeline.Workspace)/prod-diff
-            displayName: Diff production against this package (local files vs default)
-          - script: python $(Pipeline.Workspace)/tools/release.py diff $(Pipeline.Workspace)/prod-export $(Pipeline.Workspace)/dist $(Pipeline.Workspace)/prod-diff
-            displayName: Diff production against this package (merged defaults)
+          - template: compare-steps.yml
+            parameters:
+              target: $(Pipeline.Workspace)/prod-export
+              source: $(Pipeline.Workspace)/dist
+              out: $(Pipeline.Workspace)/prod-diff
+              label: production against this package
           - publish: $(Pipeline.Workspace)/prod-diff
             artifact: prod-diff-$(System.JobAttempt)
 

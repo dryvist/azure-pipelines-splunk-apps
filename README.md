@@ -1,8 +1,8 @@
 # azure-pipelines-splunk-apps
 
 This repository contains shared Azure Pipelines for Splunk Cloud apps. They
-validate packages, deploy to nonprod, compare packages with production, and
-publish versioned releases.
+validate packages, deploy to nonprod, compare app files across environments,
+and publish versioned releases.
 
 ## Installation
 
@@ -26,6 +26,9 @@ From the repository root, run:
 ```sh
 python -m unittest discover -s tests -p "test_*.py"
 ```
+
+The compare pipeline reports the raw file tree, local files against defaults,
+and merged-default differences for each app.
 
 ## Documentation
 

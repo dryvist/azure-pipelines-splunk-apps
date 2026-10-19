@@ -73,15 +73,16 @@ page: "" {
     class: columns
     direction: right
     inputs: "1. Inputs: target environment\nSource package" {class: card; width: 340}
-    local: "2. Compare local files with defaults\nPromote local files into defaults" {class: card; width: 340}
-    inputs -> local: {class: link}
+    tree: "2. Compare raw file trees\nAll unmerged app files" {class: card; width: 340}
+    inputs -> tree: {class: link}
   }
   second: "" {
     class: columns
-    direction: left
-    sort: "3. Then sort merged defaults\nCompare default files + metadata" {class: card; width: 340}
-    reports: "4. Outputs: patch · summary\nMerged archive" {class: card; width: 340}
-    sort -> reports: {class: link}
+    direction: right
+    local: "3. Compare local files\nPromote into defaults" {class: card; width: 250}
+    sort: "4. Merge and compare defaults\nDefault files + metadata" {class: card; width: 250}
+    reports: "5. Outputs: file tree · patch\nSummary · merged archive" {class: card; width: 250}
+    local -> sort -> reports: {class: link}
   }
-  first.local -> second.sort: {class: link}
+  first.tree -> second.local: {class: link}
 }
