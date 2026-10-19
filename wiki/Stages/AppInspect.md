@@ -31,7 +31,9 @@ Steps, in order:
 - **Run AppInspect:** Validates the package with `private_victoria` and
   `future` tags. **Inputs:** Package, username, and mapped password.
   **Outputs:** JSON and HTML reports, pass/fail status, and a warning for
-  `future_failure` checks.
+  `future_failure` checks. The log prints the summary in two sections:
+  **Blocks deployment** (`status`, `error`, `failure`, `manual_check`) and
+  **Does not block deployment** (every other count).
 - **Collect AppInspect reports (`CopyFiles@2`):** Copies matching reports
   even when the validation step failed. **Inputs:** `dist/appinspect-report.*`.
   **Outputs:** `appinspect-report/` in the workspace.

@@ -25,15 +25,22 @@ def appinspect_token():
         )
     )["data"]["token"]
 
+# Summary counts that fail AppInspect when not 0.
+BLOCKING = ("error", "failure", "manual_check")
+
 def appinspect_passed(status, report):
     """Return true only for SUCCESS with zero failures, errors, and manual checks."""
     summary = report.get("summary", {})
-    return (
-        status == "SUCCESS"
-        and summary.get("failure") == 0
-        and summary.get("error") == 0
-        and summary.get("manual_check") == 0
-    )
+    return status == "SUCCESS" and all(summary.get(k) == 0 for k in BLOCKING)
+
+def print_summary(status, summary):
+    """Print the status and blocking counts, then the other counts, as indented JSON."""
+    print("##[section]Blocks deployment unless status is SUCCESS and each count is 0")
+    blocking = {"status": status, **{k: summary.get(k) for k in BLOCKING}}
+    print(json.dumps(blocking, indent=2))
+    print("##[section]Does not block deployment")
+    other = {k: v for k, v in summary.items() if k not in BLOCKING}
+    print(json.dumps(other, indent=2, sort_keys=True))
 
 def save_appinspect_report(artifact_dir, html, report):
     Path(artifact_dir, "appinspect-report.html").write_bytes(html)
@@ -77,9 +84,7 @@ def appinspect(artifact_dir):
     )
     save_appinspect_report(artifact_dir, html, report)
     summary = report.get("summary", {})
-    print(
-        f"AppInspect {status}: {json.dumps(summary, separators=(',', ':'), sort_keys=True)}"
-    )
+    print_summary(status, summary)
     if summary.get("future_failure"):
         print(
             "##vso[task.logissue type=warning]AppInspect future_failure: "

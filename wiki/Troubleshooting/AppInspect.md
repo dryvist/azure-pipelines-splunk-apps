@@ -62,8 +62,8 @@ available to the script.
 
 ### AppInspect does not pass
 
-**Symptom:** The log prints `AppInspect did not pass` or a summary with
-failures, errors, or manual checks.
+**Symptom:** The log prints `AppInspect did not pass`. The **Blocks
+deployment** section shows a status other than `SUCCESS` or a count above 0.
 
 **Cause:** The stage passes only when status is `SUCCESS` and the failure,
 error, and manual check counts are all zero. A `future_failure` count adds a
