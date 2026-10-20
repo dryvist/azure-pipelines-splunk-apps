@@ -121,19 +121,23 @@ pipeline run and **Artifacts**.
 10. Confirm the manual checks count is 0.
 11. Confirm `appinspect` passes.
 12. If `future_failure` is above 0, confirm the run shows a warning.
-13. Confirm `nonprod` installs the package on the nonprod stack.
-14. Confirm `proddiff` exports production.
-15. Confirm `proddiff` creates a diff.
-16. Open the `appinspect` job's **Show AppInspect JSON report** step.
-17. Confirm that step prints the full JSON report.
-18. Open the **Show AppInspect HTML report link** step.
-19. Select the link.
-20. Open `appinspect-report-<attempt>` with the highest attempt number.
-21. Download `appinspect-report.html`.
-22. Open `appinspect-report.html` in a browser.
-23. Open `prod-diff-<attempt>` with the highest attempt number.
-24. Confirm it contains `<app-id>-tree.txt` and `<app-id>.patch`.
-25. Confirm it contains `<app-id>-summary.md`.
+13. Confirm `nonproddiff` displays **Compare with nonprod**.
+14. Confirm both nonprod compare jobs finish without installing the package.
+15. Confirm `nonprod` displays **Deploy to nonprod**.
+16. Confirm `nonprod` installs the package.
+17. Confirm `proddiff` displays **Compare with prod**.
+18. Confirm both prod compare jobs finish without installing the package.
+19. Open the `appinspect` job's **Show AppInspect JSON report** step.
+20. Confirm that step prints the full JSON report.
+21. Open the **Show AppInspect HTML report link** step.
+22. Select the link.
+23. Open `appinspect-report-<attempt>` with the highest attempt number.
+24. Download `appinspect-report.html`.
+25. Open `appinspect-report.html` in a browser.
+26. Open `prod-diff-<app-id>-<attempt>` with the highest attempt number.
+27. Open `itsi-prod-diff-<app-id>-<attempt>` with the highest attempt number.
+28. Confirm both contain `<app-id>-tree.txt` and `<app-id>.patch`.
+29. Confirm both contain `<app-id>-summary.md`.
 
 Each job attempt publishes its own artifact, so a rerun keeps earlier
 reports and adds a new one with the next attempt number.
@@ -146,11 +150,12 @@ package file as added.
 
 1. Confirm `build` succeeds.
 2. Confirm `appinspect` succeeds.
-3. Confirm `nonprod` succeeds.
-4. Confirm `proddiff` succeeds.
-5. Confirm the run has a `dist` artifact.
-6. Confirm the run has an `appinspect-report-1` artifact.
-7. Confirm the run has a `prod-diff-1` artifact.
+3. Confirm `nonproddiff` succeeds.
+4. Confirm `nonprod` succeeds.
+5. Confirm `proddiff` succeeds.
+6. Confirm the run has a `dist` artifact.
+7. Confirm the run has an `appinspect-report-1` artifact.
+8. Confirm the run has a `prod-diff-<app-id>-1` artifact.
 
 ## Related
 

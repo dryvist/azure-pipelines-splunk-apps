@@ -10,13 +10,16 @@
 
 ### A stage after AppInspect is skipped
 
-**Symptom:** `nonprod`, `proddiff`, or `release` is marked skipped.
+**Symptom:** `nonproddiff`, `nonprod`, `proddiff`, `release`, or `prod` is
+marked skipped.
 
 **Cause:** `Show stage plan` prints the run reason, branch, and the condition
-for each stage. `nonprod` and `proddiff` require a pull request or
-`refs/heads/main`. `proddiff` depends on `nonprod`. `release` requires
-`refs/heads/main`. On a pull request run that pushed a version bump,
-`appinspect` and every later stage skip, and the next run validates the bump.
+for each stage. `nonproddiff`, `nonprod`, and `proddiff` require a pull request
+or `refs/heads/main`. `nonprod` depends on `nonproddiff`, and `proddiff`
+depends on `nonprod`. `release` depends on `proddiff` and requires
+`refs/heads/main`. `prod` follows `release` on `main`. On a pull request run
+that pushed a version bump, `appinspect` and every later stage skip, and the
+next run validates the bump.
 
 **Fix:**
 

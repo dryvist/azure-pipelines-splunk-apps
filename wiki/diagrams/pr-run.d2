@@ -84,21 +84,23 @@ page: "" {
   second: "" {
     class: columns
     direction: left
-    nonprod: "04 · Nonprod stage" {class: card; width: 320}
+    nonprod: "05 · Deploy to nonprod" {class: card; width: 320}
+    nonproddiff: "04 · Compare with nonprod\nParallel jobs:\nCompare with nonprod (no install)\nCompare with itsi-nonprod (no install)" {class: card; width: 380}
     inspect: "03 · AppInspect stage" {class: card; width: 320}
-    inspect -> nonprod: {class: link}
+    inspect -> nonproddiff: {class: link}
+    nonproddiff -> nonprod: {class: link}
   }
   third: "" {
     class: columns
     direction: right
-    proddiff: "05 · Proddiff stage" {class: [card; emphasis]; width: 320}
-    release: "06 · Release stage" {class: [card; ghost]; width: 320}
+    proddiff: "06 · Compare with prod" {class: [card; emphasis]; width: 320}
+    release: "07 · Release stage" {class: [card; ghost]; width: 320}
     proddiff -> release: "main only" {class: link-planned}
   }
   fourth: "" {
     class: columns
     direction: left
-    prod: "07 · Deploy to prod" {class: [card; ghost]; width: 320}
+    prod: "08 · Deploy to prod" {class: [card; ghost]; width: 320}
   }
   first.build -> second.inspect: {class: link}
   second.nonprod -> third.proddiff: {class: link-emphasis}

@@ -61,7 +61,7 @@ classes: {
 }
 
 
-title: "Nonproduction Stage" {class: title; near: top-center}
+title: "Nonprod Compare and Deploy" {class: title; near: top-center}
 
 page: "" {
   class: columns
@@ -73,12 +73,18 @@ page: "" {
   stages: "" {
     class: columns
     direction: down
-    export: "Nonprod stage · export target app" {class: card; width: 400}
-    diff: "Attempt-specific comparison artifact" {class: card; width: 400}
-    deploy: "Deploy: install package with ACS CLI" {class: [card; emphasis]; width: 400}
+    compare_stage: "nonproddiff · Compare with nonprod" {class: card; width: 400}
+    compare_nonprod: "Compare with nonprod (no install)" {class: card; width: 400}
+    compare_itsi: "Compare with itsi-nonprod (no install)" {class: card; width: 400}
+    deploy_stage: "nonprod · Deploy to nonprod" {class: card; width: 400}
+    install: "Install on nonprod via ACS CLI" {class: [card; emphasis]; width: 400}
     failure: "Failure: login rejected (401/403) or access missing" {class: [card; exception]; width: 400}
-    export -> diff: {class: link}
-    diff -> deploy: {class: link-emphasis}
-    export -> failure: {class: link-exception}
+    compare_stage -> compare_nonprod: {class: link}
+    compare_stage -> compare_itsi: {class: link}
+    compare_nonprod -> deploy_stage: {class: link}
+    compare_itsi -> deploy_stage: {class: link}
+    deploy_stage -> install: {class: link-emphasis}
+    compare_nonprod -> failure: {class: link-exception}
+    compare_itsi -> failure: {class: link-exception}
   }
 }

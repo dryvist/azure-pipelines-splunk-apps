@@ -5,10 +5,13 @@
 [[_TOC_]]
 
 The `dist` artifact carries the package between app stages. AppInspect and
-diff artifacts include the job attempt. Compare export and compare artifacts
-use fixed names.
+compare artifacts include the job attempt. Each app pipeline compare job
+publishes `<side>-diff-<app-id>-<attempt>`.
 
-A Proddiff `prod-diff-<attempt>` contains these reports:
+The `nonproddiff` artifacts are `nonprod-diff-<app-id>-<attempt>` and
+`itsi-nonprod-diff-<app-id>-<attempt>`. The `proddiff` artifacts are
+`prod-diff-<app-id>-<attempt>` and `itsi-prod-diff-<app-id>-<attempt>`.
+Each artifact contains these reports:
 
 - `<app-id>-tree.txt`: raw target and source file tree with added, removed,
   and changed paths.
@@ -23,11 +26,11 @@ A Proddiff `prod-diff-<attempt>` contains these reports:
 - `<app-id>-merged.tar.gz`: merged app without `local/`,
   `metadata/local.meta`, or `users/`.
 
-The nonprod artifact is named `nonprod-diff-<app-id>-<attempt>`. The same
-summary is added to the run summary tab. The compare artifact contains the raw
-file tree, HTML report, summary, patch, local-versus-default report, and merged
-archive for each app. Compare can select two environments and export all
-custom apps when the app list is `all` or empty.
+The nonprod compare adds the summary to the run summary tab. The compare
+artifacts contain the raw file tree, HTML report, summary, patch,
+local-versus-default report, and merged archive for each app. The separate
+compare pipeline can select two environments and export all custom apps when
+the app list is `all` or empty.
 
 The app import run publishes `nonprod-diff-<app-id>-<attempt>` before it
 creates a pull request. Review this artifact alongside the proposed changes.
