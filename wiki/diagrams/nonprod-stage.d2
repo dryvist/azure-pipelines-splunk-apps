@@ -75,7 +75,7 @@ page: "" {
     direction: down
     export: "Nonprod stage · export target app" {class: card; width: 400}
     diff: "Attempt-specific comparison artifact" {class: card; width: 400}
-    deploy: "Deploy: install package through deployment API" {class: [card; emphasis]; width: 400}
+    deploy: "Deploy: install package with ACS CLI" {class: [card; emphasis]; width: 400}
     failure: "Failure: login rejected (401/403) or access missing" {class: [card; exception]; width: 400}
     export -> diff: {class: link}
     diff -> deploy: {class: link-emphasis}
