@@ -59,6 +59,10 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   Before the line diffs, `diff` prints a `Changed stanzas` section: one
   collapsed group per `.conf` or `.meta` file, listing each added, removed or
   changed stanza and how many of its settings differ.
+- `tree`, `local-diff`, `diff` and `import-nonprod` sort the rows of every
+  CSV file on both sides, keeping the first row as the header. A CSV with a
+  line break inside a quoted field stays as it is. The nonprod import writes
+  the sorted CSV files to the pull request.
 - `tree`, `local-diff`, `diff` and `import-nonprod` print the install
   checksums Splunk Cloud writes on its own, then leave them out of every
   compare and import: the `[app/install/install_source_checksum]` stanza in

@@ -37,6 +37,10 @@ Steps 5 and 6 cover app repository files and Build Service permissions.
        displayName: Import this app from nonprod into a new pull request
        type: boolean
        default: false
+     - name: skipLookups
+       displayName: When importing, skip lookups (CSV files) and keep the ones on main
+       type: boolean
+       default: true
 
    trigger:
      batch: true
@@ -55,6 +59,7 @@ Steps 5 and 6 cover app repository files and Build Service permissions.
      template: templates/splunk-app.yml@tools
      parameters:
        importFromNonprod: ${{ parameters.importFromNonprod }}
+       skipLookups: ${{ parameters.skipLookups }}
        pool:
          name: <agent-pool>
    ```
