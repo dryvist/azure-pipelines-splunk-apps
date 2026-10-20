@@ -7,6 +7,7 @@ import tarfile
 import tempfile
 from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 from _common import write_tgz
 from splunk_release import compare
@@ -37,6 +38,26 @@ def check_install_checksum():
         assert "install_source_local_checksum = def" in out.getvalue()
         assert default_conf.read_text() == "[install]\nis_configured = 1\n"
         assert not local_conf.exists()
+
+
+def check_sort_csvs():
+    # Folders named *.csv are skipped, and an unreadable CSV prints one warning instead of failing.
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "folder.csv").mkdir()
+        (root / "rows.csv").write_bytes(b"h\nb\na\n")
+        (root / "locked.csv").write_bytes(b"h\nb\na\n")
+        real = Path.read_bytes
+
+        def read_bytes(path):
+            if path.name == "locked.csv":
+                raise PermissionError(13, "Permission denied")
+            return real(path)
+
+        with patch.object(Path, "read_bytes", read_bytes), redirect_stdout(io.StringIO()) as out:
+            compare.sort_csvs(root)
+        assert (root / "rows.csv").read_bytes() == b"h\na\nb\n"
+        assert "locked.csv not sorted: Permission denied" in out.getvalue()
 
 
 def check_compare():
@@ -210,6 +231,9 @@ class CompareTests(TestCase):
 
     def test_install_checksum(self):
         check_install_checksum()
+
+    def test_sort_csvs(self):
+        check_sort_csvs()
 
 
 if __name__ == "__main__":
