@@ -45,6 +45,7 @@ stages:
                 environment: nonprod
                 packageDirectory: $(Pipeline.Workspace)/app/dist
                 install: false
+                reverse: true
             - script: python ../tools/release.py import-nonprod $(Pipeline.Workspace)/nonprod-export/$(APP_ID)
               workingDirectory: $(Pipeline.Workspace)/app
               displayName: Open a pull request with the nonprod app

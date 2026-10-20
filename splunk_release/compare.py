@@ -161,8 +161,7 @@ def stanza_changes(old, new):
         lines.append(f"[{name}] [{status}] {count} settings")
     return lines
 
-def summary(target, source, target_before, source_before):
-    changes = file_changes(target, source, deployed)
+def summary(changes, target_before, source_before):
     deployed_list = [f"- {status}: {path.as_posix()}" for status, path in changes]
     return "\n".join([
         "## Deployed changes", *(deployed_list or ["NO DIFFERENCES"]),
@@ -201,7 +200,11 @@ def write_html_diff(app, target, source, changes, out):
     page += "</body></html>\n"
     (out / f"{app}-diff.html").write_text(page, encoding="utf-8")
 
-def local_vs_default(target, source, work):
+def ordered(target, source, reverse):
+    """The (- side, + side) pair: target first, or source first when reverse is set."""
+    return (source, target) if reverse else (target, source)
+
+def local_vs_default(target, source, work, reverse=""):
     """Compare each target local file with the same stanzas in the source default file, using ksconf."""
     pairs = [(c, source / "default" / c.relative_to(target / "local"))
              for c in sorted((target / "local").rglob("*.conf"))]
@@ -222,7 +225,7 @@ def local_vs_default(target, source, work):
             report.append((name, "Skipped", f"ksconf could not parse a file: {detail}"))
             continue
         # ksconf diff output and exit code report file differences.
-        result = run(["ksconf", "diff", str(local), str(subset)], capture_output=True, text=True)
+        result = run(["ksconf", "diff", *map(str, ordered(local, subset, reverse))], capture_output=True, text=True)
         status = "Changed" if result.stdout else "Unchanged"
         report.append((name, status, result.stdout))
     return report
@@ -244,12 +247,12 @@ def each_app(target_dir, source_dir, out_dir):
             extract(sources.get(app), source)
             yield app, target, source, out, app in targets
 
-def local_diff(target_dir, source_dir, out_dir):
+def local_diff(target_dir, source_dir, out_dir, reverse=""):
     """Compare each target local file with the same stanzas in the source default file."""
     for app, target, source, out, _ in each_app(target_dir, source_dir, out_dir):
         work = target.with_name("local-vs-default")
         work.mkdir()
-        reports = local_vs_default(target, source, work)
+        reports = local_vs_default(target, source, work, reverse)
         shown = [r for r in reports if r[1] != "Unchanged"]
         text = "\n\n".join(f"{path} ({status})\n{report.rstrip()}" for path, status, report in shown)
         (out / f"{app}-local-vs-default.diff").write_text((text or "NO DIFFERENCES") + "\n", encoding="utf-8")
@@ -268,29 +271,31 @@ def print_file_diff(path, status, patch):
     print_colored_patch(patch)
     log("endgroup")
 
-def tree(target_dir, source_dir, out_dir):
+def tree(target_dir, source_dir, out_dir, reverse=""):
     """Write and print the tree of raw target and source app files."""
     for app, target, source, out, _ in each_app(target_dir, source_dir, out_dir):
-        changes = file_changes(target, source, lambda _: True)
-        text = change_tree(changes, target, source) + "\n"
+        old, new = ordered(target, source, reverse)
+        changes = file_changes(old, new, lambda _: True)
+        text = change_tree(changes, old, new) + "\n"
         (out / f"{app}-tree.txt").write_text(text, encoding="utf-8")
         print_colored_patch(text)
 
-def diff(target_dir, source_dir, out_dir):
+def diff(target_dir, source_dir, out_dir, reverse=""):
     """Write each app's merged archive, default-only diffs, and Markdown summary."""
     for app, target, source, out, in_target in each_app(target_dir, source_dir, out_dir):
         target_before, source_before = files(target), files(source)
         merge_local(target)
         merge_local(source)
-        changes = file_changes(target, source, deployed)
-        text = summary(target, source, target_before, source_before)
-        write_html_diff(app, target, source, changes, out)
+        old, new = ordered(target, source, reverse)
+        changes = file_changes(old, new, deployed)
+        text = summary(changes, target_before, source_before)
+        write_html_diff(app, old, new, changes, out)
         merged_archive(app, target if in_target else source, out / f"{app}-merged.tar.gz")
         confs = [(status, path) for status, path in changes if path.suffix in (".conf", ".meta")]
         stanzas = []
         log("section", "Changed stanzas")
         for status, path in confs:
-            found = stanza_changes(target / path, source / path)
+            found = stanza_changes(old / path, new / path)
             stanzas.append("\n".join([path.as_posix(), *("  " + line for line in found)]))
             print_file_diff(path.as_posix(), f"{status}, {len(found)} stanzas", "\n".join(found))
         if not confs:
@@ -299,13 +304,13 @@ def diff(target_dir, source_dir, out_dir):
         log("section", "Changed lines")
         patch = []
         for status, path in changes:
-            old, new = (f.read_bytes().splitlines(keepends=True) if f.exists() else [] for f in (target / path, source / path))
+            a, b = (f.read_bytes().splitlines(keepends=True) if f.exists() else [] for f in (old / path, new / path))
             file_patch = b"".join(difflib.diff_bytes(
-                difflib.unified_diff, old, new,
+                difflib.unified_diff, a, b,
                 f"target/{path.as_posix()}".encode(), f"source/{path.as_posix()}".encode(),
             ))
             patch.append(file_patch)
-            size = f", {percent_changed(old, new)}" if status == "Changed" else ""
+            size = f", {percent_changed(a, b)}" if status == "Changed" else ""
             print_file_diff(path.as_posix(), status + size, file_patch)
         if not changes:
             print_colored_patch("NO DIFFERENCES")
