@@ -101,8 +101,8 @@ def check_import_nonprod():
         datamodels = (package / "default" / "datamodels.conf").read_text(encoding="utf-8")
         assert "[Fast]\nacceleration = false" in datamodels and "acceleration = 1" not in datamodels
         saved = (package / "default" / "savedsearches.conf").read_text(encoding="utf-8")
-        assert "action.populate_lookup = 0" in saved and "search = x" in saved
-        assert output.getvalue().count("Splunk Cloud apps cannot ship it on") == 2
+        assert "populate_lookup" not in saved and "search = x" in saved
+        assert output.getvalue().count("not allowed in Splunk Cloud apps") == 2
         props = (package / "default" / "props.conf").read_text(encoding="utf-8")
         assert "value = local" in props
         assert (package / "default" / "data" / "ui" / "views" / "example.xml").exists()
