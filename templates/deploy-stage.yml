@@ -1,4 +1,4 @@
-# One app pipeline stage that compares the dist package with an environment, then installs it.
+# One app pipeline stage that installs the dist package, after comparing it with the environment when compare is true.
 parameters:
   - name: environment
     type: string
@@ -6,6 +6,8 @@ parameters:
     type: string
   - name: condition
     type: string
+  - name: compare
+    type: boolean
   - name: pool
     type: object
   - name: setup
@@ -19,7 +21,10 @@ stages:
     lockBehavior: sequential
     jobs:
       - deployment: deploy
-        displayName: Compare with ${{ parameters.environment }} and install
+        ${{ if eq(parameters.compare, true) }}:
+          displayName: Compare with ${{ parameters.environment }} and install
+        ${{ else }}:
+          displayName: Install on ${{ parameters.environment }}
         pool: ${{ parameters.pool }}
         workspace:
           clean: all
@@ -32,7 +37,8 @@ stages:
             deploy:
               steps:
                 - ${{ parameters.setup }}
-                - template: diff-tools.yml
+                - ${{ if eq(parameters.compare, true) }}:
+                    - template: diff-tools.yml
                 - template: acs-cli.yml
                 - download: current
                   displayName: Download the package artifact (dist)
@@ -41,3 +47,4 @@ stages:
                   parameters:
                     environment: ${{ parameters.environment }}
                     packageDirectory: $(Pipeline.Workspace)/dist
+                    compare: ${{ parameters.compare }}

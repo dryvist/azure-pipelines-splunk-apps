@@ -37,7 +37,7 @@ does not install the package in nonprod.
 12. **Compare nonprod with this package (merged defaults):** Writes the patch,
    summary, HTML report, and merged archive.
 13. **Publish diff artifact:** Publishes
-    `nonprod-diff-<app-id>-compare-<attempt>`.
+    `nonprod-diff-<app-id>-<attempt>`.
 14. **Open a pull request with the nonprod app:** Merges local configuration
     into default, removes `local/`, `users/`, and `metadata/local.meta`, sets
     both app version rows to one patch above `main`, and regenerates

@@ -29,7 +29,7 @@ file tree, HTML report, summary, patch, local-versus-default report, and merged
 archive for each app. Compare can select two environments and export all
 custom apps when the app list is `all` or empty.
 
-The app import run publishes `nonprod-diff-<app-id>-compare-<attempt>` before it
+The app import run publishes `nonprod-diff-<app-id>-<attempt>` before it
 creates a pull request. Review this artifact alongside the proposed changes.
 
 ## Compare release tags

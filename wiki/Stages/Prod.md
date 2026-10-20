@@ -10,8 +10,8 @@
 - **Does:** Runs after Release on successful `refs/heads/main` runs.
 - **Inputs:** `dist`, groups `splunk-appinspect` and `splunk-prod`, and the
   `splunk-prod` environment.
-- **Outputs:** `prod-diff-<app>-<attempt>` artifact and app installation
-  through ACS.
+- **Outputs:** App installation through ACS. The
+  [Proddiff stage](/Stages/Proddiff) holds the prod compare for this run.
 - **Approval:** Waits for the `splunk-prod` Approvals check. Nothing installs
   without approval. A rejection stops the stage. If approval reaches its
   Timeout, Azure marks the stage skipped.
@@ -20,11 +20,12 @@
 
 ### Deployment job `deploy`
 
-- **Display name:** `Compare with prod and install`.
-- **Does:** Compares the package with prod, then installs it through ACS.
+- **Display name:** `Install on prod`.
+- **Does:** Installs the package through ACS, waits for the version, and checks
+  stack status. It does not repeat the compare.
 - **Inputs:** `dist`, `splunk-prod`, Python setup, `SPLUNK_STACK`, and
   `ACS_TOKEN`.
-- **Outputs:** Production compare report and installed app.
+- **Outputs:** Installed app.
 
 ## Related
 

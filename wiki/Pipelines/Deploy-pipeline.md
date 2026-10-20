@@ -19,7 +19,7 @@ shows where it happened.
   nothing.
 - **Deploy `<app-id>` to `<environment>`**, job **Install `<app-id>` on
   `<environment>`**: waits for the `splunk-<environment>` approval, then
-  compares again and installs the package.
+  installs the package. It does not repeat the compare.
 - **Restart `<environment>` if required**, job **Restart `<environment>` if
   required and check status**: appears only when Restart is checked and app ids
   are given. It waits for approval, restarts only when ACS reports
@@ -33,12 +33,14 @@ app's **Check stack status after deploy** step still reports a pending restart.
 
 Both per-app jobs run `templates/deploy-app.yml`:
 
-- **Use Python 3.13**, **Install diff dependencies** and **Set up ACS CLI**
-  prepare the agent. See [release.py commands](/Reference/Release.py-commands).
+- **Use Python 3.13**, **Install diff dependencies** (Compare stage only) and
+  **Set up ACS CLI** prepare the agent. See
+  [release.py commands](/Reference/Release.py-commands).
 - **Download `<app-id>` from the splunk-apps feed:** Gets the latest package.
 - **Check stack status before deploy:** Reads the selected stack status.
 - **Export this app from `<environment>` via ACS:** Exports the installed app.
-  An app that is not installed prints `NOT INSTALLED <app-id>`.
+  An app that is not installed prints `NOT INSTALLED <app-id>`. This step, the
+  three compare steps, and the publish step run in the Compare stage only.
 - **Compare `<environment>` with this package (file tree, local and
   default):** Writes `<app-id>-tree.txt` with raw file changes.
 - **Compare `<environment>` with this package (local files vs default):**
@@ -46,8 +48,7 @@ Both per-app jobs run `templates/deploy-app.yml`:
 - **Compare `<environment>` with this package (merged defaults):** Writes the
   merged-default reports.
 - **Publish the `<environment>` compare artifact:** Publishes
-  `<environment>-diff-<app-id>-compare-<attempt>` in the Compare stage and
-  `<environment>-diff-<app-id>-<attempt>` in the Deploy stage.
+  `<environment>-diff-<app-id>-<attempt>`.
 - **Deploy to `<environment>` via ACS:** Installs the package. Deploy stage
   only.
 - **Wait for the deployed version:** Confirms the package version. Deploy

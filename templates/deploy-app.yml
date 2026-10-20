@@ -1,4 +1,4 @@
-# Download one app package from the splunk-apps feed, compare it with the stack, and optionally install it.
+# Download one app package from the splunk-apps feed, then compare it with the stack or install it.
 parameters:
   - name: app
     type: string
@@ -11,7 +11,8 @@ steps:
   - checkout: self
     path: tools
   - template: python.yml
-  - template: diff-tools.yml
+  - ${{ if eq(parameters.install, false) }}:
+      - template: diff-tools.yml
   - template: acs-cli.yml
   - task: UniversalPackages@0
     displayName: Download ${{ lower(parameters.app) }} from the splunk-apps feed
@@ -26,4 +27,5 @@ steps:
     parameters:
       environment: ${{ parameters.environment }}
       packageDirectory: $(Pipeline.Workspace)/packages/${{ lower(parameters.app) }}
+      compare: ${{ not(parameters.install) }}
       install: ${{ parameters.install }}

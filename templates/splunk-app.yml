@@ -130,6 +130,7 @@ stages:
       parameters:
         environment: nonprod
         dependsOn: appinspect
+        compare: true
         condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
         pool: ${{ parameters.pool }}
         setup: ${{ parameters.setup }}
@@ -205,11 +206,12 @@ stages:
                 versionOption: custom
                 versionPublish: $(APP_VERSION)
 
-    # Waits for the splunk-prod approval; a timed-out approval skips this stage.
+    # Waits for the splunk-prod approval; a timed-out approval skips this stage. The proddiff stage runs the prod compare.
     - template: deploy-stage.yml
       parameters:
         environment: prod
         dependsOn: release
+        compare: false
         condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
         pool: ${{ parameters.pool }}
         setup: ${{ parameters.setup }}
