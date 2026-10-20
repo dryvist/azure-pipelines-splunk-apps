@@ -33,19 +33,24 @@ def extract(archive, dest):
     drop_install_checksum(dest)
 
 def drop_install_checksum(root):
-    """Print, then remove, the install checksum stanza Splunk Cloud writes to metadata/local.meta."""
-    meta = root / "metadata" / "local.meta"
-    text = meta.read_text(encoding="utf-8") if meta.exists() else ""
-    stanza = re.search(r"^\[app/install/install_source_checksum\]\n(?:(?!\[).*\n?)*", text, re.M)
-    if not stanza:
+    """Print, then remove, the install checksums Splunk Cloud writes to metadata/local.meta and app.conf."""
+    drop_lines(root, root / "metadata" / "local.meta",
+               r"^\[app/install/install_source_checksum\]\n(?:(?!\[).*\n?)*")
+    for conf in sorted(root.rglob("app.conf")):
+        drop_lines(root, conf, r"^install_source(?:_local)?_checksum\s*=.*\n?")
+
+def drop_lines(root, path, pattern):
+    text = path.read_text(encoding="utf-8") if path.exists() else ""
+    found = re.findall(pattern, text, re.M)
+    if not found:
         return
-    log("section", f"{root.name} metadata/local.meta install checksum (not compared)")
-    print(stanza[0].strip())
-    rest = text.replace(stanza[0], "")
-    if rest.strip():
-        meta.write_text(rest, encoding="utf-8", newline="\n")
+    log("section", f"{root.name} {path.relative_to(root).as_posix()} install checksum (not compared)")
+    print("".join(found).strip())
+    rest = re.sub(pattern, "", text, flags=re.M)
+    if re.search(r"^[^\s\[#]", rest, re.M):
+        path.write_text(rest, encoding="utf-8", newline="\n")
     else:
-        meta.unlink()
+        path.unlink()
 
 def files(root):
     return {p.relative_to(root) for p in root.rglob("*") if p.is_file()}
