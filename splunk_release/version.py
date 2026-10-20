@@ -173,11 +173,22 @@ def tag():
 
 def published(name, version):
     """Return whether the splunk-apps feed already holds this package version."""
+    return version in feed_versions(name)
+
+def feed_check(name):
+    """Exit with an error when the splunk-apps feed holds no version of this app."""
+    name = name.lower()
+    if not feed_versions(name):
+        sys.exit(f"{name} is not in the splunk-apps feed; run its app pipeline on main to release it")
+    print(f"{name} is in the splunk-apps feed")
+
+def feed_versions(name):
+    """Return every version the splunk-apps feed holds for this package name."""
     e = os.environ
     host = e["SYSTEM_COLLECTIONURI"].replace("://dev.azure.com/", "://feeds.dev.azure.com/")
     host = host.replace(".visualstudio.com/", ".feeds.visualstudio.com/")
     url = (f"{host}{e['SYSTEM_TEAMPROJECTID']}/_apis/packaging/feeds/splunk-apps/packages?protocolType=upack"
            f"&packageNameQuery={name}&includeAllVersions=true&api-version=7.1")
     body = http(url, {"Authorization": f"Bearer {e['SYSTEM_ACCESSTOKEN']}"})
-    return any(p["name"].lower() == name and any(v["version"] == version for v in p.get("versions", []))
-               for p in json.loads(body)["value"])
+    return [v["version"] for p in json.loads(body)["value"] if p["name"].lower() == name
+            for v in p.get("versions", [])]

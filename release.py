@@ -15,6 +15,7 @@ release.py diff <target> <source> <out> merge local into default on both sides, 
 release.py install-acs                  download and verify the ACS CLI, add it to PATH, add the stack, log in
 release.py appinspect-link              print the link to this build's published artifacts
 release.py plan                         print which stages this run executes and why
+release.py feed-check <app-id>           fail when the splunk-apps feed holds no version of the app
 release.py tag                          tag HEAD as v<version>, push the tag, and set APP_ID/APP_VERSION (CI only)
 release.py import-nonprod <export-dir>  replace package/ from a nonprod export and open a pull request
 
@@ -31,7 +32,7 @@ from splunk_release.azure import appinspect_link, plan, report_command_error, re
 from splunk_release.compare import diff, local_diff, tree
 from splunk_release.import_nonprod import import_nonprod
 from splunk_release.package import package
-from splunk_release.version import bump, tag
+from splunk_release.version import bump, feed_check, tag
 
 commands = {
     "bump": bump,
@@ -48,6 +49,7 @@ commands = {
     "diff": diff,
     "install-acs": install_acs,
     "appinspect-link": appinspect_link,
+    "feed-check": feed_check,
     "tag": tag,
     "import-nonprod": import_nonprod,
 }
