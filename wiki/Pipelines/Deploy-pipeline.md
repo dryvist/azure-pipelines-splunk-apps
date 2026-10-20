@@ -42,7 +42,8 @@ Both per-app jobs run `templates/deploy-app.yml`:
 - **Compare `<environment>` with this package (merged defaults):** Writes the
   merged-default reports.
 - **Publish the `<environment>` compare artifact:** Publishes
-  `<environment>-diff-<app-id>-<attempt>`.
+  `<environment>-diff-<app-id>-compare-<attempt>` in the Compare stage and
+  `<environment>-diff-<app-id>-<attempt>` in the Deploy stage.
 - **Deploy to `<environment>` via ACS:** Installs the package. Deploy stage
   only.
 - **Wait for the deployed version:** Confirms the package version. Deploy
