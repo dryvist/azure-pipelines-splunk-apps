@@ -19,8 +19,10 @@ parameters:
 stages:
   - ${{ if eq(parameters.importFromNonprod, true) }}:
     - stage: import
+      displayName: Import from nonprod
       jobs:
         - job: import
+          displayName: Export the nonprod app and open a pull request
           pool: ${{ parameters.pool }}
           workspace:
             clean: all
@@ -50,8 +52,10 @@ stages:
                 SYSTEM_ACCESSTOKEN: $(System.AccessToken)
   - ${{ else }}:
     - stage: build
+      displayName: Build
       jobs:
         - job: build
+          displayName: Package the app
           pool: ${{ parameters.pool }}
           workspace:
             clean: all
@@ -75,16 +79,19 @@ stages:
               displayName: Package app
               condition: and(succeeded(), ne(variables['bump.bumped'], 'true'))
             - publish: $(Pipeline.Workspace)/app/dist
+              displayName: Publish the package artifact (dist)
               artifact: dist
               condition: and(succeeded(), ne(variables['bump.bumped'], 'true'))
 
     - stage: appinspect
+      displayName: AppInspect
       dependsOn: build
       condition: and(succeeded(), ne(dependencies.build.outputs['build.bump.bumped'], 'true'))
       variables:
         - group: splunk-appinspect
       jobs:
         - job: appinspect
+          displayName: Run AppInspect on the package
           pool: ${{ parameters.pool }}
           workspace:
             clean: all
@@ -105,6 +112,7 @@ stages:
               condition: succeededOrFailed()
             # Each job attempt publishes its own artifact.
             - publish: $(Pipeline.Workspace)/appinspect-report
+              displayName: Publish the AppInspect report artifact
               artifact: appinspect-report-$(System.JobAttempt)
               condition: succeededOrFailed()
             - script: python -m json.tool $(Pipeline.Workspace)/appinspect-report/appinspect-report.json
@@ -119,10 +127,12 @@ stages:
               condition: succeededOrFailed()
 
     - stage: nonprod
+      displayName: Deploy to nonprod
       dependsOn: appinspect
       condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
       jobs:
         - deployment: deploy
+          displayName: Compare with nonprod and install
           pool: ${{ parameters.pool }}
           workspace:
             clean: all
@@ -138,6 +148,7 @@ stages:
                   - template: diff-tools.yml
                   - template: acs-cli.yml
                   - download: current
+                    displayName: Download the package artifact (dist)
                     artifact: dist
                   - template: deploy.yml
                     parameters:
@@ -145,12 +156,14 @@ stages:
                       packageDirectory: $(Pipeline.Workspace)/dist
 
     - stage: proddiff
+      displayName: Compare with prod
       dependsOn: nonprod
       condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
       variables:
         - group: splunk-prod
       jobs:
         - job: proddiff
+          displayName: Compare the package with prod (no install)
           pool: ${{ parameters.pool }}
           workspace:
             clean: all
@@ -159,6 +172,7 @@ stages:
               path: app
             - ${{ parameters.setup }}
             - download: current
+              displayName: Download the package artifact (dist)
               artifact: dist
             - template: acs-cli.yml
             - template: acs-step.yml
@@ -174,13 +188,16 @@ stages:
                 out: $(Pipeline.Workspace)/prod-diff
                 label: production against this package
             - publish: $(Pipeline.Workspace)/prod-diff
+              displayName: Publish the prod compare artifact
               artifact: prod-diff-$(System.JobAttempt)
 
     - stage: release
+      displayName: Release
       dependsOn: proddiff
       condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
       jobs:
         - job: release
+          displayName: Tag and publish to the splunk-apps feed
           pool: ${{ parameters.pool }}
           workspace:
             clean: all
@@ -190,6 +207,7 @@ stages:
               persistCredentials: true
             - ${{ parameters.setup }}
             - download: current
+              displayName: Download the package artifact (dist)
               artifact: dist
             - script: python ../tools/release.py tag
               workingDirectory: $(Pipeline.Workspace)/app

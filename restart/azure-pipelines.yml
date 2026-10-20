@@ -4,12 +4,14 @@ pr: none
 
 parameters:
   - name: environment
+    displayName: Environment
     type: string
     default: nonprod
     values:
       - nonprod
       - prod
   - name: target
+    displayName: Variable groups - splunk uses splunk-<env>, splunk-itsi uses splunk-itsi-<env>
     type: string
     default: splunk
     values:
@@ -18,6 +20,7 @@ parameters:
 
 jobs:
   - job: restart
+    displayName: Restart ${{ parameters.target }}-${{ parameters.environment }} if required
     workspace:
       clean: all
     variables:
