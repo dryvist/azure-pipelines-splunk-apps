@@ -58,7 +58,8 @@ Repeat for every app you plan to deploy.
 3. Select **Run pipeline**.
 4. Select `prod` for **Environment**.
 5. Type the app ids, separated by spaces, in **App IDs**.
-6. Leave **DANGER - Uninstall each app first. PERMANENTLY DELETES ALL of its lookups (CSV files) and local settings** unchecked.
+6. Leave **DANGER - Uninstall each app first. PERMANENTLY DELETES ALL of its
+   lookups (CSV files) and local settings** unchecked.
    **DANGER:** checking it deletes every lookup (CSV file) and every local
    setting of each app on prod before the install, with no undo. See
    [Deploy pipeline](/Pipelines/Deploy-pipeline).
