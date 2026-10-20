@@ -22,8 +22,9 @@ app installed in only one environment shows every file as added or removed.
 - **Outputs:** `<environment>-export` artifact.
 
 Each export job selects Python 3.13 and runs **Set up ACS CLI 2.26.0 for
-$(SPLUNK_STACK)** before export. The step calls either `release.py export`
-or `release.py export --custom`, then publishes its export directory. See
+$(SPLUNK_STACK)** before export. When `apps` is `all` or empty, it calls
+`release.py export --custom`; otherwise it passes the listed app ids to
+`release.py export`. It then publishes its export directory. See
 [release.py commands](/Reference/Release.py-commands) for the ACS setup
 lifecycle.
 

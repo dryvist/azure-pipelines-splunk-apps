@@ -30,7 +30,7 @@ Use this checklist to open each setup procedure.
 - The `azure-pipelines-splunk-apps` repository in that project's Azure
   Repos.
 - A Splunk account for AppInspect, with its username and password.
-- The Splunk Cloud (Victoria) nonprod and prod stack names.
+- The nonprod and prod Splunk Cloud stack names.
 - The ITSI search head names from the provisioning information for both stacks.
 - Access to create ACS tokens on both stacks and their ITSI search heads.
   Each token account needs `export_apps`. Standard stack deploy tokens also
