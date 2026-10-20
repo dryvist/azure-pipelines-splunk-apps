@@ -41,6 +41,8 @@ Steps, in order:
   `$(Pipeline.Workspace)/tools` checkout.
 - **UsePythonVersion@0 (default `setup`):** Selects Python 3.13.
   **Inputs:** `versionSpec: 3.13`. **Outputs:** Python on `PATH`.
+- **Use UTF-8 for Python files and output (default `setup`):** Sets
+  `PYTHONUTF8=1` for later steps.
 - **Show stage plan:** Prints each stage and its run condition.
   **Inputs:** Build reason and source branch.
   **Outputs:** Stage plan in the job log.

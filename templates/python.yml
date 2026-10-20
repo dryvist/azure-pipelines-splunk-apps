@@ -3,3 +3,5 @@ steps:
     displayName: Use Python 3.13
     inputs:
       versionSpec: "3.13"
+  - script: python -c "print('##vso[task.setvariable variable=PYTHONUTF8]1')"
+    displayName: Use UTF-8 for Python files and output

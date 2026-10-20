@@ -39,6 +39,8 @@ Steps, in order:
 
 - **UsePythonVersion@0:** Selects Python 3.13. **Inputs:** `versionSpec`.
   **Outputs:** Python on `PATH`.
+- **Use UTF-8 for Python files and output:** Sets `PYTHONUTF8=1` for later
+  steps.
 - **Download artifacts (`download: current`):** Gets current-run exports.
   **Inputs:** Published artifacts. **Outputs:** Export directories.
 - **Install diff dependencies:** Installs `ksconf` and Splunk SDK.
