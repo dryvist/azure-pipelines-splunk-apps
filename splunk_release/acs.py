@@ -157,6 +157,8 @@ def uninstall(directory):
     if app not in listed_apps(env):
         log("section", f"{app} is not installed on {stack}, nothing to uninstall")
         return
+    log("warning", f"DANGER: uninstalling {app} from {stack} PERMANENTLY DELETES ALL of its lookups (CSV files)"
+                   " and local settings")
     log("section", f"Uninstalling {app} from {stack}")
     acs(env, "apps", "uninstall", app, main=True)
 
