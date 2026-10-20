@@ -1,6 +1,7 @@
 """App identity, version changes, and Git release operations."""
 
 import configparser
+import json
 import os
 import re
 import subprocess
@@ -173,8 +174,10 @@ def tag():
 def published(name, version):
     """Return whether the splunk-apps feed already holds this package version."""
     e = os.environ
-    host = e["SYSTEM_COLLECTIONURI"].replace("://dev.azure.com/", "://pkgs.dev.azure.com/")
-    host = host.replace(".visualstudio.com/", ".pkgs.visualstudio.com/")
-    url = (f"{host}{e['SYSTEM_TEAMPROJECTID']}/_apis/packaging/feeds/splunk-apps/upack/packages/"
-           f"{name}/versions/{version}?api-version=7.1")
-    return http(url, {"Authorization": f"Bearer {e['SYSTEM_ACCESSTOKEN']}"}, missing=True) is not None
+    host = e["SYSTEM_COLLECTIONURI"].replace("://dev.azure.com/", "://feeds.dev.azure.com/")
+    host = host.replace(".visualstudio.com/", ".feeds.visualstudio.com/")
+    url = (f"{host}{e['SYSTEM_TEAMPROJECTID']}/_apis/packaging/feeds/splunk-apps/packages?protocolType=upack"
+           f"&packageNameQuery={name}&includeAllVersions=true&api-version=7.1")
+    body = http(url, {"Authorization": f"Bearer {e['SYSTEM_ACCESSTOKEN']}"})
+    return any(p["name"].lower() == name and any(v["version"] == version for v in p.get("versions", []))
+               for p in json.loads(body)["value"])
