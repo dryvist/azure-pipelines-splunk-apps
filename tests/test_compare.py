@@ -89,7 +89,7 @@ def check_compare():
         assert "      savedsearches.conf [removed]" in tree_lines
         assert compare.change_tree([]) == "NO DIFFERENCES"
         assert "local/props.conf (Changed)\n" in local_text
-        assert "-value = package" in local_text and "+value = local" in local_text
+        assert "-value = local" in local_text and "+value = package" in local_text
         assert "[new]" in local_text
         assert "my_ta deployed diff" in html_text
         assert "default/" in html_text and "props.conf [changed]" in html_text
