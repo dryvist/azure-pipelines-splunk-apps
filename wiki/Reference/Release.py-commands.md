@@ -4,6 +4,10 @@
 
 [[_TOC_]]
 
+Every ACS command retries every 30 seconds for up to 15 minutes while ACS
+returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
+`ACS is busy with another deployment task, retrying in 30 seconds`.
+
 - `bump` (no arguments) uses `SYSTEM_PULLREQUEST_TARGETBRANCH`,
   `SYSTEM_PULLREQUEST_SOURCEBRANCH`, and `BUILD_SOURCEVERSIONMESSAGE`.
 - `package` (no arguments) runs `slim package` and writes
@@ -16,8 +20,8 @@
 - `status` runs `acs status current-stack -f structured` and warns when the
   output reports `restartRequired: true`.
 - `wait-version <dir>` reads the version from the single
-  `<app-id>-<version>.tar.gz` package and checks `acs apps describe` every
-  three seconds for up to 300 seconds.
+  `<app-id>-<version>.tar.gz` package and checks `acs apps describe` every 15
+  seconds for up to 15 minutes.
 - `restart` runs `acs restart current-stack` and polls restart-required status
   every 30 seconds for up to 30 minutes.
 - `export <dir> [app-id ...]` runs `acs apps export` with `SPLUNK_STACK` and
