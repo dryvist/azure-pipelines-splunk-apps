@@ -18,8 +18,25 @@ group, deployment environment, or its approval checks.
 3. Permit the selected `splunk-<environment>` group and environment.
 4. Complete any approval check on the selected environment.
 
-Each app has its own compare and deploy stage. The restart stage runs once,
-after every deploy stage finishes.
+Each app has its own compare and deploy stage. When **Restart** is checked,
+the restart stage runs once, after every deploy stage finishes.
+
+### App is not in the splunk-apps feed
+
+**Symptom:** **Check `<app-id>` is in the splunk-apps feed** fails with
+`<app-id> is not in the splunk-apps feed`.
+
+**Cause:** The app pipeline has not finished a **Release** stage on `main`.
+
+**Fix:**
+
+1. Select **Pipelines**.
+2. Open the app's pipeline.
+3. Select **Run pipeline**.
+4. Select the `main` branch.
+5. Select **Run**.
+6. Wait for the **Release** stage to finish.
+7. Start a new deploy run with the app id.
 
 ### Two apps install at the same time
 

@@ -12,6 +12,10 @@ steps:
     path: tools
   - template: python.yml
   - ${{ if eq(parameters.install, false) }}:
+      - script: python "$(Pipeline.Workspace)/tools/release.py" feed-check ${{ lower(parameters.app) }}
+        displayName: Check ${{ lower(parameters.app) }} is in the splunk-apps feed
+        env:
+          SYSTEM_ACCESSTOKEN: $(System.AccessToken)
       - template: diff-tools.yml
   - template: acs-cli.yml
   - task: UniversalPackages@0

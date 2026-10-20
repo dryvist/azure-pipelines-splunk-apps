@@ -54,6 +54,9 @@
 - `appinspect-link` prints the current build's AppInspect artifact link.
 - `tag` (no arguments) uses no environment variables beyond the app id
   fallback above.
+- `feed-check <app-id>` prints that the app is in the `splunk-apps` feed, or
+  fails with `<app-id> is not in the splunk-apps feed; run its app pipeline on
+  main to release it`. It reads `SYSTEM_ACCESSTOKEN`.
 - `import-nonprod <export-dir>` merges local app configuration into default,
   removes `local/`, `users/`, and `metadata/local.meta`, sets both version rows
   to one patch above `main`, regenerates `app.manifest`, commits the package,

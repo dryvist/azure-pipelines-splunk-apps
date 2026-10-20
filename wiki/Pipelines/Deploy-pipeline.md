@@ -36,6 +36,8 @@ Both per-app jobs run `templates/deploy-app.yml`:
 - **Use Python 3.13**, **Install diff dependencies** (Compare stage only) and
   **Set up ACS CLI** prepare the agent. See
   [release.py commands](/Reference/Release.py-commands).
+- **Check `<app-id>` is in the splunk-apps feed:** Fails with a plain message
+  when the feed has no version of the app. Compare stage only.
 - **Download `<app-id>` from the splunk-apps feed:** Gets the latest package.
 - **Check stack status before deploy:** Reads the selected stack status.
 - **Export this app from `<environment>` via ACS:** Exports the installed app.

@@ -60,6 +60,12 @@ def check_version():
                                       "&includeAllVersions=true&api-version=7.1")
     with patch.dict(os.environ, env), patch("splunk_release.version.http", return_value=body):
         assert version_module.published("my_ta", "1.4.8")
+        version_module.feed_check("MY_TA")
+        try:
+            version_module.feed_check("other_ta")
+            raise AssertionError("an app missing from the feed should exit")
+        except SystemExit as error:
+            assert "other_ta is not in the splunk-apps feed" in str(error)
 
 
 class VersionTests(TestCase):
