@@ -26,7 +26,7 @@ steps:
       label: ${{ parameters.environment }} with this package
   - publish: $(Pipeline.Workspace)/${{ parameters.environment }}-diff/$(APP_ID)
     displayName: Publish the ${{ parameters.environment }} compare artifact
-    artifact: ${{ parameters.environment }}-diff-$(APP_ID)-$(System.JobAttempt)
+    artifact: ${{ parameters.environment }}-diff-$(APP_ID)${{ iif(parameters.install, '', '-compare') }}-$(System.JobAttempt)
   - ${{ if eq(parameters.install, true) }}:
       - template: acs-step.yml
         parameters:
