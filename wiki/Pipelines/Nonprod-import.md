@@ -43,7 +43,11 @@ install the package in nonprod.
 14. **Open a pull request with the nonprod app:** Merges local configuration
     into default, removes `local/`, `users/`, and `metadata/local.meta`, sets
     both app version rows to one patch above `main`, and regenerates
-    `app.manifest`.
+    `app.manifest`. It sets `acceleration = false` in `datamodels.conf` and
+    `action.populate_lookup = 0` in `savedsearches.conf`, with one warning per
+    stanza, because Splunk Cloud AppInspect rejects them when on. The stack
+    keeps its own `local/` values, so an acceleration turned on in Splunk Web
+    stays on after a deploy.
 
 The import commit uses a new branch named
 `nonprod-import/<version>-<Build.BuildId>` and opens a pull request to `main`.

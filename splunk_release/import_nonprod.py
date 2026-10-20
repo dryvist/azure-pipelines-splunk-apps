@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 
 from splunk_release import compare
-from splunk_release.azure import http
+from splunk_release.azure import http, log
 from splunk_release.package import sort_confs
 from splunk_release.version import (
     APP,
@@ -21,6 +21,24 @@ from splunk_release.version import (
     git,
     set_version,
 )
+
+
+# Settings Splunk Cloud AppInspect rejects, and the value an import writes instead.
+CLOUD_OFF = {"datamodels.conf": ("acceleration", "false"), "savedsearches.conf": ("action.populate_lookup", "0")}
+
+
+def cloud_settings_off(root):
+    """Turn off settings in default/ that Splunk Cloud AppInspect rejects, with one warning each."""
+    from ksconf.conf.parser import write_conf
+    for name, (key, off) in CLOUD_OFF.items():
+        path = root / "default" / name
+        conf = compare.parse(path)
+        changed = [s for s, keys in conf.items() if keys.get(key, off).strip().lower() not in ("0", "false")]
+        for stanza in changed:
+            conf[stanza][key] = off
+            log("warning", f"default/{name} [{stanza}] {key} = {off}: Splunk Cloud apps cannot ship it on")
+        if changed:
+            write_conf(path, conf)
 
 
 def open_pull_request(branch, version):
@@ -70,6 +88,7 @@ def import_nonprod(export_dir):
         for path in compare.files(imported):
             if compare.kept(path):
                 (imported / path).unlink()
+        cloud_settings_off(imported)
         imported_conf = imported / "default" / "app.conf"
         imported_conf.write_text(
             set_version(imported_conf.read_text(**TEXT), version), **TEXT
