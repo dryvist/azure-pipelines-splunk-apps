@@ -119,9 +119,9 @@ Create the `splunk-itsi-prod` group:
 15. Set its lock icon off.
 
 The ITSI groups use the same `SPLUNK_STACK` value as the matching standard
-group. Their `SPLUNK_SEARCH_HEAD` value selects the target search head. Only
-the compare and smoke-test pipelines use the ITSI groups. App deployments
-use `splunk-nonprod` or `splunk-prod`.
+group. Their `SPLUNK_SEARCH_HEAD` value selects the target search head. The
+compare and smoke-test pipelines and the app import use the ITSI groups. App
+deployments use `splunk-nonprod` or `splunk-prod`.
 
 **Verify:**
 

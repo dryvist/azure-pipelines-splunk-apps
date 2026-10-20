@@ -4,9 +4,10 @@
 
 [[_TOC_]]
 
-The import option exports the installed app from nonprod, compares it with the
-app package from `main`, and opens a pull request in the app repository. It
-does not install the package in nonprod.
+The import option exports the installed app from the nonprod ITSI search head,
+compares it with the app package from `main`, and opens a pull request in the
+app repository. It uses the `splunk-itsi-nonprod` variable group. It does not
+install the package in nonprod.
 
 ## Run the import
 
@@ -26,7 +27,8 @@ does not install the package in nonprod.
    packages.
 5. **Install packaging toolkit:** Installs the `slim` package command.
 6. **Package main app:** Builds the app package in `app/dist`.
-7. **Set up ACS CLI:** Adds the nonprod stack and authenticates with ACS.
+7. **Set up ACS CLI:** Adds the nonprod stack with the ITSI search head as the
+   target and authenticates with ACS.
 8. **Check stack status before deploy:** Reports the nonprod stack status.
 9. **Export this app from nonprod via ACS:** Writes the export to
    `nonprod-export/<app-id>/` and sets `APP_ID`.
