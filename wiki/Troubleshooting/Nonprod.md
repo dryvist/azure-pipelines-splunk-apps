@@ -46,7 +46,7 @@ features used by the pipeline.
 **Docs:** [agents](https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/agents),
 [ACS export apps][acs-export].
 
-### App is not installed in nonprod
+### App is not installed on the nonprod ITSI search head
 
 **Symptom:** The export logs `NOT INSTALLED <app-id>`, then the import step
 reports that the `.tgz` export is missing.
@@ -57,9 +57,11 @@ but the import command needs the exported app archive.
 **Fix:**
 
 1. Install the app in nonprod through the app deployment pipeline.
-2. Confirm the export step writes `<app-id>.tgz` under
+2. Confirm `splunk-itsi-nonprod` has the nonprod ITSI search head in
+   `SPLUNK_SEARCH_HEAD`.
+3. Confirm the export step writes `<app-id>.tgz` under
    `nonprod-export/<app-id>/`.
-3. Run the import option again.
+4. Run the import option again.
 
 **Docs:** [Nonprod stage](/Stages/Nonprod),
 [Import from nonprod](/Pipelines/Nonprod-import).

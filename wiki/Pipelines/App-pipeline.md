@@ -22,9 +22,9 @@ without approval. See [Prod stage](/Stages/Prod).
 
 The shared template also accepts the `importFromNonprod` boolean runtime
 parameter. Its default is `false`, which keeps the stages above. When selected,
-the run has one `import` stage that exports and compares the installed nonprod
-app, then opens a pull request in the app repository. See
-[Import from nonprod](/Pipelines/Nonprod-import).
+the run has one `import` stage that exports and compares the app installed on
+the nonprod ITSI search head, then opens a pull request in the app repository.
+See [Import from nonprod](/Pipelines/Nonprod-import).
 
 A pull request run that pushes a version bump stops after the build stage.
 The bump commit starts a new run that validates the bumped version.

@@ -19,15 +19,15 @@ parameters:
 stages:
   - ${{ if eq(parameters.importFromNonprod, true) }}:
     - stage: import
-      displayName: Import from nonprod
+      displayName: Import from the nonprod ITSI search head
       jobs:
         - job: import
-          displayName: Export the nonprod app and open a pull request
+          displayName: Export the app from the nonprod ITSI search head and open a pull request
           pool: ${{ parameters.pool }}
           workspace:
             clean: all
           variables:
-            - group: splunk-nonprod
+            - group: splunk-itsi-nonprod
           steps:
             - checkout: self
               path: app
