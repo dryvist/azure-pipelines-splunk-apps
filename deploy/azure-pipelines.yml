@@ -28,19 +28,21 @@ stages:
           - stage: compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
             displayName: Compare ${{ app }} with ${{ parameters.environment }}
             dependsOn: []
-            variables:
-              - group: splunk-${{ parameters.environment }}
             jobs:
-              - job: compare
-                displayName: Compare ${{ app }} with ${{ parameters.environment }} (no install)
-                workspace:
-                  clean: all
-                steps:
-                  - template: ../templates/deploy-app.yml
-                    parameters:
-                      app: ${{ app }}
-                      environment: ${{ parameters.environment }}
-                      install: false
+              # <environment> is the search head the install replaces; itsi-<environment> is the ITSI search head.
+              - ${{ each side in split(format('{0} itsi-{0}', parameters.environment), ' ') }}:
+                  - job: compare_${{ replace(side, '-', '_') }}
+                    displayName: Compare ${{ app }} with ${{ side }} (no install)
+                    workspace:
+                      clean: all
+                    variables:
+                      - group: splunk-${{ side }}
+                    steps:
+                      - template: ../templates/deploy-app.yml
+                        parameters:
+                          app: ${{ app }}
+                          environment: ${{ side }}
+                          install: false
           - stage: deploy_${{ replace(replace(app, '-', '_'), '.', '_') }}
             displayName: Deploy ${{ app }} to ${{ parameters.environment }}
             dependsOn: compare_${{ replace(replace(app, '-', '_'), '.', '_') }}

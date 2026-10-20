@@ -16,9 +16,12 @@ each Deploy stage uninstalls the app before it installs the package. Every
 stage and job names the app and environment, so a failure shows where it
 happened.
 
-- **Compare `<app-id>` with `<environment>`**, job **Compare `<app-id>` with
-  `<environment>` (no install)**: downloads the latest package from
-  `splunk-apps`, exports the installed app and compares them. It installs
+- **Compare `<app-id>` with `<environment>`**, jobs **Compare `<app-id>` with
+  `<environment>` (no install)** and **Compare `<app-id>` with
+  `itsi-<environment>` (no install)**: each downloads the latest package from
+  `splunk-apps`, exports the installed app and compares them. The first uses
+  `splunk-<environment>`, the search head the install replaces; the second
+  uses `splunk-itsi-<environment>`, the ITSI search head. They install
   nothing.
 - **Deploy `<app-id>` to `<environment>`**, job **Install `<app-id>` on
   `<environment>`**: waits for the `splunk-<environment>` approval, then
@@ -55,7 +58,7 @@ Both per-app jobs run `templates/deploy-app.yml`:
 - **Compare `<environment>` with this package (data models):** Prints each
   changed data model in its own collapsed group.
 - **Publish the `<environment>` compare artifact:** Publishes
-  `<environment>-diff-<app-id>-<attempt>`.
+  `<environment>-diff-<app-id>-<attempt>` or `itsi-<environment>-diff-<app-id>-<attempt>`.
 - **Uninstall the app from `<environment>` via ACS:** Removes the app and its
   local settings, or prints that it is not installed. Deploy stage only, and
   only when **Uninstall** is checked.
