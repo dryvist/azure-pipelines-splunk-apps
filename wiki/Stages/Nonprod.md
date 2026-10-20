@@ -6,6 +6,9 @@
 
 ## Stage `nonprod`
 
+The `nonprod` and `prod` stages share `templates/deploy-stage.yml`. The
+template sets `lockBehavior: sequential`.
+
 - **Does:** Runs after a successful AppInspect stage on a pull request or
   `refs/heads/main` run.
 - **Inputs:** `dist`, `splunk-appinspect` and `splunk-nonprod` groups, and the

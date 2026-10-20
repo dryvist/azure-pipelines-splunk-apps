@@ -4,7 +4,7 @@
 
 [[_TOC_]]
 
-These pages follow the five app pipeline stages in execution order.
+These pages follow the app pipeline stages in execution order.
 
 | Page | What it answers |
 | --- | --- |
@@ -13,6 +13,7 @@ These pages follow the five app pipeline stages in execution order.
 | [Nonprod](/Stages/Nonprod) | Compare and deploy to nonprod. |
 | [Proddiff](/Stages/Proddiff) | Compare production with the package. |
 | [Release](/Stages/Release) | Tag and publish a versioned package. |
+| [Prod](/Stages/Prod) | Compare and deploy to prod after approval. |
 
 ## Related
 

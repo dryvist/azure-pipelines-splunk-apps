@@ -13,6 +13,10 @@ parameters:
     type: string
     default: ''
     displayName: App IDs, separated by spaces
+  - name: restart
+    type: boolean
+    default: false
+    displayName: Restart the stack after the deploys if a restart is required
 
 stages:
   - ${{ each app in split(parameters.apps, ' ') }}:
@@ -55,7 +59,7 @@ stages:
                             app: ${{ app }}
                             environment: ${{ parameters.environment }}
                             install: true
-  - ${{ if ne(trim(parameters.apps), '') }}:
+  - ${{ if and(parameters.restart, ne(trim(parameters.apps), '')) }}:
     - stage: restart
       displayName: Restart ${{ parameters.environment }} if required
       dependsOn:

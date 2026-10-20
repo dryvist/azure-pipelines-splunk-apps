@@ -20,11 +20,13 @@ you approve its install. Nothing installs until you approve that app.
 6. Confirm the list shows **Approvals** and **Exclusive Lock**. If either is
    missing, add it with
    [Step 3](/Getting-started/Environments-and-ACS).
+7. Confirm the **Approvals** check has a **Timeout** of `24 hours`.
 
 **Verify:**
 
 1. `splunk-prod` has an approval check.
 2. `splunk-prod` has an exclusive lock check, so one app installs at a time.
+3. The **Approvals** check has a **Timeout** of `24 hours`.
 
 ## Release each app
 
@@ -56,13 +58,36 @@ Repeat for every app you plan to deploy.
 3. Select **Run pipeline**.
 4. Select `prod` for **Environment**.
 5. Type the app ids, separated by spaces, in **App IDs**.
-6. Select **Run**.
-7. Wait until every **Compare `<app-id>` with prod** stage is green.
+6. If you want a restart, check **Restart the stack after the deploys if a
+   restart is required**.
+7. Select **Run**.
+8. Wait until every **Compare `<app-id>` with prod** stage is green.
 
 **Verify:**
 
 1. The run shows one **Compare** stage and one **Deploy** stage per app.
 2. Each **Deploy `<app-id>` to prod** stage shows **Waiting** for review.
+3. The **Restart prod if required** stage appears only when Restart is checked
+   and app ids are given.
+
+## Deploy an app from its pipeline
+
+After a merge to `main`, the app pipeline runs **Release** before **Deploy to
+prod**. The `splunk-prod` approval check gates the prod stage. Nothing installs
+without approval. A rejection stops the stage. If nobody approves before
+Timeout, Azure marks the stage skipped.
+
+**Do:**
+
+1. Open the app pipeline's `main` run.
+2. On **Deploy to prod**, select **Review**.
+3. Select **Approve** to allow the prod compare and install.
+4. Leave the approval pending to have the stage skip at Timeout.
+
+**Verify:**
+
+1. **Deploy to prod** completes after approval or shows **Skipped** after
+   Timeout.
 
 ## Review and approve each app
 
@@ -79,7 +104,8 @@ Repeat for every app, one at a time.
 5. Read the `[removed]` lines. They are files in prod that the package does
    not have.
 6. Open the step **Compare prod with this package (local files vs default)**.
-7. Read the local settings that prod keeps on top of the new defaults.
+7. Read the diff: red `-` lines are prod local settings; green `+` lines are
+   this package's defaults.
 8. Open the step **Compare prod with this package (merged defaults)**.
 9. Read each file's diff.
 10. Return to the run summary.
@@ -95,7 +121,12 @@ Repeat for every app, one at a time.
    after deploy**.
 2. A failed step names the app in its stage and job title.
 
-## Restart
+## Restart (optional)
+
+The **Restart the stack after the deploys if a restart is required** checkbox
+defaults off. Check it on the Run form if you want a restart stage. It appears
+only when checked and app ids are given. If unchecked, each app's **Check stack
+status after deploy** step still reports a pending restart.
 
 **Do:**
 

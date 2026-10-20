@@ -178,7 +178,7 @@ def local_vs_default(target, source, work):
             report.append((name, "Skipped", f"ksconf could not parse a file: {detail}"))
             continue
         # ksconf diff output and exit code report file differences.
-        result = run(["ksconf", "diff", str(subset), str(local)], capture_output=True, text=True)
+        result = run(["ksconf", "diff", str(local), str(subset)], capture_output=True, text=True)
         status = "Changed" if result.stdout else "Unchanged"
         report.append((name, status, result.stdout))
     return report

@@ -126,34 +126,14 @@ stages:
                 BUILD_BUILDID: $(Build.BuildId)
               condition: succeededOrFailed()
 
-    - stage: nonprod
-      displayName: Deploy to nonprod
-      dependsOn: appinspect
-      condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
-      jobs:
-        - deployment: deploy
-          displayName: Compare with nonprod and install
-          pool: ${{ parameters.pool }}
-          workspace:
-            clean: all
-          environment: splunk-nonprod
-          variables:
-            - group: splunk-appinspect
-            - group: splunk-nonprod
-          strategy:
-            runOnce:
-              deploy:
-                steps:
-                  - ${{ parameters.setup }}
-                  - template: diff-tools.yml
-                  - template: acs-cli.yml
-                  - download: current
-                    displayName: Download the package artifact (dist)
-                    artifact: dist
-                  - template: deploy.yml
-                    parameters:
-                      environment: nonprod
-                      packageDirectory: $(Pipeline.Workspace)/dist
+    - template: deploy-stage.yml
+      parameters:
+        environment: nonprod
+        dependsOn: appinspect
+        compare: true
+        condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
+        pool: ${{ parameters.pool }}
+        setup: ${{ parameters.setup }}
 
     - stage: proddiff
       displayName: Compare with prod
@@ -225,3 +205,13 @@ stages:
                 vstsFeedPackagePublish: $(APP_ID)
                 versionOption: custom
                 versionPublish: $(APP_VERSION)
+
+    # Waits for the splunk-prod approval; a timed-out approval skips this stage. The proddiff stage runs the prod compare.
+    - template: deploy-stage.yml
+      parameters:
+        environment: prod
+        dependsOn: release
+        compare: false
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        pool: ${{ parameters.pool }}
+        setup: ${{ parameters.setup }}
