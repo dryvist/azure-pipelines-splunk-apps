@@ -61,7 +61,8 @@ Steps, in order:
   repository credentials.
   **Outputs:** Updated source branch or a printed skip reason.
 - **Package app:** Sorts config files, stages the app, and creates the
-  package. **Inputs:** `package/` and installed packaging tools.
+  package. `.meta` files list `[]` first, then stanzas without `/`, then
+  stanzas with `/`, each group in name order. **Inputs:** `package/` and installed packaging tools.
   **Outputs:** Package under `dist/`.
 - **Publish artifact (`publish: dist`):** Publishes the package directory.
   **Inputs:** `$(Pipeline.Workspace)/app/dist`. **Outputs:** `dist` pipeline

@@ -40,6 +40,15 @@ def check_package():
         with redirect_stdout(io.StringIO()):
             package.sort_confs(tmp)
         assert conf.read_text() == "[alpha]\nx = 8\n\n[zeta]\na = 1\nb = 2\n"
+        # .meta files put [] first, then stanzas without "/", then stanzas with "/".
+        meta = Path(tmp, "metadata", "default.meta")
+        meta.parent.mkdir()
+        meta.write_text("[views/b]\nexport = system\n\n[zeta]\nowner = nobody\n\n[]\nexport = none\naccess = read : [ * ]\n\n[alpha]\nexport = system\n")
+        package.sort_confs(tmp)
+        assert meta.read_text() == (
+            "[]\naccess = read : [ * ]\nexport = none\n\n[alpha]\nexport = system\n\n"
+            "[zeta]\nowner = nobody\n\n[views/b]\nexport = system\n"
+        )
 
 
 class PackageTests(TestCase):

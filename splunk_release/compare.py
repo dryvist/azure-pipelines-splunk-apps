@@ -101,6 +101,7 @@ def merge_local(root):
         else:
             shutil.copy2(local, default)
     sort_confs(root / "default")
+    sort_confs(root / "metadata")
 
 def deployed(path):
     """Files a deploy compares: default/ and metadata/default.meta."""

@@ -11,8 +11,19 @@ from splunk_release.version import DIST, SRC, STAGE
 # Exclude hidden files, bytecode, and tests from the package.
 EXCLUDE = shutil.ignore_patterns(".*", "__pycache__", "*.pyc", "*.pyo", "tests")
 
+def sort_meta(path):
+    """Sort a .meta file: [] first, then stanzas without "/", then stanzas with "/"; keys sorted."""
+    from ksconf.conf.parser import GLOBAL_STANZA, write_conf
+
+    from splunk_release.compare import parse
+    conf = parse(path)
+    order = sorted(conf, key=lambda name: (name is not GLOBAL_STANZA, "/" in str(name), str(name)))
+    write_conf(path, {name: dict(sorted(conf[name].items())) for name in order}, sort=False)
+
 def sort_confs(root):
-    """Sort stanzas and keys in every .conf file under root with ksconf, one blank line apart."""
+    """Sort stanzas and keys in every .conf and .meta file under root with ksconf, one blank line apart."""
+    for meta in sorted(Path(root).rglob("*.meta")):
+        sort_meta(meta)
     confs = sorted(str(p) for p in Path(root).rglob("*.conf"))
     if confs:
         # ksconf returns 9 when it rewrites a file.
