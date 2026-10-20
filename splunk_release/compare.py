@@ -8,7 +8,7 @@ import shutil
 import tarfile
 import tempfile
 from collections import Counter
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from splunk_release.azure import log, print_colored_patch, run
 from splunk_release.package import sort_confs
@@ -24,13 +24,17 @@ def archives(directory):
 
 def extract(archive, dest):
     """Extract archive into dest without its top folder; an empty dest when archive is None."""
-    raw = dest.with_name(dest.name + "-raw")
-    raw.mkdir()
+    dest.mkdir()
     if archive:
         with tarfile.open(archive) as tar:
-            tar.extractall(raw, filter="data")
-    entries = list(raw.iterdir())
-    (entries[0] if len(entries) == 1 and entries[0].is_dir() else raw).rename(dest)
+            names = [PurePosixPath(name).parts for name in tar.getnames()]
+            strip = len({parts[0] for parts in names}) == 1 and any(len(parts) > 1 for parts in names)
+
+            def member(info, path):
+                parts = PurePosixPath(info.name).parts[1:] if strip else PurePosixPath(info.name).parts
+                return tarfile.data_filter(info.replace(name="/".join(parts)), path) if parts else None
+
+            tar.extractall(dest, filter=member)
     drop_install_checksum(dest)
 
 def drop_install_checksum(root):
