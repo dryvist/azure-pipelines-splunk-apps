@@ -9,9 +9,9 @@ import uuid
 from pathlib import Path
 
 from splunk_release.acs import package_identity
-from splunk_release.azure import http
+from splunk_release.azure import http, log
 
-# Request checks for private Victoria apps and future cloud vetting.
+# Request the private app and cloud-vetting check tags.
 APPINSPECT_TAGS = "private_victoria,future"
 
 def appinspect_token():
@@ -35,10 +35,10 @@ def appinspect_passed(status, report):
 
 def print_summary(status, summary):
     """Print the status and blocking counts, then the other counts, as indented JSON."""
-    print("##[section]Blocks deployment unless status is SUCCESS and each count is 0")
+    log("section", "Blocks deployment unless status is SUCCESS and each count is 0")
     blocking = {"status": status, **{k: summary.get(k) for k in BLOCKING}}
     print(json.dumps(blocking, indent=2))
-    print("##[section]Does not block deployment")
+    log("section", "Does not block deployment")
     other = {k: v for k, v in summary.items() if k not in BLOCKING}
     print(json.dumps(other, indent=2, sort_keys=True))
 
@@ -86,9 +86,9 @@ def appinspect(artifact_dir):
     summary = report.get("summary", {})
     print_summary(status, summary)
     if summary.get("future_failure"):
-        print(
-            "##vso[task.logissue type=warning]AppInspect future_failure: "
-            f"{summary['future_failure']} checks will become cloud vetting failures"
+        log(
+            "warning",
+            f"AppInspect future_failure: {summary['future_failure']} checks will become cloud vetting failures",
         )
     if not appinspect_passed(status, report):
         sys.exit("AppInspect did not pass")

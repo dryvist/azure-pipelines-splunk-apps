@@ -27,7 +27,7 @@ import sys
 
 from splunk_release.acs import deploy, export, install_acs, restart, status, wait_version
 from splunk_release.appinspect import appinspect
-from splunk_release.azure import appinspect_link, plan, report_command_error
+from splunk_release.azure import appinspect_link, plan, report_command_error, report_system_exit
 from splunk_release.compare import diff, local_diff, tree
 from splunk_release.import_nonprod import import_nonprod
 from splunk_release.package import package
@@ -60,3 +60,6 @@ if __name__ == "__main__":
     except subprocess.CalledProcessError as error:
         report_command_error(error)
         sys.exit(error.returncode)
+    except SystemExit as error:
+        report_system_exit(error)
+        raise
