@@ -46,8 +46,10 @@ exports full app content, so do not include the built-in `search` app there.
 4. Remove `search` from the compare pipeline app id list.
 5. Rerun the affected job.
 
-**Docs:** [ACS export apps](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.5.2605/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/export-apps-in-splunk-cloud-platform),
-[ACS CLI](https://github.com/splunk/acs-cli).
+**Docs:** [ACS export apps][acs-export], [ACS CLI][acs-cli].
+
+[acs-export]: https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.5.2605/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/export-apps-in-splunk-cloud-platform
+[acs-cli]: https://github.com/splunk/acs-cli
 
 ### Read the smoke-test result
 
