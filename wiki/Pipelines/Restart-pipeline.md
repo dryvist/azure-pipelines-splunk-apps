@@ -30,4 +30,4 @@ stack**, and **Check stack status after restart**.
 ---
 
 [< Previous: Compare pipeline](/Pipelines/Compare-pipeline) |
-[Next: Smoke-test pipeline >](/Pipelines/Smoke-test-pipeline)
+[Next: Repair pipeline >](/Pipelines/Repair-pipeline)

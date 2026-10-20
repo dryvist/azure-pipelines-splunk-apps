@@ -14,6 +14,7 @@ Choose a pipeline for its inputs, run path, and outputs.
 | [Deploy to production](/Pipelines/Deploy-to-production) | Review each app's compare with prod, then approve its install. |
 | [Compare pipeline](/Pipelines/Compare-pipeline) | Compare selected environments. |
 | [Restart pipeline](/Pipelines/Restart-pipeline) | Restart a selected target. |
+| [Repair pipeline](/Pipelines/Repair-pipeline) | Replace local copies of app objects with the app's default. |
 | [Smoke-test pipeline](/Pipelines/Smoke-test-pipeline) | Check read-only access. |
 
 ## Related

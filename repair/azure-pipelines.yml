@@ -1,0 +1,76 @@
+# Replace local copies of app objects on one stack with the app's default copies.
+trigger: none
+pr: none
+
+parameters:
+  - name: environment
+    displayName: Environment
+    type: string
+    default: nonprod
+    values:
+      - nonprod
+      - prod
+  - name: target
+    displayName: Variable groups - splunk uses splunk-<env>, splunk-itsi uses splunk-itsi-<env>
+    type: string
+    default: splunk
+    values:
+      - splunk
+      - splunk-itsi
+  - name: app
+    displayName: App ID
+    type: string
+  - name: conf
+    displayName: Configuration file name without .conf, such as savedsearches
+    type: string
+  - name: stanzas
+    displayName: Stanza names, separated by ;
+    type: string
+
+stages:
+  - template: ../templates/deploy-stage.yml
+    parameters:
+      name: repair
+      displayName: Repair ${{ parameters.app }} ${{ parameters.conf }}.conf on ${{ parameters.target }}-${{ parameters.environment }}
+      environment: ${{ parameters.environment }}
+      target: ${{ parameters.target }}
+      packageDirectory: $(Pipeline.Workspace)/packages/${{ lower(parameters.app) }}
+      steps:
+        - template: ../templates/feed-package.yml
+          parameters:
+            app: ${{ parameters.app }}
+      deploySteps:
+        - template: ../templates/acs-step.yml
+          parameters:
+            command: '"$(Pipeline.Workspace)/tools/release.py" repair-packages "$(Pipeline.Workspace)/packages/${{ lower(parameters.app) }}" "$(Pipeline.Workspace)/repair" ${{ parameters.conf }} "${{ parameters.stanzas }}"'
+            displayName: Check the stanzas, then build the temporary and real packages
+            additionalEnv:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+        - template: ../templates/deploy.yml
+          parameters:
+            environment: ${{ parameters.environment }}
+            packageDirectory: $(Pipeline.Workspace)/repair/temp
+            compare: false
+        - template: ../templates/acs-step.yml
+          parameters:
+            command: '"$(Pipeline.Workspace)/tools/release.py" delete-local "$(Pipeline.Workspace)/repair/temp" ${{ parameters.conf }} "${{ parameters.stanzas }}"'
+            displayName: Delete the local copies via the REST API
+        - task: UniversalPackages@0
+          displayName: Publish the real package to the splunk-apps feed
+          inputs:
+            command: publish
+            publishDirectory: $(Pipeline.Workspace)/repair/real
+            feedsToUsePublish: internal
+            vstsFeedPublish: $(System.TeamProject)/splunk-apps
+            vstsFeedPackagePublish: $(REPAIR_APP)
+            versionOption: custom
+            versionPublish: $(REPAIR_VERSION)
+        - template: ../templates/deploy.yml
+          parameters:
+            environment: ${{ parameters.environment }}
+            packageDirectory: $(Pipeline.Workspace)/repair/real
+            compare: false
+        - template: ../templates/acs-step.yml
+          parameters:
+            command: '"$(Pipeline.Workspace)/tools/release.py" repair-check "$(Pipeline.Workspace)/repair/real" ${{ parameters.conf }} "${{ parameters.stanzas }}"'
+            displayName: Check the stanzas now come from default only

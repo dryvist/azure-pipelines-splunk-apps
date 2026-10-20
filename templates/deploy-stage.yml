@@ -1,4 +1,5 @@
 # One stage that installs a package on an environment after its splunk-<environment> approval.
+# target picks the variable groups: splunk uses splunk-<environment>, splunk-itsi uses splunk-itsi-<environment>.
 parameters:
   - name: name
     type: string
@@ -24,6 +25,13 @@ parameters:
   - name: uninstall
     type: boolean
     default: false
+  - name: target
+    type: string
+    default: splunk
+  # Steps that replace the standard install steps.
+  - name: deploySteps
+    type: stepList
+    default: []
 
 stages:
   - stage: ${{ parameters.name }}
@@ -41,16 +49,18 @@ stages:
         environment: splunk-${{ parameters.environment }}
         variables:
           - group: splunk-appinspect
-          - group: splunk-${{ parameters.environment }}
+          - group: ${{ parameters.target }}-${{ parameters.environment }}
         strategy:
           runOnce:
             deploy:
               steps:
                 - ${{ parameters.steps }}
                 - template: acs-cli.yml
-                - template: deploy.yml
-                  parameters:
-                    environment: ${{ parameters.environment }}
-                    packageDirectory: ${{ parameters.packageDirectory }}
-                    compare: false
-                    uninstall: ${{ parameters.uninstall }}
+                - ${{ if eq(length(parameters.deploySteps), 0) }}:
+                  - template: deploy.yml
+                    parameters:
+                      environment: ${{ parameters.environment }}
+                      packageDirectory: ${{ parameters.packageDirectory }}
+                      compare: false
+                      uninstall: ${{ parameters.uninstall }}
+                - ${{ parameters.deploySteps }}

@@ -13,6 +13,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
+from _common import CONF, write_tgz
 from splunk_release import acs
 
 
@@ -328,11 +329,90 @@ def check_acs():
     assert "RESULT: FAILED - open each failed job for its FAIL or Error line" in failed.stdout
 
 
+@patch.dict(os.environ, {"SPLUNK_STACK": "stack", "SPLUNK_SEARCH_HEAD": "", "SPLUNK_REST_URL": "",
+                         "STACK_TOKEN": "token"})
+def check_repair():
+    assert acs.stanza_names(" a ; b c ;") == ["a", "b c"]
+    with patch("splunk_release.acs.http", return_value=b"{}") as http:
+        acs.rest("my_ta", "savedsearches", "Fix me/now", "DELETE")
+    url, headers = http.call_args.args
+    assert url == ("https://stack.splunkcloud.com:8089/servicesNS/nobody/my_ta/configs/conf-savedsearches/"
+                   "Fix%20me%2Fnow?output_mode=json")
+    assert headers == {"Authorization": "Bearer token"} and http.call_args.kwargs["method"] == "DELETE"
+    with patch.dict(os.environ, {"SPLUNK_SEARCH_HEAD": "sh1"}):
+        try:
+            acs.rest("my_ta", "savedsearches", "x")
+            raise AssertionError("expected SystemExit")
+        except SystemExit as error:
+            assert "SPLUNK_REST_URL" in str(error)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        package_dir, out = Path(tmp, "dist"), Path(tmp, "repair")
+        package_dir.mkdir()
+        write_tgz(package_dir / "my_ta-1.4.9.tar.gz", {
+            "my_ta/default/app.conf": CONF,
+            "my_ta/default/savedsearches.conf": "[Keep]\nsearch = a\n\n[Fix me]\nsearch = b\n",
+            "my_ta/app.manifest": json.dumps({"info": {"id": {"name": "my_ta", "version": "1.4.9"}}}),
+        })
+        output = io.StringIO()
+        with (
+            patch("splunk_release.acs.rest", return_value=b"{}"),
+            patch("splunk_release.acs.acs_env", return_value={}),
+            patch("splunk_release.acs.structured_response", return_value={"version": "1.4.11"}),
+            patch("splunk_release.acs.feed_versions", return_value=["1.4.9", "1.4.10"]),
+            redirect_stdout(output),
+        ):
+            acs.repair_packages(package_dir, out, "savedsearches", "Fix me")
+        assert "##vso[task.setvariable variable=REPAIR_VERSION]1.4.13" in output.getvalue()
+        for folder, version, fixed in (("temp", "1.4.12", False), ("real", "1.4.13", True)):
+            with tarfile.open(out / folder / f"my_ta-{version}.tar.gz") as archive:
+                saved = archive.extractfile("my_ta/default/savedsearches.conf").read().decode()
+                manifest = json.loads(archive.extractfile("my_ta/app.manifest").read())
+                app_conf = archive.extractfile("my_ta/default/app.conf").read().decode()
+            assert "[Keep]" in saved and ("[Fix me]" in saved) == fixed
+            assert manifest["info"]["id"]["version"] == version and app_conf.count(f"version = {version}") == 2
+        for rest, stanzas, message in ((b"{}", "Missing", "has no stanza [Missing]"), (None, "Fix me", "is not in")):
+            with patch("splunk_release.acs.rest", return_value=rest), patch(
+                "splunk_release.acs.structured_response", return_value={"version": "1.4.9"}
+            ), patch("splunk_release.acs.feed_versions", return_value=[]), patch("splunk_release.acs.acs_env"):
+                try:
+                    acs.repair_packages(package_dir, Path(tmp, "other"), "savedsearches", stanzas)
+                    raise AssertionError("expected SystemExit")
+                except SystemExit as error:
+                    assert message in str(error)
+
+        output = io.StringIO()
+        with patch("splunk_release.acs.rest", side_effect=[b"{}", None]) as rest, redirect_stdout(output):
+            acs.delete_local(package_dir, "savedsearches", "Fix me;Gone")
+        assert [c.args for c in rest.call_args_list] == [("my_ta", "savedsearches", "Fix me", "DELETE"),
+                                                         ("my_ta", "savedsearches", "Gone", "DELETE")]
+        assert "Deleted the local copy of [Fix me]" in output.getvalue()
+        assert "[Gone] has no local copy in my_ta" in output.getvalue()
+
+        def export(out_dir, _):
+            Path(out_dir, "my_ta").mkdir()
+            write_tgz(Path(out_dir, "my_ta", "my_ta.tgz"), {"my_ta/local/savedsearches.conf": local})
+
+        for local, failed in (("[Other]\nsearch = c\n", False), ("[Fix me]\nsearch = c\n", True)):
+            with patch("splunk_release.acs.export", side_effect=export), patch(
+                "splunk_release.acs.rest", return_value=b"{}"
+            ), redirect_stdout(io.StringIO()):
+                try:
+                    acs.repair_check(package_dir, "savedsearches", "Fix me")
+                    assert not failed
+                except SystemExit as error:
+                    assert failed and "[Fix me] still has a local copy" in str(error)
+
+
 class AcsTests(TestCase):
     def test_acs(self):
         check_acs()
 
+    def test_repair(self):
+        check_repair()
+
 
 if __name__ == "__main__":
     check_acs()
+    check_repair()
     print("ok")

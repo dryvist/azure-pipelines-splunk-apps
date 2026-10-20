@@ -78,9 +78,13 @@ def app_conf_version(text):
     _, match = version_rows(text.splitlines())["id"]
     return match[2]
 
-def bump_conf(text, level):
-    """Return updated text and version; preserve other text, including comments."""
-    new = bumped(app_conf_version(text), level)
+def highest(*versions):
+    """The highest x.y.z version."""
+    return max(versions, key=lambda version: tuple(map(int, version.split("."))))
+
+def bump_conf(text, level, *others):
+    """Return updated text and a version above app.conf and others; preserve other text, including comments."""
+    new = bumped(highest(app_conf_version(text), *others), level)
     return set_version(text, new), new
 
 def set_version(text, version):
@@ -148,7 +152,7 @@ def bump():
         print("Source version already differs, skipping bump")
         return
     text, new = bump_conf(
-        text, bump_level(os.environ.get("BUILD_SOURCEVERSIONMESSAGE", ""))
+        text, bump_level(os.environ.get("BUILD_SOURCEVERSIONMESSAGE", "")), *feed_versions(APP.lower())
     )
     CONF.write_text(text, **TEXT)
     generate_manifest()

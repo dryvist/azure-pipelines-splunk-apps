@@ -7,11 +7,14 @@ import os
 import shutil
 import subprocess
 import sys
+import tarfile
+import tempfile
 import time
+import urllib.parse
 from pathlib import Path
 
-from splunk_release.azure import log, run
-from splunk_release.version import APP
+from splunk_release.azure import http, log, run
+from splunk_release.version import APP, TEXT, bumped, feed_versions, highest, set_version
 
 def install_acs():
     """Download, verify and unpack the ACS CLI for this agent, then add it to PATH."""
@@ -211,3 +214,93 @@ def export(out_dir, *app_ids):
                 log("warning", f"NOT INSTALLED {app}")
     finally:
         apps_file.unlink(missing_ok=True)
+
+def stanza_names(stanzas):
+    names = [name.strip() for name in stanzas.split(";") if name.strip()]
+    if not names:
+        sys.exit("No stanza names given; separate several with ;")
+    return names
+
+def rest(app, conf, stanza, method="GET"):
+    """Call the search head REST API for one stanza in the app; return the body, or None when it does not exist."""
+    base = configured_value("SPLUNK_REST_URL")
+    if not base and configured_value("SPLUNK_SEARCH_HEAD"):
+        sys.exit("SPLUNK_SEARCH_HEAD is set, so set SPLUNK_REST_URL to that search head's https://<host>:8089 URL")
+    base = base or f"https://{os.environ['SPLUNK_STACK']}.splunkcloud.com:8089"
+    app, conf, stanza = (urllib.parse.quote(value, safe="") for value in (app, conf, stanza))
+    return http(f"{base.rstrip('/')}/servicesNS/nobody/{app}/configs/conf-{conf}/{stanza}?output_mode=json",
+                {"Authorization": f"Bearer {os.environ['STACK_TOKEN']}"}, timeout=60, method=method, missing_ok=True)
+
+def repackage(package, out_dir, app, version, conf=None, stanzas=()):
+    """Write <out_dir>/<app>-<version>.tar.gz from package with a new version and without the given stanzas."""
+    from ksconf.conf.parser import write_conf
+
+    from splunk_release.compare import parse
+    with tempfile.TemporaryDirectory() as tmp:
+        with tarfile.open(package) as archive:
+            archive.extractall(tmp, filter="data")
+        root = Path(tmp, app)
+        if stanzas:
+            path = root / "default" / f"{conf}.conf"
+            parsed = parse(path)
+            missing = [name for name in stanzas if name not in parsed]
+            if missing:
+                sys.exit(f"default/{conf}.conf in {app} has no stanza [{'], ['.join(missing)}]; nothing to repair")
+            write_conf(path, {name: keys for name, keys in parsed.items() if name not in stanzas})
+        app_conf = root / "default" / "app.conf"
+        app_conf.write_text(set_version(app_conf.read_text(**TEXT), version), **TEXT)
+        manifest = root / "app.manifest"
+        if manifest.exists():
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["info"]["id"]["version"] = version
+            manifest.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        Path(out_dir).mkdir(parents=True, exist_ok=True)
+        with tarfile.open(Path(out_dir, f"{app}-{version}.tar.gz"), "w:gz") as archive:
+            archive.add(root, arcname=app)
+
+def repair_packages(package_dir, out_dir, conf, stanzas):
+    """Check each stanza on the stack, then write temp/ (next version, stanzas removed) and real/ (the version after)."""
+    package, app, _ = package_identity(package_dir)
+    names = stanza_names(stanzas)
+    for name in names:
+        if rest(app, conf, name) is None:
+            sys.exit(f"[{name}] is not in {conf}.conf of {app} on {os.environ['SPLUNK_STACK']}. If an earlier repair "
+                     "deleted it, run the deploy pipeline to install the latest package")
+    installed = structured_response(acs_env(), "apps", "describe", app).get("version")
+    base = highest(*feed_versions(app.lower()), *([installed] if installed else []))
+    temp, real = bumped(base, "patch"), bumped(bumped(base, "patch"), "patch")
+    repackage(package, Path(out_dir, "temp"), app, temp, conf, names)
+    repackage(package, Path(out_dir, "real"), app, real)
+    log("section", f"{app}: installed {installed}, highest {base}; temporary {temp} without "
+                   f"{len(names)} {conf}.conf stanzas, then {real} with them")
+    print(f"##vso[task.setvariable variable=REPAIR_APP]{app.lower()}")
+    print(f"##vso[task.setvariable variable=REPAIR_VERSION]{real}")
+
+def delete_local(package_dir, conf, stanzas):
+    """Delete each stanza's local copy over REST; the temporary package has no default copy."""
+    _, app, _ = package_identity(package_dir)
+    for name in stanza_names(stanzas):
+        if rest(app, conf, name, "DELETE") is None:
+            print(f"[{name}] has no local copy in {app}, nothing to delete")
+        else:
+            log("section", f"Deleted the local copy of [{name}] in {conf}.conf of {app}")
+
+def repair_check(package_dir, conf, stanzas):
+    """Fail when any stanza is missing on the stack or still has a local copy in the exported app."""
+    from splunk_release.compare import extract, parse
+
+    _, app, _ = package_identity(package_dir)
+    names = stanza_names(stanzas)
+    with tempfile.TemporaryDirectory() as tmp:
+        export(tmp, package_dir)
+        exported = Path(tmp, app, f"{app}.tgz")
+        if not exported.exists():
+            sys.exit(f"{app} is not installed")
+        root = Path(tmp, "app")
+        extract(exported, root)
+        local = parse(root / "local" / f"{conf}.conf")
+    failed = [f"[{name}] still has a local copy" for name in names if name in local]
+    failed += [f"[{name}] is missing" for name in names if rest(app, conf, name) is None]
+    if failed:
+        sys.exit(f"{conf}.conf in {app}: {'; '.join(failed)}")
+    log("section", f"{len(names)} {conf}.conf stanzas in {app} now come from default only")

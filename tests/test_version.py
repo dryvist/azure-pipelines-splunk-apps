@@ -25,6 +25,7 @@ def check_version():
     assert set_version(CONF, "2.3.4") == CONF.replace("1.4.9", "2.3.4")
     assert bump_conf(CONF, "minor")[1] == "1.5.0"
     assert bump_conf(CONF, "major")[1] == "2.0.0"
+    assert bump_conf(CONF, "patch", "1.4.20", "1.4.3")[1] == "1.4.21"
     # Tagging sets Azure Pipelines variables after pushing the version tag.
     with tempfile.TemporaryDirectory() as tmp:
         app_conf = Path(tmp, "app.conf")

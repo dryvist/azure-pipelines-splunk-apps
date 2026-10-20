@@ -102,13 +102,27 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   `main`. `--skip-lookup-backups` leaves out `lookups/lookup_file_backups/`.
   The compare commands take the same two options and remove those folders on
   both sides.
+- `repair-packages <dir> <out-dir> <conf> <stanzas>` checks that each stanza
+  is on the search head and in the package's `default/<conf>.conf`. It writes
+  `<out-dir>/temp` one patch above the highest feed or installed version
+  without those stanzas, and `<out-dir>/real` one patch above that with the
+  package content unchanged. It sets `REPAIR_APP` and `REPAIR_VERSION`.
+  Stanza names are separated by `;`. It reads `SYSTEM_ACCESSTOKEN`.
+- `delete-local <dir> <conf> <stanzas>` deletes each stanza's local copy
+  through the search head REST API. A stanza with no local copy prints
+  `has no local copy`.
+- `repair-check <dir> <conf> <stanzas>` exports the app and fails when a
+  stanza still has a local copy or is missing.
 
 ACS setup maps the variable-group `ACS_TOKEN` to `STACK_TOKEN`. It runs
 once per job; later steps reuse the CLI configuration.
-`SPLUNK_SEARCH_HEAD` selects a target search head when configured.
+`SPLUNK_SEARCH_HEAD` selects a target search head when configured. The REST
+API commands use `SPLUNK_REST_URL`, or
+`https://<SPLUNK_STACK>.splunkcloud.com:8089` when no search head is set.
 
 `bump` only changes versions on pull request runs with `refs/heads/...`
-source and target branches. The `tag` command writes `APP_ID` and
+source and target branches. It bumps from the highest of the target version
+and the splunk-apps feed versions, and reads `SYSTEM_ACCESSTOKEN`. The `tag` command writes `APP_ID` and
 `APP_VERSION` as Azure Pipelines variables for the feed publish step.
 
 ## Related
