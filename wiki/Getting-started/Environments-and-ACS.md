@@ -19,17 +19,27 @@ Steps 3 and 4 cover deployment environments, ACS tokens, and export access.
 5. Enter `splunk-prod` as the environment name.
 6. Create the environment.
 
-To require approval before production deployment:
-
-1. Open `splunk-prod`.
-2. Go to **Approvals and checks → Approvals → +**.
-3. Add the approvers.
+7. Open `splunk-prod`.
+8. Select **Approvals and checks**.
+9. Select **+**.
+10. Select **Approvals**.
+11. Add the approvers.
+12. Select **Create**.
+13. Select **+**.
+14. Select **Exclusive Lock**.
+15. Select **Create**.
+16. Repeat steps 7 to 9 and 13 to 15 for `splunk-nonprod`.
 
 **Verify:**
 
 1. Confirm `splunk-nonprod` appears in the environments list.
 2. Confirm `splunk-prod` appears in the environments list.
-3. If configured, confirm `splunk-prod` shows its approval check.
+3. Confirm `splunk-prod` shows an **Approvals** check and an **Exclusive
+   Lock** check.
+4. Confirm `splunk-nonprod` shows an **Exclusive Lock** check.
+
+The approval stops each prod deploy stage until someone approves it. The
+exclusive lock runs one deploy stage at a time on each environment.
 
 ## Step 4: Create ACS tokens and grant export access
 

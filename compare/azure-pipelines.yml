@@ -32,6 +32,7 @@ parameters:
 jobs:
   - ${{ each side in split('source target', ' ') }}:
       - job: ${{ side }}
+        displayName: Export apps from ${{ parameters[side] }}
         workspace:
           clean: all
         variables:
@@ -46,15 +47,18 @@ jobs:
               command: release.py export $(Pipeline.Workspace)/${{ parameters[side] }}-export ${{ iif(in(lower(trim(parameters.apps)), '', 'all'), '--custom', parameters.apps) }}
               displayName: Export apps from ${{ parameters[side] }}
           - publish: $(Pipeline.Workspace)/${{ parameters[side] }}-export
+            displayName: Publish the ${{ parameters[side] }} export artifact
             artifact: ${{ parameters[side] }}-export
 
   - job: compare
+    displayName: Compare ${{ parameters.source }} with ${{ parameters.target }}
     workspace:
       clean: all
     dependsOn: [source, target]
     steps:
       - template: ../templates/python.yml
       - download: current
+        displayName: Download both export artifacts
       - template: ../templates/diff-tools.yml
       - template: ../templates/compare-steps.yml
         parameters:
@@ -64,4 +68,5 @@ jobs:
           out: $(Pipeline.Workspace)/compare
           label: ${{ parameters.target }} with ${{ parameters.source }}
       - publish: $(Pipeline.Workspace)/compare
+        displayName: Publish the compare artifact
         artifact: compare

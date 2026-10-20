@@ -18,8 +18,20 @@ group, deployment environment, or its approval checks.
 3. Permit the selected `splunk-<environment>` group and environment.
 4. Complete any approval check on the selected environment.
 
-The pipeline deploys each selected package in order, restarting once after all
-app steps pass.
+Each app has its own compare and deploy stage. The restart stage runs once,
+after every deploy stage finishes.
+
+### Two apps install at the same time
+
+**Symptom:** Two **Deploy** stages run at once.
+
+**Cause:** The `splunk-<environment>` environment has no **Exclusive Lock**
+check.
+
+**Fix:**
+
+1. Add the check with [Step 3](/Getting-started/Environments-and-ACS).
+2. Rerun the pipeline.
 
 **Docs:** [Deploy pipeline](/Pipelines/Deploy-pipeline),
 [variable groups](/Reference/Variable-groups),

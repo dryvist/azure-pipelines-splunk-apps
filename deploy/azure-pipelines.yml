@@ -3,6 +3,7 @@ pr: none
 
 parameters:
   - name: environment
+    displayName: Environment
     type: string
     default: nonprod
     values:
@@ -13,43 +14,77 @@ parameters:
     default: ''
     displayName: App IDs, separated by spaces
 
-jobs:
-  - deployment: deploy
-    workspace:
-      clean: all
-    environment: splunk-${{ parameters.environment }}
-    variables:
-      - group: splunk-appinspect
-      - group: splunk-${{ parameters.environment }}
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-            - checkout: self
-              path: tools
-            - template: ../templates/python.yml
-            - template: ../templates/diff-tools.yml
-            - template: ../templates/acs-cli.yml
-            - ${{ each app in split(parameters.apps, ' ') }}:
-              - ${{ if ne(app, '') }}:
-                - task: UniversalPackages@0
-                  displayName: Download ${{ lower(app) }} from the splunk-apps feed
-                  inputs:
-                    command: download
-                    feedsToUse: internal
-                    vstsFeed: $(System.TeamProject)/splunk-apps
-                    vstsFeedPackage: ${{ lower(app) }}
-                    vstsPackageVersion: '*'
-                    downloadDirectory: $(Pipeline.Workspace)/packages/${{ lower(app) }}
-                - template: ../templates/deploy.yml
-                  parameters:
-                    environment: ${{ parameters.environment }}
-                    packageDirectory: $(Pipeline.Workspace)/packages/${{ lower(app) }}
-            - template: ../templates/acs-step.yml
-              parameters:
-                command: '"$(Pipeline.Workspace)/tools/release.py" restart'
-                displayName: Restart the current stack
-            - template: ../templates/acs-step.yml
-              parameters:
-                command: '"$(Pipeline.Workspace)/tools/release.py" status'
-                displayName: Check stack status after restart
+stages:
+  - ${{ each app in split(parameters.apps, ' ') }}:
+      - ${{ if ne(app, '') }}:
+          - stage: compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
+            displayName: Compare ${{ app }} with ${{ parameters.environment }}
+            dependsOn: []
+            variables:
+              - group: splunk-${{ parameters.environment }}
+            jobs:
+              - job: compare
+                displayName: Compare ${{ app }} with ${{ parameters.environment }} (no install)
+                workspace:
+                  clean: all
+                steps:
+                  - template: ../templates/deploy-app.yml
+                    parameters:
+                      app: ${{ app }}
+                      environment: ${{ parameters.environment }}
+                      install: false
+          - stage: deploy_${{ replace(replace(app, '-', '_'), '.', '_') }}
+            displayName: Deploy ${{ app }} to ${{ parameters.environment }}
+            dependsOn: compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
+            lockBehavior: sequential
+            variables:
+              - group: splunk-appinspect
+              - group: splunk-${{ parameters.environment }}
+            jobs:
+              - deployment: deploy
+                displayName: Install ${{ app }} on ${{ parameters.environment }}
+                workspace:
+                  clean: all
+                environment: splunk-${{ parameters.environment }}
+                strategy:
+                  runOnce:
+                    deploy:
+                      steps:
+                        - template: ../templates/deploy-app.yml
+                          parameters:
+                            app: ${{ app }}
+                            environment: ${{ parameters.environment }}
+                            install: true
+  - ${{ if ne(trim(parameters.apps), '') }}:
+    - stage: restart
+      displayName: Restart ${{ parameters.environment }} if required
+      dependsOn:
+        - ${{ each app in split(parameters.apps, ' ') }}:
+            - ${{ if ne(app, '') }}:
+                - deploy_${{ replace(replace(app, '-', '_'), '.', '_') }}
+      condition: succeededOrFailed()
+      lockBehavior: sequential
+      variables:
+        - group: splunk-${{ parameters.environment }}
+      jobs:
+        - deployment: restart
+          displayName: Restart ${{ parameters.environment }} if required and check status
+          workspace:
+            clean: all
+          environment: splunk-${{ parameters.environment }}
+          strategy:
+            runOnce:
+              deploy:
+                steps:
+                  - checkout: self
+                    path: tools
+                  - template: ../templates/python.yml
+                  - template: ../templates/acs-cli.yml
+                  - template: ../templates/acs-step.yml
+                    parameters:
+                      command: '"$(Pipeline.Workspace)/tools/release.py" restart'
+                      displayName: Restart the current stack
+                  - template: ../templates/acs-step.yml
+                    parameters:
+                      command: '"$(Pipeline.Workspace)/tools/release.py" status'
+                      displayName: Check stack status after restart

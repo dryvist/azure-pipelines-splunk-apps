@@ -66,5 +66,5 @@ The `release.py diff` step adds each Markdown summary to the run summary tab.
 
 ---
 
-[< Previous: Deploy pipeline](/Pipelines/Deploy-pipeline) |
+[< Previous: Deploy to production](/Pipelines/Deploy-to-production) |
 [Next: Restart pipeline >](/Pipelines/Restart-pipeline)

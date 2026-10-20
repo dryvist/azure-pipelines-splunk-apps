@@ -11,6 +11,7 @@ parameters:
 
 jobs:
   - job: appinspect
+    displayName: Check the AppInspect login
     workspace:
       clean: all
     variables:
@@ -24,6 +25,7 @@ jobs:
           SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
 
   - job: nonprod
+    displayName: Check nonprod ACS access
     workspace:
       clean: all
     variables:
@@ -41,6 +43,7 @@ jobs:
           ACS_TOKEN: $(ACS_TOKEN)
 
   - job: prod
+    displayName: Check prod ACS access
     workspace:
       clean: all
     variables:
@@ -58,6 +61,7 @@ jobs:
           ACS_TOKEN: $(ACS_TOKEN)
 
   - job: result
+    displayName: Report the smoke-test result
     workspace:
       clean: all
     dependsOn: [appinspect, nonprod, prod]
