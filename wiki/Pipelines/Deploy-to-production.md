@@ -110,11 +110,14 @@ Repeat for every app, one at a time.
    this package's defaults.
 8. Open the step **Compare prod with this package (merged defaults)**.
 9. Read each file's diff.
-10. Return to the run summary.
-11. On the **Deploy `<app-id>` to prod** stage, select **Review**.
-12. Select **Approve** if the compare matches what you expect.
-13. Select **Reject** if it does not.
-14. Wait for the stage to finish before reviewing the next app.
+10. Open the job **Compare `<app-id>` with itsi-prod (no install)**.
+11. Repeat steps 3 to 9 for the prod ITSI search head. Its local settings are
+    what was built by hand there.
+12. Return to the run summary.
+13. On the **Deploy `<app-id>` to prod** stage, select **Review**.
+14. Select **Approve** if the compare matches what you expect.
+15. Select **Reject** if it does not.
+16. Wait for the stage to finish before reviewing the next app.
 
 **Verify:**
 
