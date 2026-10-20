@@ -78,44 +78,38 @@ page: "" {
     class: columns
     grid-columns: 3
     grid-gap: 0
-    pad_left: "." {shape: text; width: 408; style.opacity: 0}
-    subtitle: "Select environment\nand app IDs; repeat per app; restart once" {class: subtitle}
-    pad_right: "." {shape: text; width: 408; style.opacity: 0}
+    pad_left: "." {shape: text; width: 360; style.opacity: 0}
+    subtitle: "Each app: compare, approve, install;\none restart at the end" {class: subtitle}
+    pad_right: "." {shape: text; width: 360; style.opacity: 0}
   }
 
   first: "" {
     class: columns
     direction: right
     selection: "Select environment\nand app IDs" {class: card; width: 190}
-    download: "Each app: download\nlatest from feed" {class: card; width: 190}
-    before: "Check status before deploy" {class: card; width: 190}
-    export: "Export installed app" {class: card; width: 190}
-    selection -> download: {class: link}
-    download -> before: {class: link}
-    before -> export: {class: link}
+    compare: "Compare <app> stage:\ndownload, export,\ncompare (no install)" {class: card; width: 210}
+    review: "Review the compare\nthen approve the\nDeploy <app> stage" {class: [card; exception]; width: 210}
+    selection -> compare: {class: link}
+    compare -> review: {class: link}
   }
   second: "" {
     class: columns
     direction: left
-    install: "Install package via ACS" {class: [card; emphasis]; width: 270}
-    publish: "Publish per-app diff" {class: card; width: 270}
-    compare: "Compare with package" {class: card; width: 270}
-    compare -> publish: {class: link}
-    publish -> install: {class: link-emphasis}
+    install: "Install <app> job:\ncompare again,\ninstall via ACS" {class: [card; emphasis]; width: 210}
+    wait: "Wait for the version,\ncheck status" {class: card; width: 210}
+    lock: "Exclusive lock:\none app installs\nat a time" {class: [card; ghost]; width: 210}
+    install -> wait: {class: link}
   }
   third: "" {
     class: columns
     direction: right
-    wait: "Wait for package version" {class: card; width: 190}
-    after: "Check status after\napp deploy" {class: card; width: 190}
-    restart: "Restart once after\nall apps pass" {class: [card; emphasis]; width: 190}
-    final: "Check status after\nrestart" {class: card; width: 190}
-    wait -> after: {class: link}
-    after -> restart: {class: link-emphasis}
+    approve_restart: "Approve the\nRestart stage" {class: [card; exception]; width: 210}
+    restart: "Restart only if\nACS requires it" {class: [card; emphasis]; width: 210}
+    final: "Check status after\nrestart" {class: card; width: 210}
+    approve_restart -> restart: {class: link}
     restart -> final: {class: link}
   }
-  first.export -> second.compare: {class: link}
-  second.install -> third.wait: {class: link}
-
+  first.review -> second.install: {class: link-exception}
+  second.wait -> third.approve_restart: {class: link}
 
 }
