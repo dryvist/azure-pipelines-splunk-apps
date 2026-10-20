@@ -14,7 +14,7 @@ from _common import CONF, write_tgz
 from splunk_release import import_nonprod
 
 
-def check_import_nonprod():
+def check_import_nonprod(*flags):
     with tempfile.TemporaryDirectory() as temp_dir:
         root = Path(temp_dir)
         package = root / "package"
@@ -35,6 +35,7 @@ def check_import_nonprod():
                 "my_ta/local/props.conf": "[changed]\nvalue = local\n",
                 "my_ta/lookups/keep.csv": "h\nnonprod\n",
                 "my_ta/lookups/new.csv": "h\n1\n",
+                "my_ta/lookups/lookup_file_backups/my_ta/nobody/new.csv/1700000000": "h\n1\n",
                 "my_ta/default/datamodels.conf": "[Fast]\nacceleration = 0\n\n[Slow]\nacceleration = false\n",
                 "my_ta/local/datamodels.conf": "[Fast]\nacceleration = 1\n",
                 "my_ta/local/savedsearches.conf": "[fill]\naction.populate_lookup = 1\nsearch = x\n",
@@ -68,7 +69,7 @@ def check_import_nonprod():
             patch.dict(os.environ, environment),
             redirect_stdout(output),
         ):
-            import_nonprod.import_nonprod(export_dir, "--skip-lookups")
+            import_nonprod.import_nonprod(export_dir, *flags)
 
         version = "1.4.10"
         branch = f"nonprod-import/{version}-8421"
@@ -98,8 +99,10 @@ def check_import_nonprod():
             "https://dev.azure.com/<org>/<project>/_git/<app-id>/pullrequest/34"
         )
         assert not (package / "default" / "old.conf").exists()
-        assert (package / "lookups" / "keep.csv").read_text() == "h\nmain\n"
-        assert not (package / "lookups" / "new.csv").exists()
+        skipped = "--skip-lookups" in flags
+        assert (package / "lookups" / "keep.csv").read_text() == ("h\nmain\n" if skipped else "h\nnonprod\n")
+        assert (package / "lookups" / "new.csv").exists() != skipped
+        assert (package / "lookups" / "lookup_file_backups").exists() == (not flags)
         assert not (package / "local" / "props.conf").exists()
         assert not (package / "local" / "data" / "ui" / "views" / "example.xml").exists()
         assert not (package / "users" / "admin" / "local" / "savedsearches.conf").exists()
@@ -122,9 +125,13 @@ def check_import_nonprod():
 
 class ImportNonprodTests(TestCase):
     def test_import_nonprod(self):
+        check_import_nonprod("--skip-lookups")
+        check_import_nonprod("--skip-lookup-backups")
         check_import_nonprod()
 
 
 if __name__ == "__main__":
+    check_import_nonprod("--skip-lookups")
+    check_import_nonprod("--skip-lookup-backups")
     check_import_nonprod()
     print("ok")

@@ -41,6 +41,10 @@ Steps 5 and 6 cover app repository files and Build Service permissions.
        displayName: When importing, skip lookups (CSV files) and keep the ones on main
        type: boolean
        default: true
+     - name: skipLookupBackups
+       displayName: When importing, skip Splunk lookup backups (lookups/lookup_file_backups)
+       type: boolean
+       default: true
 
    trigger:
      batch: true
@@ -60,6 +64,7 @@ Steps 5 and 6 cover app repository files and Build Service permissions.
      parameters:
        importFromNonprod: ${{ parameters.importFromNonprod }}
        skipLookups: ${{ parameters.skipLookups }}
+       skipLookupBackups: ${{ parameters.skipLookupBackups }}
        pool:
          name: <agent-pool>
    ```

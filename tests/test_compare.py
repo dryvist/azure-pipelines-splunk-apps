@@ -81,6 +81,7 @@ def check_compare():
                 "my_ta/metadata/local.meta": "[my_ta]\naccess = read : [*]\n",
                 "my_ta/metadata/default.meta": "[]\nexport = system\n\n[]\nowner = nobody\n",
                 "my_ta/users/admin/local/savedsearches.conf": "[search]\n",
+                "my_ta/lookups/lookup_file_backups/my_ta/nobody/saved.csv/1700000000": "a,b\n1,2\n",
                 "my_ta/lookups/same.csv": "a,b\r\n1,2\r\n",
                 "my_ta/default/data/models/Net.json": '{"a": 1, "b": 3}',
                 "my_ta/default/data/models/Same.json": '{"a":1}',
@@ -120,6 +121,10 @@ def check_compare():
             compare.diff(target_dir, source_dir, reverse, "--reverse")
         assert "source-only.conf [removed]" in (reverse / "my_ta-tree.txt").read_text()
         assert "only.csv" not in (reverse / "my_ta-tree.txt").read_text()
+        no_backups = Path(tmp, "no-backups")
+        with redirect_stdout(io.StringIO()):
+            compare.tree(target_dir, source_dir, no_backups, "--skip-lookup-backups")
+        assert "lookup_file_backups" not in (no_backups / "my_ta-tree.txt").read_text()
         assert "+value = local" in (reverse / "my_ta-local-vs-default.diff").read_text()
         assert "-value = package" in (reverse / "my_ta.patch").read_text()
         assert "[new] [added]" in (reverse / "my_ta-stanzas.txt").read_text()
@@ -206,6 +211,7 @@ def check_compare():
         assert head in logs and logs.endswith("User files\n" + users)
         assert "my_ta: target vs source" in logs
         assert "users/ (1 files)\nusers/\n  admin/" in logs
+        assert "lookups/lookup_file_backups/ (1 files)\nlookups/\n  lookup_file_backups/" in logs
         merged_path = out / "my_ta-merged.tar.gz"
         assert merged_path.exists()
         with tarfile.open(merged_path, "r:gz") as archive:
