@@ -35,7 +35,8 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   exports it to `<dir>/<app-id>/`.
 - `tree <target-dir> <source-dir> <out-dir>` compares all raw files in each
   app before merging and writes `<app-id>-tree.txt` with added, removed, and
-  changed paths.
+  changed paths. Each path shows its line count. A changed path also shows the
+  share of lines added or removed, such as `8% (120 -> 135 lines)`.
 - `local-diff <target-dir> <source-dir> <out-dir>` compares each target local
   file with the same stanzas in the source default file and writes
   `<app-id>-local-vs-default.diff`. Lines with `-` are target local settings;
