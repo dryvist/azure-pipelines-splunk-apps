@@ -51,6 +51,9 @@ Steps, in order:
   `release.py diff`. **Inputs:** `prod-export/` and `dist/`.
   **Outputs:** Patch, summary, HTML, and merged archive reports in
   `prod-diff/`.
+- **Compare production against this package (data models):** Runs
+  `release.py data-models`. **Inputs:** `prod-export/` and `dist/`.
+  **Outputs:** `<app-id>-data-models.patch` in `prod-diff/`.
 - **Publish artifact (`prod-diff-$(System.JobAttempt)`):** Publishes this
   attempt's reports. **Inputs:** `prod-diff/`. **Outputs:** Attempt-named
   pipeline artifact.

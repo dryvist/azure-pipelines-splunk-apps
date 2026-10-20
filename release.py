@@ -13,6 +13,7 @@ release.py export <out-dir> [app-id...] export app data, custom apps (--custom),
 release.py tree <target> <source> <out> [--reverse] [--skip-lookups] compare raw files and write tree reports
 release.py local-diff <target> <source> <out> [--reverse] [--skip-lookups] compare target local files with the same source default stanzas
 release.py diff <target> <source> <out> [--reverse] [--skip-lookups] merge local into default on both sides, compare, write artifacts
+release.py data-models <target> <source> <out> [--reverse] [--skip-lookups] compare data model JSON after merging local
 release.py install-acs                  download and verify the ACS CLI, add it to PATH, add the stack, log in
 release.py appinspect-link              print the link to this build's published artifacts
 release.py plan                         print which stages this run executes and why
@@ -32,7 +33,7 @@ import sys
 from splunk_release.acs import deploy, export, install_acs, restart, status, uninstall, wait_version
 from splunk_release.appinspect import appinspect
 from splunk_release.azure import appinspect_link, plan, report_command_error, report_system_exit
-from splunk_release.compare import diff, local_diff, tree
+from splunk_release.compare import data_models, diff, local_diff, tree
 from splunk_release.import_nonprod import import_nonprod
 from splunk_release.package import package
 from splunk_release.version import bump, feed_check, tag
@@ -51,6 +52,7 @@ commands = {
     "tree": tree,
     "local-diff": local_diff,
     "diff": diff,
+    "data-models": data_models,
     "install-acs": install_acs,
     "appinspect-link": appinspect_link,
     "feed-check": feed_check,

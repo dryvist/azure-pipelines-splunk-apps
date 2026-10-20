@@ -22,3 +22,5 @@ steps:
     displayName: Compare ${{ parameters.label }} (local files vs default)
   - script: python ${{ parameters.release }} diff ${{ parameters.target }} ${{ parameters.source }} ${{ parameters.out }} ${{ parameters.flags }}
     displayName: Compare ${{ parameters.label }} (merged defaults)
+  - script: python ${{ parameters.release }} data-models ${{ parameters.target }} ${{ parameters.source }} ${{ parameters.out }} ${{ parameters.flags }}
+    displayName: Compare ${{ parameters.label }} (data models)
