@@ -11,14 +11,14 @@ parameters:
     type: string
   - name: label
     type: string
-  - name: reverse
-    type: boolean
-    default: false
+  - name: flags
+    type: string
+    default: ''
 
 steps:
-  - script: python ${{ parameters.release }} tree ${{ parameters.target }} ${{ parameters.source }} ${{ parameters.out }}${{ iif(parameters.reverse, ' --reverse', '') }}
+  - script: python ${{ parameters.release }} tree ${{ parameters.target }} ${{ parameters.source }} ${{ parameters.out }} ${{ parameters.flags }}
     displayName: Compare ${{ parameters.label }} (file tree, local and default)
-  - script: python ${{ parameters.release }} local-diff ${{ parameters.target }} ${{ parameters.source }} ${{ parameters.out }}${{ iif(parameters.reverse, ' --reverse', '') }}
+  - script: python ${{ parameters.release }} local-diff ${{ parameters.target }} ${{ parameters.source }} ${{ parameters.out }} ${{ parameters.flags }}
     displayName: Compare ${{ parameters.label }} (local files vs default)
-  - script: python ${{ parameters.release }} diff ${{ parameters.target }} ${{ parameters.source }} ${{ parameters.out }}${{ iif(parameters.reverse, ' --reverse', '') }}
+  - script: python ${{ parameters.release }} diff ${{ parameters.target }} ${{ parameters.source }} ${{ parameters.out }} ${{ parameters.flags }}
     displayName: Compare ${{ parameters.label }} (merged defaults)

@@ -13,9 +13,9 @@ parameters:
   - name: uninstall
     type: boolean
     default: false
-  - name: reverse
-    type: boolean
-    default: false
+  - name: compareFlags
+    type: string
+    default: ''
 
 steps:
   - template: acs-step.yml
@@ -34,7 +34,7 @@ steps:
           source: '"${{ parameters.packageDirectory }}"'
           out: '"$(Pipeline.Workspace)/${{ parameters.environment }}-diff/$(APP_ID)"'
           label: ${{ parameters.environment }} with this package
-          reverse: ${{ parameters.reverse }}
+          flags: ${{ parameters.compareFlags }}
       - publish: $(Pipeline.Workspace)/${{ parameters.environment }}-diff/$(APP_ID)
         displayName: Publish the ${{ parameters.environment }} compare artifact
         artifact: ${{ parameters.environment }}-diff-$(APP_ID)-$(System.JobAttempt)

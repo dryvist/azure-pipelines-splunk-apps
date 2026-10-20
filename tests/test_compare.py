@@ -69,6 +69,7 @@ def check_compare():
                 "my_ta/default/props.conf": "[changed]\nvalue = package\n",
                 "my_ta/default/source-only.conf": "[source]\n",
                 "my_ta/lookups/same.csv": "a,b\n1,2 \n\n",
+                "my_ta/lookups/only.csv": "h\n1\n",
                 "my_ta/local/added.conf": "[source-local]\n",
             },
         )
@@ -80,10 +81,11 @@ def check_compare():
         tree_text = (out / "my_ta-tree.txt").read_text()
         reverse = Path(tmp, "reverse")
         with redirect_stdout(io.StringIO()):
-            compare.tree(target_dir, source_dir, reverse, "--reverse")
+            compare.tree(target_dir, source_dir, reverse, "--reverse", "--skip-lookups")
             compare.local_diff(target_dir, source_dir, reverse, "--reverse")
             compare.diff(target_dir, source_dir, reverse, "--reverse")
         assert "source-only.conf [removed]" in (reverse / "my_ta-tree.txt").read_text()
+        assert "only.csv" not in (reverse / "my_ta-tree.txt").read_text()
         assert "+value = local" in (reverse / "my_ta-local-vs-default.diff").read_text()
         assert "-value = package" in (reverse / "my_ta.patch").read_text()
         assert "[new] [added]" in (reverse / "my_ta-stanzas.txt").read_text()
@@ -91,6 +93,7 @@ def check_compare():
         html_text = (out / "my_ta-diff.html").read_text()
         assert "props.conf [changed] 50% (2 -> 2 lines)" in tree_text
         assert "source-only.conf [added]" in tree_text
+        assert "only.csv [added]" in tree_text
         assert "same.csv" not in tree_text
         tree_lines = tree_text.splitlines()
         assert "local/" in tree_lines

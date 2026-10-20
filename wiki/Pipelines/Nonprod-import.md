@@ -15,7 +15,14 @@ install the package in nonprod.
 2. Select **Run pipeline**.
 3. Select `main` as the branch.
 4. Select **Import this app from nonprod into a new pull request**.
-5. Select **Run**.
+5. To import lookups too, clear **When importing, skip lookups (CSV files) and
+   keep the ones on main**.
+6. Select **Run**.
+
+With the skip lookups option selected (the default), the compare steps leave
+out `lookups/` on both sides and the pull request keeps the lookups on `main`.
+An app repository whose `azure-pipelines.yml` has no `skipLookups` parameter
+always skips lookups.
 
 ## Import stage
 

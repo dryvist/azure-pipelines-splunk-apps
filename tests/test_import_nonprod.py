@@ -21,6 +21,8 @@ def check_import_nonprod():
         package.mkdir()
         (package / "default").mkdir()
         (package / "default" / "old.conf").write_text("[old]\nvalue = remove\n")
+        (package / "lookups").mkdir()
+        (package / "lookups" / "keep.csv").write_text("h\nmain\n")
         main_conf = package / "default" / "app.conf"
         main_conf.write_text(CONF, encoding="utf-8")
         export_dir = root / "nonprod-export"
@@ -31,6 +33,8 @@ def check_import_nonprod():
                 "my_ta/default/app.conf": CONF,
                 "my_ta/default/props.conf": "[changed]\nvalue = default\n",
                 "my_ta/local/props.conf": "[changed]\nvalue = local\n",
+                "my_ta/lookups/keep.csv": "h\nnonprod\n",
+                "my_ta/lookups/new.csv": "h\n1\n",
                 "my_ta/default/datamodels.conf": "[Fast]\nacceleration = 0\n\n[Slow]\nacceleration = false\n",
                 "my_ta/local/datamodels.conf": "[Fast]\nacceleration = 1\n",
                 "my_ta/local/savedsearches.conf": "[fill]\naction.populate_lookup = 1\nsearch = x\n",
@@ -64,7 +68,7 @@ def check_import_nonprod():
             patch.dict(os.environ, environment),
             redirect_stdout(output),
         ):
-            import_nonprod.import_nonprod(export_dir)
+            import_nonprod.import_nonprod(export_dir, "--skip-lookups")
 
         version = "1.4.10"
         branch = f"nonprod-import/{version}-8421"
@@ -94,6 +98,8 @@ def check_import_nonprod():
             "https://dev.azure.com/<org>/<project>/_git/<app-id>/pullrequest/34"
         )
         assert not (package / "default" / "old.conf").exists()
+        assert (package / "lookups" / "keep.csv").read_text() == "h\nmain\n"
+        assert not (package / "lookups" / "new.csv").exists()
         assert not (package / "local" / "props.conf").exists()
         assert not (package / "local" / "data" / "ui" / "views" / "example.xml").exists()
         assert not (package / "users" / "admin" / "local" / "savedsearches.conf").exists()

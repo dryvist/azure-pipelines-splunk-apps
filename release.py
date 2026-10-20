@@ -10,18 +10,19 @@ release.py uninstall <dir>              uninstall the app in <dir> from the stac
 release.py wait-version <dir>           wait until ACS reports the packaged app version
 release.py restart                      restart current-stack only when a restart is required, then wait
 release.py export <out-dir> [app-id...] export app data, custom apps (--custom), or a package directory
-release.py tree <target> <source> <out> [--reverse] compare raw files and write tree reports
-release.py local-diff <target> <source> <out> [--reverse] compare target local files with the same source default stanzas
-release.py diff <target> <source> <out> [--reverse] merge local into default on both sides, compare, write artifacts
+release.py tree <target> <source> <out> [--reverse] [--skip-lookups] compare raw files and write tree reports
+release.py local-diff <target> <source> <out> [--reverse] [--skip-lookups] compare target local files with the same source default stanzas
+release.py diff <target> <source> <out> [--reverse] [--skip-lookups] merge local into default on both sides, compare, write artifacts
 release.py install-acs                  download and verify the ACS CLI, add it to PATH, add the stack, log in
 release.py appinspect-link              print the link to this build's published artifacts
 release.py plan                         print which stages this run executes and why
 release.py feed-check <app-id>          fail when the splunk-apps feed holds no version of the app
 release.py tag                          tag HEAD as v<version>, push the tag, and set APP_ID/APP_VERSION (CI only)
-release.py import-nonprod <export-dir>  replace package/ from a nonprod export and open a pull request
+release.py import-nonprod <export-dir> [--skip-lookups] replace package/ from a nonprod export and open a pull request
 
 The ACS CLI reads STACK_TOKEN. Azure Pipelines maps ACS_TOKEN to STACK_TOKEN.
---reverse shows source lines as - and target lines as +.
+--reverse shows source lines as - and target lines as +. --skip-lookups ignores lookups/ on both sides
+and, for import-nonprod, keeps the lookups already in package/.
 SPLUNK_SEARCH_HEAD selects a target search head for compare and smoke tests.
 """
 

@@ -204,7 +204,7 @@ def ordered(target, source, reverse):
     """The (- side, + side) pair: target first, or source first when reverse is set."""
     return (source, target) if reverse else (target, source)
 
-def local_vs_default(target, source, work, reverse=""):
+def local_vs_default(target, source, work, reverse=False):
     """Compare each target local file with the same stanzas in the source default file, using ksconf."""
     pairs = [(c, source / "default" / c.relative_to(target / "local"))
              for c in sorted((target / "local").rglob("*.conf"))]
@@ -230,8 +230,11 @@ def local_vs_default(target, source, work, reverse=""):
         report.append((name, status, result.stdout))
     return report
 
-def each_app(target_dir, source_dir, out_dir):
+def each_app(target_dir, source_dir, out_dir, flags=()):
     """Yield app id, extracted target and source folders, and the output folder for every app."""
+    unknown = set(flags) - {"--reverse", "--skip-lookups"}
+    if unknown:
+        raise SystemExit(f"Unknown option: {' '.join(sorted(unknown))}")
     targets, sources = archives(target_dir), archives(source_dir)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -245,14 +248,18 @@ def each_app(target_dir, source_dir, out_dir):
             target, source = Path(tmp, "target"), Path(tmp, "source")
             extract(targets.get(app), target)
             extract(sources.get(app), source)
+            if "--skip-lookups" in flags:
+                print("lookups/ skipped on both sides")
+                for root in (target, source):
+                    shutil.rmtree(root / "lookups", ignore_errors=True)
             yield app, target, source, out, app in targets
 
-def local_diff(target_dir, source_dir, out_dir, reverse=""):
+def local_diff(target_dir, source_dir, out_dir, *flags):
     """Compare each target local file with the same stanzas in the source default file."""
-    for app, target, source, out, _ in each_app(target_dir, source_dir, out_dir):
+    for app, target, source, out, _ in each_app(target_dir, source_dir, out_dir, flags):
         work = target.with_name("local-vs-default")
         work.mkdir()
-        reports = local_vs_default(target, source, work, reverse)
+        reports = local_vs_default(target, source, work, "--reverse" in flags)
         shown = [r for r in reports if r[1] != "Unchanged"]
         text = "\n\n".join(f"{path} ({status})\n{report.rstrip()}" for path, status, report in shown)
         (out / f"{app}-local-vs-default.diff").write_text((text or "NO DIFFERENCES") + "\n", encoding="utf-8")
@@ -271,22 +278,22 @@ def print_file_diff(path, status, patch):
     print_colored_patch(patch)
     log("endgroup")
 
-def tree(target_dir, source_dir, out_dir, reverse=""):
+def tree(target_dir, source_dir, out_dir, *flags):
     """Write and print the tree of raw target and source app files."""
-    for app, target, source, out, _ in each_app(target_dir, source_dir, out_dir):
-        old, new = ordered(target, source, reverse)
+    for app, target, source, out, _ in each_app(target_dir, source_dir, out_dir, flags):
+        old, new = ordered(target, source, "--reverse" in flags)
         changes = file_changes(old, new, lambda _: True)
         text = change_tree(changes, old, new) + "\n"
         (out / f"{app}-tree.txt").write_text(text, encoding="utf-8")
         print_colored_patch(text)
 
-def diff(target_dir, source_dir, out_dir, reverse=""):
+def diff(target_dir, source_dir, out_dir, *flags):
     """Write each app's merged archive, default-only diffs, and Markdown summary."""
-    for app, target, source, out, in_target in each_app(target_dir, source_dir, out_dir):
+    for app, target, source, out, in_target in each_app(target_dir, source_dir, out_dir, flags):
         target_before, source_before = files(target), files(source)
         merge_local(target)
         merge_local(source)
-        old, new = ordered(target, source, reverse)
+        old, new = ordered(target, source, "--reverse" in flags)
         changes = file_changes(old, new, deployed)
         text = summary(changes, target_before, source_before)
         write_html_diff(app, old, new, changes, out)
