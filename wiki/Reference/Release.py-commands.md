@@ -43,7 +43,8 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   lines with `+` are source package defaults. It runs as its own step.
 - `diff <target-dir> <source-dir> <out-dir>` merges local into default on both
   sides with ksconf, combining repeated stanzas as Splunk does, then compares the archives for each app id. It
-  writes `<app-id>.patch`, `<app-id>-diff.html`, `<app-id>-summary.md`, and
+  writes `<app-id>.patch`, `<app-id>-stanzas.txt`, `<app-id>-diff.html`,
+  `<app-id>-summary.md`, and
   `<app-id>-merged.tar.gz`. The HTML report includes an indented folder tree
   and side-by-side file tables. The patch compares deployed defaults as unified
   diffs. The summary lists deployed changes, local files, and user files, and
@@ -51,6 +52,9 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
 - `local-diff` and `diff` print each file's diff in a collapsed log group
   under a separator line. Select the file name to expand it. In `diff`, a
   changed file's name also shows the percent of lines changed.
+  Before the line diffs, `diff` prints a `Changed stanzas` section: one
+  collapsed group per `.conf` or `.meta` file, listing each added, removed or
+  changed stanza and how many of its settings differ.
 - `tree`, `local-diff`, `diff` and `import-nonprod` print the install
   checksums Splunk Cloud writes on its own, then leave them out of every
   compare and import: the `[app/install/install_source_checksum]` stanza in

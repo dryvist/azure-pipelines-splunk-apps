@@ -64,23 +64,26 @@ def kept(path):
     """Files a deploy does not replace: local/, metadata/local.meta and users/."""
     return path.parts[0] in ("local", "users") or path.parts[:2] == ("metadata", "local.meta")
 
+def parse(path):
+    """Parse a .conf or .meta file with ksconf; a missing file is empty."""
+    from ksconf.conf.parser import DUP_MERGE, PARSECONF_MID, ConfParserException, parse_conf
+    try:
+        # Splunk combines a stanza repeated in one file; the ksconf CLI rejects it.
+        return parse_conf(path, profile={**PARSECONF_MID, "dup_stanza": DUP_MERGE}) if path.exists() else {}
+    except ConfParserException as error:
+        raise SystemExit(str(error))
+
 def merge_local(root):
     """Merge local configuration into default files with ksconf and copy other local files."""
     from ksconf.conf.merge import merge_conf_dicts
-    from ksconf.conf.parser import DUP_MERGE, PARSECONF_MID, ConfParserException, parse_conf, write_conf
-    # Splunk combines a stanza repeated in one file; the ksconf CLI rejects it.
-    profile = {**PARSECONF_MID, "dup_stanza": DUP_MERGE}
+    from ksconf.conf.parser import write_conf
     pairs = [(root / "local" / p, root / "default" / p) for p in sorted(files(root / "local"))]
     if (root / "metadata" / "local.meta").exists():
         pairs.append((root / "metadata" / "local.meta", root / "metadata" / "default.meta"))
     for local, default in pairs:
         default.parent.mkdir(parents=True, exist_ok=True)
         if local.suffix in (".conf", ".meta"):
-            try:
-                confs = [parse_conf(p, profile=profile) for p in (default, local) if p.exists()]
-            except ConfParserException as error:
-                raise SystemExit(str(error))
-            write_conf(default, merge_conf_dicts(*confs))
+            write_conf(default, merge_conf_dicts(parse(default), parse(local)))
         else:
             shutil.copy2(local, default)
     sort_confs(root / "default")
@@ -137,6 +140,21 @@ def change_tree(changes, target, source):
             size = f"{percent_changed(*sides)} ({size})"
         lines.append("  " * (len(path.parts) - 1) + f"{path.name} [{status.lower()}] {size}")
     return "\n".join(lines) or "NO DIFFERENCES"
+
+def stanza_changes(old, new):
+    """One line per added, removed or changed stanza, with the number of settings that differ."""
+    from ksconf.conf.parser import GLOBAL_STANZA
+    a, b = ({"(global)" if name is GLOBAL_STANZA else name: {k: v for k, v in keys.items() if not k.startswith("#")}
+             for name, keys in parse(path).items()} for path in (old, new))
+    lines = []
+    for name in sorted(a.keys() | b.keys()):
+        x, y = a.get(name, {}), b.get(name, {})
+        if name in a and name in b and x == y:
+            continue
+        status = "added" if name not in a else "removed" if name not in b else "changed"
+        count = sum(x.get(k) != y.get(k) for k in x.keys() | y.keys())
+        lines.append(f"[{name}] [{status}] {count} settings")
+    return lines
 
 def summary(target, source, target_before, source_before):
     changes = file_changes(target, source, deployed)
@@ -263,6 +281,17 @@ def diff(target_dir, source_dir, out_dir):
         text = summary(target, source, target_before, source_before)
         write_html_diff(app, target, source, changes, out)
         merged_archive(app, target if in_target else source, out / f"{app}-merged.tar.gz")
+        confs = [(status, path) for status, path in changes if path.suffix in (".conf", ".meta")]
+        stanzas = []
+        log("section", "Changed stanzas")
+        for status, path in confs:
+            found = stanza_changes(target / path, source / path)
+            stanzas.append("\n".join([path.as_posix(), *("  " + line for line in found)]))
+            print_file_diff(path.as_posix(), f"{status}, {len(found)} stanzas", "\n".join(found))
+        if not confs:
+            print_colored_patch("NO DIFFERENCES")
+        (out / f"{app}-stanzas.txt").write_text("\n\n".join(stanzas or ["NO DIFFERENCES"]) + "\n", encoding="utf-8")
+        log("section", "Changed lines")
         patch = []
         for status, path in changes:
             old, new = (f.read_bytes().splitlines(keepends=True) if f.exists() else [] for f in (target / path, source / path))

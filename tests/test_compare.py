@@ -100,6 +100,11 @@ def check_compare():
         assert "Added lines:" not in html_text
         assert "props.conf [changed]" in html_text
         patch_text = (out / "my_ta.patch").read_text()
+        stanza_text = (out / "my_ta-stanzas.txt").read_text()
+        assert "default/props.conf\n  [changed] [changed] 1 settings\n  [new] [removed] 1 settings" in stanza_text
+        assert "metadata/default.meta\n  [] [removed] 2 settings" in stanza_text
+        printed = output.getvalue()
+        assert printed.index("Changed stanzas") < printed.index("Changed lines") < printed.index("--- target/default/props.conf")
         summary = (out / "my_ta-summary.md").read_text()
         patch_paths = [
             path
