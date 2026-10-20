@@ -78,6 +78,15 @@ def check_compare():
             compare.local_diff(target_dir, source_dir, out)
             compare.diff(target_dir, source_dir, out)
         tree_text = (out / "my_ta-tree.txt").read_text()
+        reverse = Path(tmp, "reverse")
+        with redirect_stdout(io.StringIO()):
+            compare.tree(target_dir, source_dir, reverse, "--reverse")
+            compare.local_diff(target_dir, source_dir, reverse, "--reverse")
+            compare.diff(target_dir, source_dir, reverse, "--reverse")
+        assert "source-only.conf [removed]" in (reverse / "my_ta-tree.txt").read_text()
+        assert "+value = local" in (reverse / "my_ta-local-vs-default.diff").read_text()
+        assert "-value = package" in (reverse / "my_ta.patch").read_text()
+        assert "[new] [added]" in (reverse / "my_ta-stanzas.txt").read_text()
         local_text = (out / "my_ta-local-vs-default.diff").read_text()
         html_text = (out / "my_ta-diff.html").read_text()
         assert "props.conf [changed] 50% (2 -> 2 lines)" in tree_text

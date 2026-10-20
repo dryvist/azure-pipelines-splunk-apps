@@ -10,9 +10,9 @@ release.py uninstall <dir>              uninstall the app in <dir> from the stac
 release.py wait-version <dir>           wait until ACS reports the packaged app version
 release.py restart                      restart current-stack only when a restart is required, then wait
 release.py export <out-dir> [app-id...] export app data, custom apps (--custom), or a package directory
-release.py tree <target> <source> <out> compare raw files and write tree reports
-release.py local-diff <target> <source> <out> compare target local files with the same source default stanzas
-release.py diff <target> <source> <out> merge local into default on both sides, compare, write artifacts
+release.py tree <target> <source> <out> [--reverse] compare raw files and write tree reports
+release.py local-diff <target> <source> <out> [--reverse] compare target local files with the same source default stanzas
+release.py diff <target> <source> <out> [--reverse] merge local into default on both sides, compare, write artifacts
 release.py install-acs                  download and verify the ACS CLI, add it to PATH, add the stack, log in
 release.py appinspect-link              print the link to this build's published artifacts
 release.py plan                         print which stages this run executes and why
@@ -21,6 +21,7 @@ release.py tag                          tag HEAD as v<version>, push the tag, an
 release.py import-nonprod <export-dir>  replace package/ from a nonprod export and open a pull request
 
 The ACS CLI reads STACK_TOKEN. Azure Pipelines maps ACS_TOKEN to STACK_TOKEN.
+--reverse shows source lines as - and target lines as +.
 SPLUNK_SEARCH_HEAD selects a target search head for compare and smoke tests.
 """
 

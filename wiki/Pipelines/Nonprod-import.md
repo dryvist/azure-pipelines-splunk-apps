@@ -38,6 +38,8 @@ install the package in nonprod.
    Writes the local-versus-default report.
 12. **Compare nonprod with this package (merged defaults):** Writes the patch,
    summary, HTML report, and merged archive.
+   Steps 10 to 12 run with `--reverse`: lines with `-` are the package on
+   `main` and lines with `+` are nonprod, the changes the import brings in.
 13. **Publish diff artifact:** Publishes
     `nonprod-diff-<app-id>-<attempt>`.
 14. **Open a pull request with the nonprod app:** Merges local configuration
