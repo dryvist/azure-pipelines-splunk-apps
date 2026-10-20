@@ -5,6 +5,9 @@ parameters:
   - name: importFromNonprod
     type: boolean
     default: false
+  - name: importFromProd
+    type: boolean
+    default: false
   - name: skipLookups
     type: boolean
     default: true
@@ -23,40 +26,44 @@ parameters:
       - template: python.yml
 
 stages:
-  - ${{ if eq(parameters.importFromNonprod, true) }}:
-    - stage: import
-      displayName: Import from the nonprod ITSI search head
-      jobs:
-        - job: import
-          displayName: Export the app from the nonprod ITSI search head and open a pull request
-          pool: ${{ parameters.pool }}
-          workspace:
-            clean: all
-          variables:
-            - group: splunk-itsi-nonprod
-          steps:
-            - checkout: self
-              path: app
-              persistCredentials: true
-            - ${{ parameters.setup }}
-            - template: diff-tools.yml
-              parameters:
-                includePackagingToolkit: true
-            - script: python ../tools/release.py package
-              workingDirectory: $(Pipeline.Workspace)/app
-              displayName: Package main app
-            - template: acs-cli.yml
-            - template: deploy.yml
-              parameters:
-                environment: nonprod
-                packageDirectory: $(Pipeline.Workspace)/app/dist
-                install: false
-                compareFlags: --reverse ${{ iif(parameters.skipLookups, '--skip-lookups', '') }} ${{ iif(parameters.skipLookupBackups, '--skip-lookup-backups', '') }}
-            - script: python ../tools/release.py import-nonprod $(Pipeline.Workspace)/nonprod-export/$(APP_ID) ${{ iif(parameters.skipLookups, '--skip-lookups', '') }} ${{ iif(parameters.skipLookupBackups, '--skip-lookup-backups', '') }}
-              workingDirectory: $(Pipeline.Workspace)/app
-              displayName: Open a pull request with the nonprod app
-              env:
-                SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+  - ${{ if or(parameters.importFromNonprod, parameters.importFromProd) }}:
+    # One import stage per checked environment; each opens its own pull request.
+    - ${{ each env in split(format('{0} {1}', iif(parameters.importFromNonprod, 'nonprod', ''), iif(parameters.importFromProd, 'prod', '')), ' ') }}:
+      - ${{ if ne(env, '') }}:
+        - stage: import_${{ env }}
+          displayName: Import from the ${{ env }} ITSI search head
+          dependsOn: []
+          jobs:
+            - job: import
+              displayName: Export the app from the ${{ env }} ITSI search head and open a pull request
+              pool: ${{ parameters.pool }}
+              workspace:
+                clean: all
+              variables:
+                - group: splunk-itsi-${{ env }}
+              steps:
+                - checkout: self
+                  path: app
+                  persistCredentials: true
+                - ${{ parameters.setup }}
+                - template: diff-tools.yml
+                  parameters:
+                    includePackagingToolkit: true
+                - script: python ../tools/release.py package
+                  workingDirectory: $(Pipeline.Workspace)/app
+                  displayName: Package main app
+                - template: acs-cli.yml
+                - template: deploy.yml
+                  parameters:
+                    environment: ${{ env }}
+                    packageDirectory: $(Pipeline.Workspace)/app/dist
+                    install: false
+                    compareFlags: --reverse ${{ iif(parameters.skipLookups, '--skip-lookups', '') }} ${{ iif(parameters.skipLookupBackups, '--skip-lookup-backups', '') }}
+                - script: python ../tools/release.py import ${{ env }} $(Pipeline.Workspace)/${{ env }}-export/$(APP_ID) ${{ iif(parameters.skipLookups, '--skip-lookups', '') }} ${{ iif(parameters.skipLookupBackups, '--skip-lookup-backups', '') }}
+                  workingDirectory: $(Pipeline.Workspace)/app
+                  displayName: Open a pull request with the ${{ env }} app
+                  env:
+                    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
   - ${{ else }}:
     - stage: build
       displayName: Build

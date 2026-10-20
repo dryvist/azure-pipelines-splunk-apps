@@ -49,7 +49,7 @@ Open **Artifacts → splunk-apps**, then select the app id and version.
 
 - [Proddiff stage](/Stages/Proddiff)
 - [Compare pipeline](/Pipelines/Compare-pipeline)
-- [Import from nonprod](/Pipelines/Nonprod-import)
+- [Import from nonprod or prod](/Pipelines/App-import)
 
 ---
 

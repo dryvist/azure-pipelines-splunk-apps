@@ -9,7 +9,7 @@ Choose a pipeline for its inputs, run path, and outputs.
 | Page | What it answers |
 | --- | --- |
 | [App pipeline](/Pipelines/App-pipeline) | Pull request and main run paths. |
-| [Import from nonprod](/Pipelines/Nonprod-import) | Import an installed app into a new pull request. |
+| [Import from nonprod or prod](/Pipelines/App-import) | Import an installed app into a new pull request. |
 | [Deploy pipeline](/Pipelines/Deploy-pipeline) | Compare, approve and install feed packages by app. |
 | [Deploy to production](/Pipelines/Deploy-to-production) | Review each app's compare with prod, then approve its install. |
 | [Compare pipeline](/Pipelines/Compare-pipeline) | Compare selected environments. |

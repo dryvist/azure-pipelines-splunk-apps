@@ -54,8 +54,8 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   writes `<app-id>-data-models.patch`. `diff` leaves data models out of its
   patch, stanza list, and HTML report; its summary still lists them.
 - `tree`, `local-diff` and `diff` accept `--reverse` as a last argument. It
-  shows the source side as `-` and the target side as `+`. The nonprod import
-  uses it, so its diffs show nonprod as `+`.
+  shows the source side as `-` and the target side as `+`. The import
+  uses it, so its diffs show the exported environment as `+`.
 - `diff <target-dir> <source-dir> <out-dir>` merges local into default on both
   sides with ksconf, combining repeated stanzas as Splunk does, then compares the archives for each app id. It
   writes `<app-id>.patch`, `<app-id>-stanzas.txt`, `<app-id>-diff.html`,
@@ -70,12 +70,12 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   Before the line diffs, `diff` prints a `Changed stanzas` section: one
   collapsed group per `.conf` or `.meta` file, listing each added, removed or
   changed stanza and how many of its settings differ.
-- `tree`, `local-diff`, `diff` and `import-nonprod` sort the rows of every
+- `tree`, `local-diff`, `diff` and `import` sort the rows of every
   CSV file on both sides, keeping the first row as the header. A CSV with a
   line break inside a quoted field stays as it is. A CSV that cannot be read
-  stays as it is and prints one warning. The nonprod import writes
+  stays as it is and prints one warning. The import writes
   the sorted CSV files to the pull request.
-- `tree`, `local-diff`, `diff` and `import-nonprod` print the install
+- `tree`, `local-diff`, `diff` and `import` print the install
   checksums Splunk Cloud writes on its own, then leave them out of every
   compare and import: the `[app/install/install_source_checksum]` stanza in
   `metadata/local.meta`, and the `install_source_checksum` and
@@ -91,11 +91,11 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
 - `feed-check <app-id>` prints that the app is in the `splunk-apps` feed, or
   fails with `<app-id> is not in the splunk-apps feed; run its app pipeline on
   main to release it`. It reads `SYSTEM_ACCESSTOKEN`.
-- `import-nonprod <export-dir> [--skip-lookups] [--skip-lookup-backups]`
+- `import <env> <export-dir> [--skip-lookups] [--skip-lookup-backups]`
   merges local app configuration into default, removes `local/`, `users/`,
   and `metadata/local.meta`, sets both version rows
   to one patch above `main`, regenerates `app.manifest`, commits the package,
-  pushes a new import branch, and opens a pull request to `main`. It uses
+  pushes a new `<env>-import/` branch, and opens a pull request to `main`. It uses
   `BUILD_BUILDID`, `BUILD_REPOSITORY_ID`, `BUILD_REPOSITORY_NAME`,
   `SYSTEM_ACCESSTOKEN`, `SYSTEM_COLLECTIONURI`, `SYSTEM_TEAMPROJECT`, and
   `SYSTEM_TEAMPROJECTID`. `--skip-lookups` keeps the `lookups/` folder on
@@ -129,7 +129,7 @@ and the splunk-apps feed versions, and reads `SYSTEM_ACCESSTOKEN`. The `tag` com
 
 - [Code layout](/Reference/Code-layout)
 - [Artifacts](/Reference/Artifacts)
-- [Import from nonprod](/Pipelines/Nonprod-import)
+- [Import from nonprod or prod](/Pipelines/App-import)
 
 ---
 

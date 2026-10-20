@@ -74,7 +74,7 @@ Steps, in order:
 
 - [App pipeline](/Pipelines/App-pipeline)
 - [Artifacts](/Reference/Artifacts)
-- [Import from nonprod](/Pipelines/Nonprod-import)
+- [Import from nonprod or prod](/Pipelines/App-import)
 
 ---
 

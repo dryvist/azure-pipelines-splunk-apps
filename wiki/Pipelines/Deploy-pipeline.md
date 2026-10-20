@@ -96,5 +96,5 @@ For the full production walkthrough, see
 
 ---
 
-[< Previous: Import from nonprod](/Pipelines/Nonprod-import) |
+[< Previous: Import from nonprod or prod](/Pipelines/App-import) |
 [Next: Deploy to production >](/Pipelines/Deploy-to-production)
