@@ -29,11 +29,14 @@ Steps, in order:
 - **Download artifact (`download: current`, `dist`):** Gets the package.
   **Inputs:** `dist` artifact. **Outputs:** `dist/` in the workspace.
 - **Tag the release version:** Creates and pushes `v<version>`; sets
-  `APP_ID` and `APP_VERSION`. **Inputs:** App version and repo credentials.
-  **Outputs:** Git tag and pipeline variables.
+  `APP_ID` and `APP_VERSION`. When the feed already holds that version, prints
+  `<app-id> <version> is already in the splunk-apps feed, skipping publish`
+  and sets `PACKAGE_PUBLISHED`. **Inputs:** App version, repo credentials and
+  `System.AccessToken`. **Outputs:** Git tag and pipeline variables.
 - **Publish the package to the splunk-apps feed (`UniversalPackages@0`):**
-  Publishes the package. **Inputs:** `dist/`, `APP_ID`, `APP_VERSION`, and
-  feed permissions. **Outputs:** Universal Package in the feed.
+  Publishes the package. Skipped when `PACKAGE_PUBLISHED` is `true`.
+  **Inputs:** `dist/`, `APP_ID`, `APP_VERSION`, and feed permissions.
+  **Outputs:** Universal Package in the feed.
 
 ## Related
 

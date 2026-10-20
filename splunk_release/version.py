@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from splunk_release.azure import log, run
+from splunk_release.azure import http, log, run
 
 SRC = Path("package")
 
@@ -166,3 +166,15 @@ def tag():
     # Set the package feed variables.
     print(f"##vso[task.setvariable variable=APP_ID]{APP.lower()}")
     print(f"##vso[task.setvariable variable=APP_VERSION]{version}")
+    if published(APP.lower(), version):
+        print(f"{APP.lower()} {version} is already in the splunk-apps feed, skipping publish")
+        print("##vso[task.setvariable variable=PACKAGE_PUBLISHED]true")
+
+def published(name, version):
+    """Return whether the splunk-apps feed already holds this package version."""
+    e = os.environ
+    host = e["SYSTEM_COLLECTIONURI"].replace("://dev.azure.com/", "://pkgs.dev.azure.com/")
+    host = host.replace(".visualstudio.com/", ".pkgs.visualstudio.com/")
+    url = (f"{host}{e['SYSTEM_TEAMPROJECTID']}/_apis/packaging/feeds/splunk-apps/upack/packages/"
+           f"{name}/versions/{version}?api-version=7.1")
+    return http(url, {"Authorization": f"Bearer {e['SYSTEM_ACCESSTOKEN']}"}, missing=True) is not None
