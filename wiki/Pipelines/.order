@@ -4,4 +4,5 @@ Deploy-pipeline
 Deploy-to-production
 Compare-pipeline
 Restart-pipeline
+Repair-pipeline
 Smoke-test-pipeline

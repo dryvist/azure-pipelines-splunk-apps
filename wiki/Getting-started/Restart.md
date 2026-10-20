@@ -41,4 +41,5 @@ Step 15 creates the restart pipeline.
 
 ---
 
-[< Previous: Compare pipeline setup](/Getting-started/Compare)
+[< Previous: Compare pipeline setup](/Getting-started/Compare) |
+[Next: Repair pipeline setup >](/Getting-started/Repair)

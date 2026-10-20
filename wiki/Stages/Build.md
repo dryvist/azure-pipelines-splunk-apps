@@ -27,7 +27,9 @@
 and target version rows match and the target branch has not changed the
 version. `[major]` increments major and resets minor and patch. `[minor]`
 increments minor and resets patch to zero. Otherwise, the patch number
-increments. The bump updates `version` in `[launcher]` and `[id]`, regenerates
+increments. The bump starts from the highest of the target version and every
+version in the splunk-apps feed, so it always goes above a version that the
+[Repair pipeline](/Pipelines/Repair-pipeline) published. The bump updates `version` in `[launcher]` and `[id]`, regenerates
 `app.manifest`, commits both files, and pushes the commit to the pull request
 source branch.
 

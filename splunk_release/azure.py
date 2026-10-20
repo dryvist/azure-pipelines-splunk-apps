@@ -44,16 +44,18 @@ def report_system_exit(error):
         raise SystemExit(1)
 
 
-def http(url, headers, data=None, timeout=900):
-    """Return the response body."""
+def http(url, headers, data=None, timeout=900, method=None, missing_ok=False):
+    """Return the response body, or None for HTTP 404 when missing_ok is set."""
     req = urllib.request.Request(
-        url, data=data, headers=headers, method="POST" if data else "GET"
+        url, data=data, headers=headers, method=method or ("POST" if data else "GET")
     )
     log("command", f"{req.get_method()} {url}", flush=True)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.read()
     except urllib.error.HTTPError as e:
+        if missing_ok and e.code == 404:
+            return None
         sys.exit(f"HTTP {e.code} from {url}: {e.read().decode(errors='replace')}")
     except urllib.error.URLError as e:
         sys.exit(f"HTTP request failed: {e.reason}")

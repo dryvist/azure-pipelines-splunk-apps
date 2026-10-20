@@ -86,4 +86,4 @@ listing, and the `search` export. For failures, use
 
 ---
 
-[< Previous: Restart pipeline](/Pipelines/Restart-pipeline)
+[< Previous: Repair pipeline](/Pipelines/Repair-pipeline)

@@ -81,6 +81,8 @@ stages:
               workingDirectory: $(Pipeline.Workspace)/app
               displayName: Bump PR version and manifest
               condition: eq(variables['Build.Reason'], 'PullRequest')
+              env:
+                SYSTEM_ACCESSTOKEN: $(System.AccessToken)
             - script: python ../tools/release.py package
               workingDirectory: $(Pipeline.Workspace)/app
               displayName: Package app
