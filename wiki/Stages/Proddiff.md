@@ -8,15 +8,20 @@
 
 - **Does:** Runs after `nonprod` succeeds on a pull request or
   `refs/heads/main` run.
-- **Inputs:** `dist`, `splunk-prod`, tools repo, and Python setup.
-- **Outputs:** `prod-diff-<attempt>` artifact for review.
+- **Inputs:** `dist`, `splunk-prod`, `splunk-itsi-prod`, tools repo, and
+  Python setup.
+- **Outputs:** `prod-diff-<attempt>` and `itsi-prod-diff-<attempt>` artifacts
+  for review.
 
-### Job `proddiff` in the proddiff stage
+### Jobs `proddiff_prod` and `proddiff_itsi_prod` in the proddiff stage
 
-- **Does:** Exports the production app and compares it with the package.
-- **Inputs:** `splunk-prod` group, `SPLUNK_STACK`, `ACS_TOKEN`, `dist`, and
-  Python 3.13.
-- **Outputs:** `prod-diff-<attempt>` pipeline artifact.
+- **Does:** Each job exports the app from one prod search head and compares it
+  with the package. `<side>` is `prod` for the search head that installs
+  replace (group `splunk-prod`) and `itsi-prod` for the prod ITSI search head
+  (group `splunk-itsi-prod`). The two jobs run in parallel.
+- **Inputs:** `splunk-<side>` group, `SPLUNK_STACK`, `SPLUNK_SEARCH_HEAD`,
+  `ACS_TOKEN`, `dist`, and Python 3.13.
+- **Outputs:** `<side>-diff-<attempt>` pipeline artifact.
 
 Steps, in order:
 
@@ -36,26 +41,26 @@ Steps, in order:
   `SPLUNK_STACK`, and `ACS_TOKEN`. **Outputs:** `acs` on `PATH` and its
   configuration for later steps. See the
   [ACS setup lifecycle](/Reference/Release.py-commands).
-- **Export the app from production via ACS:** Exports the configured app.
+- **Export the app from `<side>` via ACS:** Exports the configured app.
   **Inputs:** `SPLUNK_STACK` and `ACS_TOKEN`.
-  **Outputs:** `prod-export/`.
+  **Outputs:** `<side>-export/`.
 - **Install diff dependencies:** Installs `ksconf` and Splunk SDK.
   **Inputs:** Python package index. **Outputs:** Diff tools in Python.
-- **Compare production against this package (file tree, local and
-  default):** Runs `release.py tree`. **Inputs:** `prod-export/` and `dist/`.
-  **Outputs:** `<app-id>-tree.txt` in `prod-diff/`.
-- **Compare production against this package (local files vs default):** Runs
-  `release.py local-diff`. **Inputs:** `prod-export/` and `dist/`.
-  **Outputs:** Local-versus-default reports in `prod-diff/`.
-- **Compare production against this package (merged defaults):** Runs
-  `release.py diff`. **Inputs:** `prod-export/` and `dist/`.
+- **Compare `<side>` against this package (file tree, local and
+  default):** Runs `release.py tree`. **Inputs:** `<side>-export/` and `dist/`.
+  **Outputs:** `<app-id>-tree.txt` in `<side>-diff/`.
+- **Compare `<side>` against this package (local files vs default):** Runs
+  `release.py local-diff`. **Inputs:** `<side>-export/` and `dist/`.
+  **Outputs:** Local-versus-default reports in `<side>-diff/`.
+- **Compare `<side>` against this package (merged defaults):** Runs
+  `release.py diff`. **Inputs:** `<side>-export/` and `dist/`.
   **Outputs:** Patch, summary, HTML, and merged archive reports in
-  `prod-diff/`.
-- **Compare production against this package (data models):** Runs
-  `release.py data-models`. **Inputs:** `prod-export/` and `dist/`.
-  **Outputs:** `<app-id>-data-models.patch` in `prod-diff/`.
-- **Publish artifact (`prod-diff-$(System.JobAttempt)`):** Publishes this
-  attempt's reports. **Inputs:** `prod-diff/`. **Outputs:** Attempt-named
+  `<side>-diff/`.
+- **Compare `<side>` against this package (data models):** Runs
+  `release.py data-models`. **Inputs:** `<side>-export/` and `dist/`.
+  **Outputs:** `<app-id>-data-models.patch` in `<side>-diff/`.
+- **Publish artifact (`<side>-diff-$(System.JobAttempt)`):** Publishes this
+  attempt's reports. **Inputs:** `<side>-diff/`. **Outputs:** Attempt-named
   pipeline artifact.
 
 ## Related
