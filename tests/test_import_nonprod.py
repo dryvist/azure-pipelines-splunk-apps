@@ -31,6 +31,9 @@ def check_import_nonprod():
                 "my_ta/default/app.conf": CONF,
                 "my_ta/default/props.conf": "[changed]\nvalue = default\n",
                 "my_ta/local/props.conf": "[changed]\nvalue = local\n",
+                "my_ta/default/datamodels.conf": "[Fast]\nacceleration = 0\n\n[Slow]\nacceleration = false\n",
+                "my_ta/local/datamodels.conf": "[Fast]\nacceleration = 1\n",
+                "my_ta/local/savedsearches.conf": "[fill]\naction.populate_lookup = 1\nsearch = x\n",
                 "my_ta/local/data/ui/views/example.xml": "<view/>\n",
                 "my_ta/metadata/local.meta": "[my_ta]\naccess = read : [*]\n",
                 "my_ta/users/admin/local/savedsearches.conf": "[search]\n",
@@ -95,6 +98,11 @@ def check_import_nonprod():
         assert not (package / "local" / "data" / "ui" / "views" / "example.xml").exists()
         assert not (package / "users" / "admin" / "local" / "savedsearches.conf").exists()
         assert not (package / "metadata" / "local.meta").exists()
+        datamodels = (package / "default" / "datamodels.conf").read_text(encoding="utf-8")
+        assert "[Fast]\nacceleration = false" in datamodels and "acceleration = 1" not in datamodels
+        saved = (package / "default" / "savedsearches.conf").read_text(encoding="utf-8")
+        assert "action.populate_lookup = 0" in saved and "search = x" in saved
+        assert output.getvalue().count("Splunk Cloud apps cannot ship it on") == 2
         props = (package / "default" / "props.conf").read_text(encoding="utf-8")
         assert "value = local" in props
         assert (package / "default" / "data" / "ui" / "views" / "example.xml").exists()
