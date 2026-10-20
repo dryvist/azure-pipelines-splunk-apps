@@ -23,20 +23,24 @@ from splunk_release.version import (
 )
 
 
-# Settings Splunk Cloud AppInspect rejects, and the value an import writes instead.
-CLOUD_OFF = {"datamodels.conf": ("acceleration", "false"), "savedsearches.conf": ("action.populate_lookup", "0")}
+# Settings Splunk Cloud AppInspect rejects: the value an import writes, or None to remove the setting.
+CLOUD_OFF = {"datamodels.conf": ("acceleration", "false"), "savedsearches.conf": ("action.populate_lookup", None)}
 
 
 def cloud_settings_off(root):
-    """Turn off settings in default/ that Splunk Cloud AppInspect rejects, with one warning each."""
+    """Turn off or remove settings in default/ that Splunk Cloud AppInspect rejects, with one warning each."""
     from ksconf.conf.parser import write_conf
     for name, (key, off) in CLOUD_OFF.items():
         path = root / "default" / name
         conf = compare.parse(path)
-        changed = [s for s, keys in conf.items() if keys.get(key, off).strip().lower() not in ("0", "false")]
+        changed = [s for s, keys in conf.items()
+                   if key in keys and (off is None or keys[key].strip().lower() not in ("0", "f", "false", "n", "no", "off"))]
         for stanza in changed:
-            conf[stanza][key] = off
-            log("warning", f"default/{name} [{stanza}] {key} = {off}: Splunk Cloud apps cannot ship it on")
+            if off is None:
+                del conf[stanza][key]
+            else:
+                conf[stanza][key] = off
+            log("warning", f"default/{name} [{stanza}] {key} {'removed' if off is None else '= ' + off}: not allowed in Splunk Cloud apps")
         if changed:
             write_conf(path, conf)
 
