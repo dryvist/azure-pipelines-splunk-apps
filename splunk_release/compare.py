@@ -7,6 +7,7 @@ import re
 import shutil
 import tarfile
 import tempfile
+from collections import Counter
 from pathlib import Path
 
 from splunk_release.azure import log, print_colored_patch, run
@@ -111,6 +112,12 @@ def file_changes(target, source, wanted):
         changes.append((status, p))
     return changes
 
+def percent_changed(old, new):
+    """Share of lines added or removed, ignoring line order."""
+    a, b = Counter(old), Counter(new)
+    pct = 100 * ((a - b).total() + (b - a).total()) / max(len(old) + len(new), 1)
+    return "<1%" if 0 < pct < 1 else f"{pct:.0f}%"
+
 def change_tree(changes, target, source):
     """Indented tree of changed files with line counts, target -> source."""
     lines, folders = [], set()
@@ -120,8 +127,11 @@ def change_tree(changes, target, source):
             if folder not in folders:
                 lines.append("  " * (depth - 1) + f"{path.parts[depth - 1]}/")
                 folders.add(folder)
-        counts = " -> ".join(str(len(f.read_bytes().splitlines())) for f in (target / path, source / path) if f.exists())
-        lines.append("  " * (len(path.parts) - 1) + f"{path.name} [{status.lower()}] {counts} lines")
+        sides = [f.read_bytes().splitlines() for f in (target / path, source / path) if f.exists()]
+        size = " -> ".join(str(len(side)) for side in sides) + " lines"
+        if len(sides) == 2:
+            size = f"{percent_changed(*sides)} ({size})"
+        lines.append("  " * (len(path.parts) - 1) + f"{path.name} [{status.lower()}] {size}")
     return "\n".join(lines) or "NO DIFFERENCES"
 
 def summary(target, source, target_before, source_before):

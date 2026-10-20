@@ -78,7 +78,7 @@ def check_compare():
         tree_text = (out / "my_ta-tree.txt").read_text()
         local_text = (out / "my_ta-local-vs-default.diff").read_text()
         html_text = (out / "my_ta-diff.html").read_text()
-        assert "props.conf [changed] 2 -> 2 lines" in tree_text
+        assert "props.conf [changed] 50% (2 -> 2 lines)" in tree_text
         assert "source-only.conf [added]" in tree_text
         tree_lines = tree_text.splitlines()
         assert "local/" in tree_lines
@@ -89,6 +89,7 @@ def check_compare():
         assert "users/" in tree_lines
         assert "      savedsearches.conf [removed] 1 lines" in tree_lines
         assert compare.change_tree([], Path(), Path()) == "NO DIFFERENCES"
+        assert compare.percent_changed([b"a"] * 200, [b"a"] * 199 + [b"b"]) == "<1%"
         assert "local/props.conf (Changed)\n" in local_text
         assert "-value = local" in local_text and "+value = package" in local_text
         assert "[new]" in local_text
