@@ -11,6 +11,8 @@
 - `appinspect <dir>` uses `SPLUNK_USERNAME` and `SPLUNK_PASSWORD`.
 - `deploy <dir>` runs `acs apps install private` with `SPLUNK_STACK` and
   `STACK_TOKEN`.
+- `uninstall <dir>` runs `acs apps uninstall <app-id>` when `acs apps list`
+  shows the app, and otherwise prints that it is not installed.
 - `status` runs `acs status current-stack -f structured` and warns when the
   output reports `restartRequired: true`.
 - `wait-version <dir>` reads the version from the single

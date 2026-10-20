@@ -10,8 +10,11 @@ The pipeline in `deploy/azure-pipelines.yml` takes an environment and
 space-separated app ids. Each app gets two stages. A restart stage is optional:
 the Run form parameter **Restart the stack after the deploys if a restart is
 required** defaults off. The stage appears only when it is checked and app ids
-are given. Every stage and job names the app and environment, so a failure
-shows where it happened.
+are given. The Run form parameter **Uninstall each app completely before
+installing it (removes its local settings)** also defaults off. When checked,
+each Deploy stage uninstalls the app before it installs the package. Every
+stage and job names the app and environment, so a failure shows where it
+happened.
 
 - **Compare `<app-id>` with `<environment>`**, job **Compare `<app-id>` with
   `<environment>` (no install)**: downloads the latest package from
@@ -51,6 +54,9 @@ Both per-app jobs run `templates/deploy-app.yml`:
   merged-default reports.
 - **Publish the `<environment>` compare artifact:** Publishes
   `<environment>-diff-<app-id>-<attempt>`.
+- **Uninstall the app from `<environment>` via ACS:** Removes the app and its
+  local settings, or prints that it is not installed. Deploy stage only, and
+  only when **Uninstall** is checked.
 - **Deploy to `<environment>` via ACS:** Installs the package. Deploy stage
   only.
 - **Wait for the deployed version:** Confirms the package version. Deploy

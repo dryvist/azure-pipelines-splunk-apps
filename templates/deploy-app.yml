@@ -6,6 +6,9 @@ parameters:
     type: string
   - name: install
     type: boolean
+  - name: uninstall
+    type: boolean
+    default: false
 
 steps:
   - checkout: self
@@ -33,3 +36,4 @@ steps:
       packageDirectory: $(Pipeline.Workspace)/packages/${{ lower(parameters.app) }}
       compare: ${{ not(parameters.install) }}
       install: ${{ parameters.install }}
+      uninstall: ${{ parameters.uninstall }}

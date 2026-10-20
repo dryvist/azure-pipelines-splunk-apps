@@ -166,6 +166,20 @@ def check_acs():
             acs.deploy(package_dir)
         assert run.call_args.args[0][-2:] == ["--app-package", str(package_dir / "my-app-1.4.10.tar.gz")]
 
+        # Uninstall runs only when the stack lists the app.
+        for listed, calls in ((["my-app"], 1), (["other"], 0)):
+            with (
+                patch.dict(os.environ, {"SPLUNK_STACK": "stack", "AGENT_TEMPDIRECTORY": tmp}),
+                patch("splunk_release.acs.listed_apps", return_value=listed),
+                patch("splunk_release.acs.run") as run,
+                redirect_stdout(io.StringIO()),
+            ):
+                run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+                acs.uninstall(package_dir)
+            assert run.call_count == calls
+            if calls:
+                assert run.call_args.args[0] == ["acs", "apps", "uninstall", "my-app"]
+
         with (
             patch("splunk_release.acs.acs_env", return_value={}),
             patch("splunk_release.acs.run") as run,
