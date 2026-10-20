@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from splunk_release.azure import run
+from splunk_release.azure import log, run
 
 SRC = Path("package")
 
@@ -134,18 +134,17 @@ def bump():
     # Check out the PR source branch before writing the bump commit.
     git("checkout", "-B", source, f"origin/{source}")
     sort_confs(SRC)
-    try:
-        target_text = subprocess.check_output(
-            ["git", "show", f"origin/{target}:{CONF.as_posix()}"], text=True
-        )
-    except subprocess.CalledProcessError:
-        print("target app.conf is missing, skipping bump")
+    target_path = f"origin/{target}:{CONF.as_posix()}"
+    if subprocess.run(["git", "cat-file", "-e", target_path], capture_output=True).returncode:
+        log("warning", "Target app.conf is missing, skipping bump")
         return
+    target_text = run(["git", "show", target_path], check=True, capture_output=True, text=True).stdout
     text = CONF.read_text(**TEXT)
     source_version, target_version = app_conf_version(text), app_conf_version(target_text)
-    print(f"{source} app.conf version {source_version}, {target} app.conf version {target_version}")
+    log("section", "Compare source and target app versions")
+    print(f"Source app.conf version {source_version}; target app.conf version {target_version}")
     if source_version != target_version:
-        print(f"{source} already changes the version, skipping bump")
+        print("Source version already differs, skipping bump")
         return
     text, new = bump_conf(
         text, bump_level(os.environ.get("BUILD_SOURCEVERSIONMESSAGE", ""))

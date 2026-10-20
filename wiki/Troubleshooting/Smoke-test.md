@@ -8,6 +8,26 @@
 
 ![Smoke test login and export jobs feeding the result job.](../diagrams/smoke-test-pipeline.png)
 
+Create and run the pipeline by following [Smoke-test pipeline](/Pipelines/Smoke-test-pipeline).
+
+### Credentials or ACS export fails
+
+**Symptom:** A check prints `FAIL <group>: empty value for <names>`, returns
+HTTP 401 or 403, or fails before or after listing apps.
+
+**Fix:**
+
+1. Fill in each named variable in the reported group.
+2. For AppInspect login failures, check the account username and password.
+3. For ACS login failures, check `SPLUNK_STACK`, `ACS_TOKEN`, and
+   `SPLUNK_SEARCH_HEAD` when using `splunk-itsi`.
+4. If app listing succeeds but export fails, grant `export_apps` to the ACS
+   token account.
+5. Rerun the failed job.
+
+**Verify:** Confirm the job prints its `PASS` lines for login, app listing,
+and export.
+
 ### ACS reports `WITH SEARCH APPS ONLY LOCAL AND USERS CONFIGS ALLOWED`
 
 **Symptom:** ACS returns HTTP 400 with

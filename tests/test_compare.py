@@ -77,7 +77,7 @@ def check_compare():
         assert "users/" in tree_lines
         assert "      savedsearches.conf [removed]" in tree_lines
         assert compare.change_tree([]) == "NO DIFFERENCES"
-        assert "=== local/props.conf vs the same stanzas" in local_text
+        assert "local/props.conf (Changed)\n" in local_text
         assert "-value = package" in local_text and "+value = local" in local_text
         assert "[new]" in local_text
         assert "my_ta deployed diff" in html_text
@@ -129,17 +129,13 @@ def check_compare():
         assert "## Deployed change tree" not in summary
         assert "  props.conf [changed]" not in summary
         logs = output.getvalue()
-        rule = "##[section]" + "=" * 100
-        local_banner = f"\n\n\n{rule}\n##[section]local/props.conf (Changed)\n{rule}\n"
-        patch_banner = f"\n\n\n{rule}\n##[section]default/props.conf (Changed)\n{rule}\n"
-        assert local_banner in logs
-        assert patch_banner in logs
-        assert logs.index(local_banner) < logs.index("=== local/props.conf vs the same stanzas")
-        assert logs.index(patch_banner) < logs.index("--- target/default/props.conf")
-        assert "##[section]====" not in patch_text
+        assert logs.index("local/props.conf (Changed)") < logs.index("--- target/default/props.conf")
+        assert "\n\n\n" + "=" * 100 + "\ndefault/props.conf (Changed)\n" + "=" * 100 in logs
+        assert "--- target/default/props.conf" in logs
+        assert "##[" not in patch_text
         assert "##vso[task.uploadsummary]" in logs
         assert logs.endswith(summary)
-        assert "##[section]Target (deployed): " in logs
+        assert "my_ta: target vs source" in logs
         merged_path = out / "my_ta-merged.tar.gz"
         assert merged_path.exists()
         with tarfile.open(merged_path, "r:gz") as archive:

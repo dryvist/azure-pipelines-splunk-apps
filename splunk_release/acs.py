@@ -10,7 +10,7 @@ import sys
 import time
 from pathlib import Path
 
-from splunk_release.azure import run
+from splunk_release.azure import log, run
 from splunk_release.version import APP
 
 def install_acs():
@@ -41,7 +41,7 @@ def install_acs():
     env = acs_env()
     Path(env["HOME"]).mkdir(exist_ok=True)
     stack, search_head = os.environ["SPLUNK_STACK"], configured_value("SPLUNK_SEARCH_HEAD")
-    print(f"##[section]ACS stack {stack}, search head {search_head or 'not set (all search heads)'}")
+    log("section", f"ACS stack {stack}, search head {search_head or 'not set (all search heads)'}")
     acs(env, "version")
     acs(env, "config", "add-stack", stack, "--use", *([f"--target-sh={search_head}"] if search_head else []))
     acs(env, "login")
@@ -55,13 +55,15 @@ def configured_value(name):
 def acs(env, *args, main=False):
     """Run an ACS CLI command and return stdout; output is grouped unless main or failed."""
     if not main:
-        print(f"##[group]acs {' '.join(args)}")
+        log("group", f"acs {' '.join(args)}")
     result = run(["acs", *args], capture_output=True, text=True, env=env)
     if not main and result.returncode:
-        print("##[endgroup]")
-    print(result.stdout, result.stderr, sep="\n")
+        log("endgroup")
+    for output in (result.stdout, result.stderr):
+        if output.strip():
+            print(output.rstrip())
     if not main and not result.returncode:
-        print("##[endgroup]")
+        log("endgroup")
     if result.returncode:
         raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
     return result.stdout
@@ -75,9 +77,13 @@ def stack_status(env):
     """Return the decoded "response" JSON from the single object acs status prints."""
     raw = acs(env, "status", "current-stack", "-f", "structured")
     try:
-        return json.loads(json.loads(raw)[0]["response"])
-    except (ValueError, LookupError, TypeError):
-        print("##[error]acs status output has no JSON \"response\" field")
+        envelope = json.loads(raw)
+        response = json.loads(envelope[0]["response"])
+        if not isinstance(response, dict):
+            raise ValueError("response must be an object")
+        return response
+    except (ValueError, IndexError, KeyError, TypeError):
+        log("error", 'acs status output has no JSON "response" object')
         raise SystemExit(1)
 
 def restart_required(response):
@@ -86,10 +92,10 @@ def restart_required(response):
 def status():
     env = acs_env()
     response = stack_status(env)
-    print(f"##[section]Stack status of {os.environ['SPLUNK_STACK']}")
+    log("section", f"Stack status of {os.environ['SPLUNK_STACK']}")
     print(json.dumps(response, indent=2))
     if restart_required(response):
-        print(f"##[warning]Restart required on {os.environ['SPLUNK_STACK']}")
+        log("warning", f"Restart required on {os.environ['SPLUNK_STACK']}")
 
 def package_identity(directory):
     packages = list(Path(directory).glob("*.tar.gz"))
@@ -109,13 +115,13 @@ def wait_version(directory):
         if version in acs(env, "apps", "describe", app):
             return
         time.sleep(min(3, max(0, deadline - time.monotonic())))
-    print(f"##[error]Timed out after 300 seconds waiting for {app} version {version}")
+    log("error", f"Timed out after 300 seconds waiting for {app} version {version}")
     raise SystemExit(1)
 
 def restart():
     env = acs_env()
     if not restart_required(stack_status(env)):
-        print(f"##[section]No restart required on {os.environ['SPLUNK_STACK']}, skipping restart")
+        log("section", f"No restart required on {os.environ['SPLUNK_STACK']}, skipping restart")
         return
     acs(env, "restart", "current-stack", main=True)
     deadline = time.monotonic() + 30 * 60
@@ -123,12 +129,12 @@ def restart():
         if not restart_required(stack_status(env)):
             return
         time.sleep(min(30, max(0, deadline - time.monotonic())))
-    print("##[error]Timed out after 30 minutes waiting for restart completion")
+    log("error", "Timed out after 30 minutes waiting for restart completion")
     raise SystemExit(1)
 
 def deploy(directory):
     package, app, version = package_identity(directory)
-    print(f"##[section]Installing {app} {version} as a private app")
+    log("section", f"Installing {app} {version} as a private app")
     env = acs_env()
     acs(env, "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(package), main=True)
 
@@ -141,11 +147,13 @@ def listed_apps(env, splunkbase=False):
         raw = acs(env, *args, "-f", "structured")
         try:
             rows = json.loads(raw)["apps"]
-            if not isinstance(rows, list):
-                raise TypeError
-        except (json.JSONDecodeError, KeyError, TypeError):
-            print(raw)
-            print("##[error]Missing apps in ACS output")
+            if not isinstance(rows, list) or any(
+                not isinstance(item, dict) or not isinstance(item.get("name"), str)
+                for item in rows
+            ):
+                raise ValueError
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+            log("error", "Missing apps in ACS output")
             raise SystemExit(1)
         apps.extend(item["name"] for item in rows)
         if len(rows) < 100:
@@ -178,6 +186,6 @@ def export(out_dir, *app_ids):
             if exported.exists():
                 exported.rename(out / f"{app}.tgz")
             else:
-                print(f"##[warning]NOT INSTALLED {app}")
+                log("warning", f"NOT INSTALLED {app}")
     finally:
         apps_file.unlink(missing_ok=True)

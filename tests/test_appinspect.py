@@ -4,12 +4,15 @@ from unittest import TestCase
 
 import io
 import tempfile
+import os
 from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 from splunk_release import appinspect
 
 
+@patch.dict(os.environ, {"TF_BUILD": "1"})
 def check_appinspect():
     clean = {"summary": {"failure": 0, "error": 0, "manual_check": 0}}
     assert appinspect.appinspect_passed("SUCCESS", clean)

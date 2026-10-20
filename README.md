@@ -1,35 +1,27 @@
 # azure-pipelines-splunk-apps
 
-This repository contains shared Azure Pipelines for Splunk Cloud apps. They
-validate packages, deploy to nonprod, compare app files across environments,
-and publish versioned releases.
+Shared Azure Pipelines templates and Python release tools for packaging,
+validating, comparing, and deploying Splunk Cloud apps.
 
-## Installation
+## Repository contents
 
-### Set up
+- `templates/`: reusable app, deploy, compare, restart, and smoke-test steps.
+- `compare/`, `deploy/`, `restart/`, `smoke-test/`: manual pipeline definitions.
+- `example/`: app repository pipeline example.
+- `release.py` and `splunk_release/`: packaging, AppInspect, ACS, and compare commands.
+- `tests/`: Python unit tests.
+- `wiki/`: setup, pipeline, stage, troubleshooting, and reference pages.
 
-Start with the [setup checklist](AZURE-DEVOPS-SETUP.md), which links to the
-prerequisites and setup procedures.
+## Quick start
 
-## Usage
+Copy `example/azure-pipelines.yml` into an app repository, then follow the
+[getting-started guide](wiki/Getting-started.md).
 
-### Check credentials
+## Full documentation
 
-Run the [smoke test](SMOKE-TEST.md) to check the AppInspect account and both
-ACS tokens before the first app pipeline run.
-
-### Run the tests
-
-From the repository root, run:
-
-```sh
-python -m unittest discover -s tests -p "test_*.py"
-```
-
-The compare pipeline reports the raw file tree, local files against defaults,
-and merged-default differences for each app.
-
-## Documentation
-
-The [documentation pages](wiki/Home.md) are also published as the Azure DevOps
-wiki.
+- [Wiki home](wiki/Home.md)
+- [Getting started](wiki/Getting-started.md)
+- [Pipeline guides](wiki/Pipelines.md)
+- [Stage guides](wiki/Stages.md)
+- [Troubleshooting](wiki/Troubleshooting.md)
+- [Reference](wiki/Reference.md)

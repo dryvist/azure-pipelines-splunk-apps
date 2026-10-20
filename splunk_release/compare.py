@@ -9,7 +9,7 @@ import tarfile
 import tempfile
 from pathlib import Path
 
-from splunk_release.azure import print_colored_patch, run
+from splunk_release.azure import log, print_colored_patch, run
 from splunk_release.package import sort_confs
 
 def archives(directory):
@@ -39,7 +39,7 @@ def drop_install_checksum(root):
     stanza = re.search(r"^\[app/install/install_source_checksum\]\n(?:(?!\[).*\n?)*", text, re.M)
     if not stanza:
         return
-    print(f"##[section]{root.name} metadata/local.meta install checksum (not compared)")
+    log("section", f"{root.name} metadata/local.meta install checksum (not compared)")
     print(stanza[0].strip())
     rest = text.replace(stanza[0], "")
     if rest.strip():
@@ -116,7 +116,7 @@ def summary(target, source, target_before, source_before):
     changes = file_changes(target, source, deployed)
     deployed_list = [f"- {status}: {path.as_posix()}" for status, path in changes]
     return "\n".join([
-        "## Deployed changes", *(deployed_list or ["- None"]),
+        "## Deployed changes", *(deployed_list or ["NO DIFFERENCES"]),
         "## Target local files (kept, not backed up)",
         "These files stay on the target after a deploy, override the deployed defaults, and are not backed up.",
         *listed(p for p in target_before if p.parts[0] != "users" and kept(p)),
@@ -169,13 +169,13 @@ def local_vs_default(target, source, work):
                             f"file://{stanzas}", "-o", str(subset)])
         failed = next((r for r in (run(f, capture_output=True, text=True) for f in filters) if r.returncode), None)
         if failed:
-            report.append((name, "Skipped", f"=== {name} skipped: {failed.stderr.strip()} ===\n"))
+            detail = " ".join(failed.stderr.split())
+            report.append((name, "Skipped", f"ksconf could not parse a file: {detail}"))
             continue
         # ksconf diff output and exit code report file differences.
         result = run(["ksconf", "diff", str(subset), str(local)], capture_output=True, text=True)
         status = "Changed" if result.stdout else "Unchanged"
-        text = f"=== {name} vs the same stanzas in the deployed default ===\n{result.stdout}\n"
-        report.append((name, status, text))
+        report.append((name, status, result.stdout))
     return report
 
 def each_app(target_dir, source_dir, out_dir):
@@ -183,9 +183,12 @@ def each_app(target_dir, source_dir, out_dir):
     targets, sources = archives(target_dir), archives(source_dir)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    print(f"##[section]Target (deployed): {target_dir}")
-    print(f"##[section]Source (new): {source_dir}")
-    for app in sorted(targets.keys() | sources.keys()):
+    apps = sorted(targets.keys() | sources.keys())
+    if not apps:
+        log("section", "Target vs source")
+        print_colored_patch("NO DIFFERENCES")
+    for app in apps:
+        log("section", f"{app}: target vs source")
         with tempfile.TemporaryDirectory() as tmp:
             target, source = Path(tmp, "target"), Path(tmp, "source")
             extract(targets.get(app), target)
@@ -198,20 +201,22 @@ def local_diff(target_dir, source_dir, out_dir):
         work = target.with_name("local-vs-default")
         work.mkdir()
         reports = local_vs_default(target, source, work)
-        text = "".join(report for _, _, report in reports) or "NO DIFFERENCES: no local configuration files.\n"
-        (out / f"{app}-local-vs-default.diff").write_text(text, encoding="utf-8")
-        print(f"##[section]{app}: target local files vs the same stanzas in the source default")
-        for path, status, report in reports:
+        shown = [r for r in reports if r[1] != "Unchanged"]
+        text = "\n\n".join(f"{path} ({status})\n{report.rstrip()}" for path, status, report in shown)
+        (out / f"{app}-local-vs-default.diff").write_text((text or "NO DIFFERENCES") + "\n", encoding="utf-8")
+        for path, status, report in shown:
             print_file_banner(path, status)
             if status == "Skipped":
-                print(f"##[warning]{path}: ksconf could not parse a file; skipped.")
-            print_colored_patch(report.encode())
-        if not reports:
-            print(text, end="")
+                log("warning", f"{path}: ksconf could not parse a file; skipped")
+            print_colored_patch(report)
+        if not shown:
+            print_colored_patch("NO DIFFERENCES")
 
 def print_file_banner(path, status):
-    rule = "##[section]" + "=" * 100
-    print(f"\n\n\n{rule}\n##[section]{path} ({status})\n{rule}")
+    rule = "=" * 100
+    print("\n\n")
+    for line in (rule, f"{path} ({status})", rule):
+        log("section", line)
 
 def tree(target_dir, source_dir, out_dir):
     """Write and print the tree of raw target and source app files."""
@@ -219,8 +224,7 @@ def tree(target_dir, source_dir, out_dir):
         changes = file_changes(target, source, lambda _: True)
         text = change_tree(changes) + "\n"
         (out / f"{app}-tree.txt").write_text(text, encoding="utf-8")
-        print(f"##[section]{app}: target vs source file tree")
-        print(text, end="")
+        print_colored_patch(text)
 
 def diff(target_dir, source_dir, out_dir):
     """Write each app's merged archive, default-only diffs, and Markdown summary."""
@@ -232,7 +236,6 @@ def diff(target_dir, source_dir, out_dir):
         text = summary(target, source, target_before, source_before)
         write_html_diff(app, target, source, changes, out)
         merged_archive(app, target if in_target else source, out / f"{app}-merged.tar.gz")
-        print(f"##[section]{app}: merged default files, target vs source")
         patch = []
         for status, path in changes:
             old, new = (r / path for r in (target, source))
@@ -246,9 +249,8 @@ def diff(target_dir, source_dir, out_dir):
             print_file_banner(path.as_posix(), status)
             print_colored_patch(file_patch)
         if not changes:
-            print("NO DIFFERENCES")
-        patch_text = b"".join(patch)
-        (out / f"{app}.patch").write_bytes(patch_text)
+            print_colored_patch("NO DIFFERENCES")
+        (out / f"{app}.patch").write_bytes(b"".join(patch) or b"NO DIFFERENCES\n")
         (out / f"{app}-summary.md").write_text(text, encoding="utf-8")
         print(f"##vso[task.uploadsummary]{(out / f'{app}-summary.md').resolve()}")
         print(text, end="")
