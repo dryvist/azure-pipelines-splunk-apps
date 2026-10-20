@@ -16,7 +16,7 @@ parameters:
   - name: uninstall
     type: boolean
     default: false
-    displayName: Uninstall each app completely before installing it (removes its local settings)
+    displayName: DANGER - Uninstall each app first. PERMANENTLY DELETES ALL of its lookups (CSV files) and local settings
   - name: restart
     type: boolean
     default: false

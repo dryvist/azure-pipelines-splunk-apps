@@ -16,7 +16,9 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
 - `deploy <dir>` runs `acs apps install private` with `SPLUNK_STACK` and
   `STACK_TOKEN`.
 - `uninstall <dir>` runs `acs apps uninstall <app-id>` when `acs apps list`
-  shows the app, and otherwise prints that it is not installed.
+  shows the app, and otherwise prints that it is not installed. Before it
+  uninstalls, it prints a DANGER warning: the uninstall permanently deletes
+  ALL of the app's lookups (CSV files) and local settings.
 - `status` runs `acs status current-stack -f structured` and warns when the
   output reports `restartRequired: true`.
 - `wait-version <dir>` reads the version from the single

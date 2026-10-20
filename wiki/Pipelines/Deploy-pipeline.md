@@ -10,11 +10,11 @@ The pipeline in `deploy/azure-pipelines.yml` takes an environment and
 space-separated app ids. Each app gets two stages. A restart stage is optional:
 the Run form parameter **Restart the stack after the deploys if a restart is
 required** defaults off. The stage appears only when it is checked and app ids
-are given. The Run form parameter **Uninstall each app completely before
-installing it (removes its local settings)** also defaults off. When checked,
-each Deploy stage uninstalls the app before it installs the package. Every
-stage and job names the app and environment, so a failure shows where it
-happened.
+are given. The Run form parameter **DANGER - Uninstall each app first.
+PERMANENTLY DELETES ALL of its lookups (CSV files) and local settings** also
+defaults off. When checked, each Deploy stage uninstalls the app before it
+installs the package. Every stage and job names the app and environment, so a
+failure shows where it happened.
 
 - **Stage `compare_<app>` (Compare `<app-id>` with `<environment>`):** runs
   two jobs in parallel. **Compare with `<environment>` (no install)** uses
@@ -65,14 +65,22 @@ stages use `templates/deploy-stage.yml`:
   changed data model in its own collapsed group.
 - **Publish the `<side>` compare artifact:** Publishes
   `<side>-diff-<app-id>-<attempt>` from each compare job.
-- **Uninstall the app from `<environment>` via ACS:** Removes the app and its
-  local settings when **Uninstall** is checked. Deploy stage only.
+- **Uninstall the app from `<environment>` via ACS:** Removes the app when the
+  DANGER uninstall option is checked. Deploy stage only.
 - **Deploy to `<environment>` via ACS:** Installs the package in the deploy
   stage.
 - **Wait for the deployed version:** Confirms the package version in the
   deploy stage.
 - **Check stack status after deploy:** Reads the selected stack status in the
   deploy stage.
+
+> **DANGER: uninstalling deletes ALL of the app's lookups.** Every CSV file in
+> the app's `lookups/` folder on the stack, including lookups people edited or
+> uploaded in Splunk Web, is deleted with the app, along with all of its local
+> settings. The install that follows puts back only the lookups in the
+> package. There is no undo. The `<app-id>-merged.tar.gz` file in the compare
+> artifact holds the lookups as they were when the compare ran; anything
+> changed after that is lost.
 
 For the full production walkthrough, see
 [Deploy to production](/Pipelines/Deploy-to-production).
