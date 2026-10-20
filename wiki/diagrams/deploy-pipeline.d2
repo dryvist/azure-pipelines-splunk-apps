@@ -87,15 +87,15 @@ page: "" {
     class: columns
     direction: right
     selection: "Select environment\nand app IDs" {class: card; width: 190}
-    compare: "Compare <app> stage:\ndownload, export,\ncompare (no install)" {class: card; width: 210}
-    review: "Review the compare\nthen approve the\nDeploy <app> stage" {class: [card; exception]; width: 210}
+    compare: "Compare <app> with <environment>\nParallel jobs:\nCompare with <environment> (no install)\nCompare with itsi-<environment> (no install)" {class: card; width: 310}
+    review: "Review the compare, then\napprove Deploy <app> to\n<environment>" {class: [card; exception]; width: 230}
     selection -> compare: {class: link}
     compare -> review: {class: link}
   }
   second: "" {
     class: columns
     direction: left
-    install: "Install <app> job:\ncompare again,\ninstall via ACS" {class: [card; emphasis]; width: 210}
+    install: "Install on <environment>:\noptional uninstall,\ninstall via ACS" {class: [card; emphasis]; width: 240}
     wait: "Wait for the version,\ncheck status" {class: card; width: 210}
     lock: "Exclusive lock:\none app installs\nat a time" {class: [card; ghost]; width: 210}
     install -> wait: {class: link}

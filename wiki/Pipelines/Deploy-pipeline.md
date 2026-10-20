@@ -16,65 +16,70 @@ each Deploy stage uninstalls the app before it installs the package. Every
 stage and job names the app and environment, so a failure shows where it
 happened.
 
-- **Compare `<app-id>` with `<environment>`**, jobs **Compare `<app-id>` with
-  `<environment>` (no install)** and **Compare `<app-id>` with
-  `itsi-<environment>` (no install)**: each downloads the latest package from
-  `splunk-apps`, exports the installed app and compares them. The first uses
-  `splunk-<environment>`, the search head the install replaces; the second
-  uses `splunk-itsi-<environment>`, the ITSI search head. They install
-  nothing.
-- **Deploy `<app-id>` to `<environment>`**, job **Install `<app-id>` on
-  `<environment>`**: waits for the `splunk-<environment>` approval, then
-  installs the package. It does not repeat the compare.
+- **Stage `compare_<app>` (Compare `<app-id>` with `<environment>`):** runs
+  two jobs in parallel. **Compare with `<environment>` (no install)** uses
+  `splunk-<environment>`, the search head the install replaces.
+  **Compare with `itsi-<environment>` (no install)** uses
+  `splunk-itsi-<environment>`, the ITSI search head. Both download the latest
+  package, export the installed app, and compare without installing.
+- **Stage `deploy_<app>` (Deploy `<app-id>` to `<environment>`):** has the
+  deployment job **Install on `<environment>`**. It waits for the
+  `splunk-<environment>` approval, then installs the package. It does not
+  compare the package.
 - **Restart `<environment>` if required**, job **Restart `<environment>` if
   required and check status**: appears only when Restart is checked and app ids
   are given. It waits for approval, restarts only when ACS reports
   `messages.restartRequired`, then checks status.
 
-All compare stages start at once. Each deploy stage starts after its own
+All compare stages start at once. Each deploy stage starts after its matching
 compare stage. The exclusive lock check on `splunk-<environment>` runs the
 deploy stages one at a time. When included, the restart stage runs after every
 deploy stage finishes, including rejected ones. If Restart is unchecked, each
 app's **Check stack status after deploy** step still reports a pending restart.
 
-Both per-app jobs run `templates/deploy-app.yml`:
+Both stages use `templates/feed-package.yml` to check the feed and download
+the latest package. Compare stages use `templates/compare-stage.yml`. Deploy
+stages use `templates/deploy-stage.yml`:
 
-- **Use Python 3.13**, **Install diff dependencies** (Compare stage only) and
-  **Set up ACS CLI** prepare the agent. See
+- **Use Python 3.13:** Prepares the agent in both stages.
+- **Check `<app-id>` is in the splunk-apps feed:** Fails when the feed has no
+  version of the app. Runs in both stages.
+- **Download `<app-id>` from the splunk-apps feed:** Gets the latest package
+  in both stages.
+- **Install diff dependencies:** Installs the compare tools in both compare
+  jobs.
+- **Set up ACS CLI:** Prepares the ACS session in both stages. See
   [release.py commands](/Reference/Release.py-commands).
-- **Check `<app-id>` is in the splunk-apps feed:** Fails with a plain message
-  when the feed has no version of the app. Compare stage only.
-- **Download `<app-id>` from the splunk-apps feed:** Gets the latest package.
-- **Check stack status before deploy:** Reads the selected stack status.
-- **Export this app from `<environment>` via ACS:** Exports the installed app.
-  An app that is not installed prints `NOT INSTALLED <app-id>`. This step, the
-  three compare steps, and the publish step run in the Compare stage only.
-- **Compare `<environment>` with this package (file tree, local and
-  default):** Writes `<app-id>-tree.txt` with raw file changes.
-- **Compare `<environment>` with this package (local files vs default):**
+- **Check stack status before deploy:** Reads the selected stack status in
+  both stages.
+- **Export this app from `<side>` via ACS:** Exports the installed app
+  in each compare job. An app that is not installed prints
+  `NOT INSTALLED <app-id>`.
+- **Compare `<side>` with this package (file tree, local and default):**
+  Writes `<app-id>-tree.txt` with raw file changes.
+- **Compare `<side>` with this package (local files vs default):**
   Writes the local-versus-default report.
-- **Compare `<environment>` with this package (merged defaults):** Writes the
+- **Compare `<side>` with this package (merged defaults):** Writes the
   merged-default reports.
-- **Compare `<environment>` with this package (data models):** Prints each
+- **Compare `<side>` with this package (data models):** Prints each
   changed data model in its own collapsed group.
-- **Publish the `<environment>` compare artifact:** Publishes
-  `<environment>-diff-<app-id>-<attempt>` or `itsi-<environment>-diff-<app-id>-<attempt>`.
+- **Publish the `<side>` compare artifact:** Publishes
+  `<side>-diff-<app-id>-<attempt>` from each compare job.
 - **Uninstall the app from `<environment>` via ACS:** Removes the app and its
-  local settings, or prints that it is not installed. Deploy stage only, and
-  only when **Uninstall** is checked.
-- **Deploy to `<environment>` via ACS:** Installs the package. Deploy stage
-  only.
-- **Wait for the deployed version:** Confirms the package version. Deploy
-  stage only.
-- **Check stack status after deploy:** Reads the selected stack status.
-  Deploy stage only.
+  local settings when **Uninstall** is checked. Deploy stage only.
+- **Deploy to `<environment>` via ACS:** Installs the package in the deploy
+  stage.
+- **Wait for the deployed version:** Confirms the package version in the
+  deploy stage.
+- **Check stack status after deploy:** Reads the selected stack status in the
+  deploy stage.
 
 For the full production walkthrough, see
 [Deploy to production](/Pipelines/Deploy-to-production).
 
 ![Manual deploy pipeline flow.](../diagrams/deploy-pipeline.png)
 
-![Shared per-app steps.](../diagrams/deployment-job.png)
+![Compare and deployment job steps.](../diagrams/deployment-job.png)
 
 ## Related
 

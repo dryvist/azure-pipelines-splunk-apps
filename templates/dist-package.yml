@@ -1,0 +1,10 @@
+# Run the app pipeline setup steps, then download this run's package artifact to $(Pipeline.Workspace)/dist.
+parameters:
+  - name: setup
+    type: stepList
+
+steps:
+  - ${{ parameters.setup }}
+  - download: current
+    displayName: Download the package artifact (dist)
+    artifact: dist

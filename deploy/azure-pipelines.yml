@@ -25,47 +25,28 @@ parameters:
 stages:
   - ${{ each app in split(parameters.apps, ' ') }}:
       - ${{ if ne(app, '') }}:
-          - stage: compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
-            displayName: Compare ${{ app }} with ${{ parameters.environment }}
-            dependsOn: []
-            jobs:
-              # <environment> is the search head the install replaces; itsi-<environment> is the ITSI search head.
-              - ${{ each side in split(format('{0} itsi-{0}', parameters.environment), ' ') }}:
-                  - job: compare_${{ replace(side, '-', '_') }}
-                    displayName: Compare ${{ app }} with ${{ side }} (no install)
-                    workspace:
-                      clean: all
-                    variables:
-                      - group: splunk-${{ side }}
-                    steps:
-                      - template: ../templates/deploy-app.yml
-                        parameters:
-                          app: ${{ app }}
-                          environment: ${{ side }}
-                          install: false
-          - stage: deploy_${{ replace(replace(app, '-', '_'), '.', '_') }}
-            displayName: Deploy ${{ app }} to ${{ parameters.environment }}
-            dependsOn: compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
-            lockBehavior: sequential
-            variables:
-              - group: splunk-appinspect
-              - group: splunk-${{ parameters.environment }}
-            jobs:
-              - deployment: deploy
-                displayName: Install ${{ app }} on ${{ parameters.environment }}
-                workspace:
-                  clean: all
-                environment: splunk-${{ parameters.environment }}
-                strategy:
-                  runOnce:
-                    deploy:
-                      steps:
-                        - template: ../templates/deploy-app.yml
-                          parameters:
-                            app: ${{ app }}
-                            environment: ${{ parameters.environment }}
-                            install: true
-                            uninstall: ${{ parameters.uninstall }}
+          - template: ../templates/compare-stage.yml
+            parameters:
+              name: compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
+              displayName: Compare ${{ app }} with ${{ parameters.environment }}
+              environment: ${{ parameters.environment }}
+              packageDirectory: $(Pipeline.Workspace)/packages/${{ lower(app) }}
+              steps:
+                - template: ../templates/feed-package.yml
+                  parameters:
+                    app: ${{ app }}
+          - template: ../templates/deploy-stage.yml
+            parameters:
+              name: deploy_${{ replace(replace(app, '-', '_'), '.', '_') }}
+              displayName: Deploy ${{ app }} to ${{ parameters.environment }}
+              environment: ${{ parameters.environment }}
+              dependsOn: compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
+              packageDirectory: $(Pipeline.Workspace)/packages/${{ lower(app) }}
+              uninstall: ${{ parameters.uninstall }}
+              steps:
+                - template: ../templates/feed-package.yml
+                  parameters:
+                    app: ${{ app }}
   - ${{ if and(parameters.restart, ne(trim(parameters.apps), '')) }}:
     - stage: restart
       displayName: Restart ${{ parameters.environment }} if required

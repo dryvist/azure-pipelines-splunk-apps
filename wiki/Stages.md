@@ -6,14 +6,13 @@
 
 These pages follow the app pipeline stages in execution order.
 
-| Page | What it answers |
-| --- | --- |
-| [Build](/Stages/Build) | Package the app and publish `dist`. |
-| [AppInspect](/Stages/AppInspect) | Validate the package and publish reports. |
-| [Nonprod](/Stages/Nonprod) | Compare and deploy to nonprod. |
-| [Proddiff](/Stages/Proddiff) | Compare production with the package. |
-| [Release](/Stages/Release) | Tag and publish a versioned package. |
-| [Prod](/Stages/Prod) | Compare and deploy to prod after approval. |
+- [Build](/Stages/Build): `build`, **Build**.
+- [AppInspect](/Stages/AppInspect): `appinspect`, **AppInspect**.
+- [Nonproddiff](/Stages/Nonproddiff): `nonproddiff`, **Compare with nonprod**.
+- [Nonprod](/Stages/Nonprod): `nonprod`, **Deploy to nonprod**.
+- [Proddiff](/Stages/Proddiff): `proddiff`, **Compare with prod**.
+- [Release](/Stages/Release): `release`, **Release**.
+- [Prod](/Stages/Prod): `prod`, **Deploy to prod**.
 
 ## Related
 

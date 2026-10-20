@@ -100,9 +100,9 @@ stages:
           workspace:
             clean: all
           steps:
-            - ${{ parameters.setup }}
-            - download: current
-              artifact: dist
+            - template: dist-package.yml
+              parameters:
+                setup: ${{ parameters.setup }}
             - script: python $(Pipeline.Workspace)/tools/release.py appinspect $(Pipeline.Workspace)/dist
               displayName: Run AppInspect
               env: # secrets reach scripts only when mapped
@@ -130,52 +130,47 @@ stages:
                 BUILD_BUILDID: $(Build.BuildId)
               condition: succeededOrFailed()
 
-    - template: deploy-stage.yml
+    - template: compare-stage.yml
       parameters:
+        name: nonproddiff
+        displayName: Compare with nonprod
         environment: nonprod
         dependsOn: appinspect
-        compare: true
         condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
         pool: ${{ parameters.pool }}
-        setup: ${{ parameters.setup }}
+        packageDirectory: $(Pipeline.Workspace)/dist
+        steps:
+          - template: dist-package.yml
+            parameters:
+              setup: ${{ parameters.setup }}
 
-    - stage: proddiff
-      displayName: Compare with prod
-      dependsOn: nonprod
-      condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
-      jobs:
-        # prod is the search head installs replace; itsi-prod is the prod ITSI search head.
-        - ${{ each side in split('prod itsi-prod', ' ') }}:
-            - job: proddiff_${{ replace(side, '-', '_') }}
-              displayName: ${{ iif(eq(side, 'prod'), 'Compare the package with prod (no install)', 'Compare the package with the prod ITSI search head (no install)') }}
-              pool: ${{ parameters.pool }}
-              workspace:
-                clean: all
-              variables:
-                - group: splunk-${{ side }}
-              steps:
-                - checkout: self
-                  path: app
-                - ${{ parameters.setup }}
-                - download: current
-                  displayName: Download the package artifact (dist)
-                  artifact: dist
-                - template: acs-cli.yml
-                - template: acs-step.yml
-                  parameters:
-                    command: ../tools/release.py export $(Pipeline.Workspace)/${{ side }}-export
-                    displayName: Export the app from ${{ side }} via ACS
-                    workingDirectory: $(Pipeline.Workspace)/app
-                - template: diff-tools.yml
-                - template: compare-steps.yml
-                  parameters:
-                    target: $(Pipeline.Workspace)/${{ side }}-export
-                    source: $(Pipeline.Workspace)/dist
-                    out: $(Pipeline.Workspace)/${{ side }}-diff
-                    label: ${{ side }} against this package
-                - publish: $(Pipeline.Workspace)/${{ side }}-diff
-                  displayName: Publish the ${{ side }} compare artifact
-                  artifact: ${{ side }}-diff-$(System.JobAttempt)
+    - template: deploy-stage.yml
+      parameters:
+        name: nonprod
+        displayName: Deploy to nonprod
+        environment: nonprod
+        dependsOn: nonproddiff
+        condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
+        pool: ${{ parameters.pool }}
+        packageDirectory: $(Pipeline.Workspace)/dist
+        steps:
+          - template: dist-package.yml
+            parameters:
+              setup: ${{ parameters.setup }}
+
+    - template: compare-stage.yml
+      parameters:
+        name: proddiff
+        displayName: Compare with prod
+        environment: prod
+        dependsOn: nonprod
+        condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
+        pool: ${{ parameters.pool }}
+        packageDirectory: $(Pipeline.Workspace)/dist
+        steps:
+          - template: dist-package.yml
+            parameters:
+              setup: ${{ parameters.setup }}
 
     - stage: release
       displayName: Release
@@ -191,10 +186,9 @@ stages:
             - checkout: self
               path: app
               persistCredentials: true
-            - ${{ parameters.setup }}
-            - download: current
-              displayName: Download the package artifact (dist)
-              artifact: dist
+            - template: dist-package.yml
+              parameters:
+                setup: ${{ parameters.setup }}
             - script: python ../tools/release.py tag
               workingDirectory: $(Pipeline.Workspace)/app
               displayName: Tag the release version
@@ -215,9 +209,14 @@ stages:
     # Waits for the splunk-prod approval; a timed-out approval skips this stage. The proddiff stage runs the prod compare.
     - template: deploy-stage.yml
       parameters:
+        name: prod
+        displayName: Deploy to prod
         environment: prod
         dependsOn: release
-        compare: false
         condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
         pool: ${{ parameters.pool }}
-        setup: ${{ parameters.setup }}
+        packageDirectory: $(Pipeline.Workspace)/dist
+        steps:
+          - template: dist-package.yml
+            parameters:
+              setup: ${{ parameters.setup }}

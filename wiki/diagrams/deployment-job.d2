@@ -71,7 +71,7 @@ page: "" {
     grid-columns: 3
     grid-gap: 0
     pad_left: "." {shape: text; width: 290; style.opacity: 0}
-    title: "Shared Per-app Deployment Steps" {class: title}
+    title: "Per-app Compare and Install Steps" {class: title}
     pad_right: "." {shape: text; width: 290; style.opacity: 0}
   }
   vertical-gap: 24
@@ -79,26 +79,28 @@ page: "" {
   first: "" {
     class: columns
     direction: right
-    before: "Check status before deploy" {class: card; width: 245}
-    export: "Export installed app" {class: card; width: 245}
-    compare: "Compare with package" {class: card; width: 245}
-    before -> export: {class: link}
+    package: "Compare job: check feed\nand download package" {class: card; width: 245}
+    tools: "Install diff tools\nand set up ACS CLI" {class: card; width: 245}
+    export: "Check status and\nexport installed app" {class: card; width: 245}
+    compare: "Run four compare\nsteps" {class: card; width: 245}
+    artifact: "Publish attempt\ncompare artifact" {class: card; width: 245}
+    package -> tools: {class: link}
+    tools -> export: {class: link}
     export -> compare: {class: link}
+    compare -> artifact: {class: link}
   }
   second: "" {
     class: columns
-    direction: left
-    wait: "Wait for package version" {class: card; width: 245}
-    install: "Install package via ACS" {class: [card; emphasis]; width: 245}
-    artifact: "Publish attempt diff" {class: card; width: 245}
-    artifact -> install: {class: link-emphasis}
-    install -> wait: {class: link}
+    direction: right
+    package: "Install job: check feed\nand download package" {class: card; width: 245}
+    setup: "Set up ACS CLI and\ncheck stack status" {class: card; width: 245}
+    uninstall: "Optional uninstall\nof app and local settings" {class: card; width: 245}
+    install: "Install package\nvia ACS" {class: [card; emphasis]; width: 245}
+    verify: "Wait for version\nand check status" {class: card; width: 245}
+    package -> setup: {class: link}
+    setup -> uninstall: {class: link}
+    uninstall -> install: {class: link-emphasis}
+    install -> verify: {class: link}
   }
-  finish: "" {
-    class: columns
-    grid-columns: 1
-    after: "Check status after deploy" {class: card; width: 245}
-  }
-  first.compare -> second.artifact: {class: link}
-  second.wait -> finish.after: {class: link}
+  first.artifact -> second.package: "after compare and approval" {class: link-exception}
 }

@@ -83,7 +83,7 @@ Timeout, Azure marks the stage skipped.
 
 1. Open the app pipeline's `main` run.
 2. On **Deploy to prod**, select **Review**.
-3. Select **Approve** to allow the prod compare and install.
+3. Select **Approve** to allow the prod install.
 4. Leave the approval pending to have the stage skip at Timeout.
 
 **Verify:**
@@ -98,7 +98,7 @@ Repeat for every app, one at a time.
 **Do:**
 
 1. Open the **Compare `<app-id>` with prod** stage.
-2. Open the job **Compare `<app-id>` with prod (no install)**.
+2. Open the job **Compare with prod (no install)**.
 3. Open the step **Compare prod with this package (file tree, local and
    default)**.
 4. Read the `[added]` lines. They are files in the package from Azure Repos
@@ -110,7 +110,7 @@ Repeat for every app, one at a time.
    this package's defaults.
 8. Open the step **Compare prod with this package (merged defaults)**.
 9. Read each file's diff.
-10. Open the job **Compare `<app-id>` with itsi-prod (no install)**.
+10. Open the job **Compare with itsi-prod (no install)**.
 11. Repeat steps 3 to 9 for the prod ITSI search head. Its local settings are
     what was built by hand there.
 12. Return to the run summary.
@@ -121,7 +121,7 @@ Repeat for every app, one at a time.
 
 **Verify:**
 
-1. The job **Install `<app-id>` on prod** shows each step green: **Deploy to
+1. The job **Install on prod** shows each step green: **Deploy to
    prod via ACS**, **Wait for the deployed version** and **Check stack status
    after deploy**.
 2. A failed step names the app in its stage and job title.

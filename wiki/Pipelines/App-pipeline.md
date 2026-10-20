@@ -13,12 +13,16 @@ Azure Repos queues pull request validation through a Build Validation policy.
 The YAML `trigger` queues commits to `main`; Azure Repos ignores YAML `pr:`
 triggers. `Show stage plan` prints the run reason and stage conditions.
 
-Build and AppInspect run first. Nonprod and Proddiff run on pull requests and
-`main`. Release depends on Proddiff and runs only on `main`. Prod follows
-Release on successful `main` runs and waits for approval on `splunk-prod` before
-comparing and installing the package. A rejection stops the stage. If approval
-reaches its Timeout, Azure marks the stage skipped. Nothing installs to prod
-without approval. See [Prod stage](/Stages/Prod).
+The stage order is `build`, `appinspect`, `nonproddiff`, `nonprod`, `proddiff`,
+`release`, and `prod`. `nonproddiff` displays as **Compare with nonprod** and
+runs two parallel jobs that compare without installing.
+`nonprod` displays as **Deploy to nonprod** and runs after `nonproddiff`.
+`proddiff` displays as **Compare with prod** and runs after `nonprod`.
+`release` depends on `proddiff` and runs on `main`. `prod` displays as
+**Deploy to prod**, follows `release`, and waits for approval on `splunk-prod`
+before installing. A rejection stops the stage. If approval reaches its
+Timeout, Azure marks the stage skipped. Nothing installs to prod without
+approval. See [Prod stage](/Stages/Prod).
 
 The shared template also accepts the `importFromNonprod` boolean runtime
 parameter. Its default is `false`, which keeps the stages above. When selected,
@@ -37,6 +41,9 @@ The bump commit starts a new run that validates the bumped version.
 
 - [Stages](/Stages)
 - [Build stage](/Stages/Build)
+- [Nonproddiff stage](/Stages/Nonproddiff)
+- [Nonprod stage](/Stages/Nonprod)
+- [Proddiff stage](/Stages/Proddiff)
 - [Prod stage](/Stages/Prod)
 - [Import from nonprod](/Pipelines/Nonprod-import)
 

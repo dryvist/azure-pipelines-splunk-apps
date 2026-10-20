@@ -1,0 +1,49 @@
+# One stage that compares a package with an environment's search head and its ITSI search head, one job each, without installing.
+parameters:
+  - name: name
+    type: string
+  - name: displayName
+    type: string
+  - name: environment
+    type: string
+  - name: dependsOn
+    type: object
+    default: []
+  - name: condition
+    type: string
+    default: succeeded()
+  # Empty uses the pipeline's default pool.
+  - name: pool
+    type: object
+    default: ''
+  # Steps that put release.py in $(Pipeline.Workspace)/tools and the package in packageDirectory.
+  - name: steps
+    type: stepList
+  - name: packageDirectory
+    type: string
+
+stages:
+  - stage: ${{ parameters.name }}
+    displayName: ${{ parameters.displayName }}
+    dependsOn: ${{ parameters.dependsOn }}
+    condition: ${{ parameters.condition }}
+    jobs:
+      # <environment> is the search head installs replace; itsi-<environment> is the ITSI search head.
+      - ${{ each side in split(format('{0} itsi-{0}', parameters.environment), ' ') }}:
+          - job: compare_${{ replace(side, '-', '_') }}
+            displayName: Compare with ${{ side }} (no install)
+            ${{ if parameters.pool }}:
+              pool: ${{ parameters.pool }}
+            workspace:
+              clean: all
+            variables:
+              - group: splunk-${{ side }}
+            steps:
+              - ${{ parameters.steps }}
+              - template: diff-tools.yml
+              - template: acs-cli.yml
+              - template: deploy.yml
+                parameters:
+                  environment: ${{ side }}
+                  packageDirectory: ${{ parameters.packageDirectory }}
+                  install: false

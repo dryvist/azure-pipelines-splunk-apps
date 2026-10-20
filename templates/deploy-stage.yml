@@ -1,31 +1,41 @@
-# One app pipeline stage that installs the dist package, after comparing it with the environment when compare is true.
+# One stage that installs a package on an environment after its splunk-<environment> approval.
 parameters:
+  - name: name
+    type: string
+  - name: displayName
+    type: string
   - name: environment
     type: string
   - name: dependsOn
-    type: string
+    type: object
+    default: []
   - name: condition
     type: string
-  - name: compare
-    type: boolean
+    default: succeeded()
+  # Empty uses the pipeline's default pool.
   - name: pool
     type: object
-  - name: setup
+    default: ''
+  # Steps that put release.py in $(Pipeline.Workspace)/tools and the package in packageDirectory.
+  - name: steps
     type: stepList
+  - name: packageDirectory
+    type: string
+  - name: uninstall
+    type: boolean
+    default: false
 
 stages:
-  - stage: ${{ parameters.environment }}
-    displayName: Deploy to ${{ parameters.environment }}
+  - stage: ${{ parameters.name }}
+    displayName: ${{ parameters.displayName }}
     dependsOn: ${{ parameters.dependsOn }}
     condition: ${{ parameters.condition }}
     lockBehavior: sequential
     jobs:
       - deployment: deploy
-        ${{ if eq(parameters.compare, true) }}:
-          displayName: Compare with ${{ parameters.environment }} and install
-        ${{ else }}:
-          displayName: Install on ${{ parameters.environment }}
-        pool: ${{ parameters.pool }}
+        displayName: Install on ${{ parameters.environment }}
+        ${{ if parameters.pool }}:
+          pool: ${{ parameters.pool }}
         workspace:
           clean: all
         environment: splunk-${{ parameters.environment }}
@@ -36,15 +46,11 @@ stages:
           runOnce:
             deploy:
               steps:
-                - ${{ parameters.setup }}
-                - ${{ if eq(parameters.compare, true) }}:
-                    - template: diff-tools.yml
+                - ${{ parameters.steps }}
                 - template: acs-cli.yml
-                - download: current
-                  displayName: Download the package artifact (dist)
-                  artifact: dist
                 - template: deploy.yml
                   parameters:
                     environment: ${{ parameters.environment }}
-                    packageDirectory: $(Pipeline.Workspace)/dist
-                    compare: ${{ parameters.compare }}
+                    packageDirectory: ${{ parameters.packageDirectory }}
+                    compare: false
+                    uninstall: ${{ parameters.uninstall }}
