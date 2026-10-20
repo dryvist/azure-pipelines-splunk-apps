@@ -1,0 +1,22 @@
+# Check out the tools repository, then download one app package from the splunk-apps feed to $(Pipeline.Workspace)/packages/<app>.
+parameters:
+  - name: app
+    type: string
+
+steps:
+  - checkout: self
+    path: tools
+  - template: python.yml
+  - script: python "$(Pipeline.Workspace)/tools/release.py" feed-check ${{ lower(parameters.app) }}
+    displayName: Check ${{ lower(parameters.app) }} is in the splunk-apps feed
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+  - task: UniversalPackages@0
+    displayName: Download ${{ lower(parameters.app) }} from the splunk-apps feed
+    inputs:
+      command: download
+      feedsToUse: internal
+      vstsFeed: $(System.TeamProject)/splunk-apps
+      vstsFeedPackage: ${{ lower(parameters.app) }}
+      vstsPackageVersion: '*'
+      downloadDirectory: $(Pipeline.Workspace)/packages/${{ lower(parameters.app) }}

@@ -13,8 +13,8 @@ from splunk_release import azure
 def check_azure():
     # The stage plan runs compare and nonprod on pull requests and main.
     for env, runs in (
-        ({"BUILD_REASON": "PullRequest", "BUILD_SOURCEBRANCH": "refs/heads/feature"}, {"nonprod", "proddiff"}),
-        ({"BUILD_REASON": "IndividualCI", "BUILD_SOURCEBRANCH": "refs/heads/main"}, {"nonprod", "proddiff", "release"}),
+        ({"BUILD_REASON": "PullRequest", "BUILD_SOURCEBRANCH": "refs/heads/feature"}, {"nonproddiff", "nonprod", "proddiff"}),
+        ({"BUILD_REASON": "IndividualCI", "BUILD_SOURCEBRANCH": "refs/heads/main"}, {"nonproddiff", "nonprod", "proddiff", "release", "prod"}),
     ):
         output = io.StringIO()
         with patch.dict(os.environ, env, clear=True), redirect_stdout(output):

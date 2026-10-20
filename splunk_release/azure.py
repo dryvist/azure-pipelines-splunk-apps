@@ -71,11 +71,13 @@ def plan():
     for stage, runs, rule in (
         ("build", True, "every run"),
         ("appinspect", True, "after build, unless the build pushed a version bump"),
+        ("nonproddiff", compare, "pull request or refs/heads/main"),
         ("nonprod", compare, "pull request or refs/heads/main"),
         ("proddiff", compare, "pull request or refs/heads/main"),
         ("release", main, "refs/heads/main, after proddiff"),
+        ("prod", main, "refs/heads/main, after release and the splunk-prod approval"),
     ):
-        print(f"{stage:<11} {'RUNS' if runs else 'SKIPPED':<8} runs when {rule}")
+        print(f"{stage:<12} {'RUNS' if runs else 'SKIPPED':<8} runs when {rule}")
 
 def appinspect_link():
     """Print the link to this build's published artifacts."""
