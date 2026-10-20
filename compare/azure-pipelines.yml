@@ -4,18 +4,21 @@ pr: none
 
 parameters:
   - name: source
+    displayName: Source - environment whose apps are compared (files only here show as added)
     type: string
     default: nonprod
     values:
       - nonprod
       - prod
   - name: target
+    displayName: Target - environment compared against (files only here show as removed)
     type: string
     default: prod
     values:
       - nonprod
       - prod
   - name: groupPrefix
+    displayName: Variable groups - splunk uses splunk-<env>, splunk-itsi uses splunk-itsi-<env>
     type: string
     default: splunk
     values:
