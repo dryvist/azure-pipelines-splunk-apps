@@ -58,10 +58,12 @@ Repeat for every app you plan to deploy.
 3. Select **Run pipeline**.
 4. Select `prod` for **Environment**.
 5. Type the app ids, separated by spaces, in **App IDs**.
-6. If you want a restart, check **Restart the stack after the deploys if a
+6. Leave **Uninstall each app completely before installing it** unchecked. Check
+   it only to remove each app and its local settings before the install.
+7. If you want a restart, check **Restart the stack after the deploys if a
    restart is required**.
-7. Select **Run**.
-8. Wait until every **Compare `<app-id>` with prod** stage is green.
+8. Select **Run**.
+9. Wait until every **Compare `<app-id>` with prod** stage is green.
 
 **Verify:**
 

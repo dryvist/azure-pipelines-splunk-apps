@@ -138,6 +138,16 @@ def deploy(directory):
     env = acs_env()
     acs(env, "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(package), main=True)
 
+def uninstall(directory):
+    """Uninstall the package's app from the stack, or report that it is not installed."""
+    _, app, _ = package_identity(directory)
+    env, stack = acs_env(), os.environ["SPLUNK_STACK"]
+    if app not in listed_apps(env):
+        log("section", f"{app} is not installed on {stack}, nothing to uninstall")
+        return
+    log("section", f"Uninstalling {app} from {stack}")
+    acs(env, "apps", "uninstall", app, main=True)
+
 def listed_apps(env, splunkbase=False):
     apps, offset = [], 0
     while True:

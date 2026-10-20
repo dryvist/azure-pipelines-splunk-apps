@@ -6,6 +6,7 @@ release.py package                      stage package/ and write dist/<app-id>-<
 release.py appinspect <dir>             submit the package in <dir> to AppInspect
 release.py deploy <dir>                 install the single .tar.gz in <dir> with the ACS CLI
 release.py status                       report current-stack status and pending restart
+release.py uninstall <dir>              uninstall the app in <dir> from the stack when it is installed
 release.py wait-version <dir>           wait until ACS reports the packaged app version
 release.py restart                      restart current-stack only when a restart is required, then wait
 release.py export <out-dir> [app-id...] export app data, custom apps (--custom), or a package directory
@@ -15,7 +16,7 @@ release.py diff <target> <source> <out> merge local into default on both sides, 
 release.py install-acs                  download and verify the ACS CLI, add it to PATH, add the stack, log in
 release.py appinspect-link              print the link to this build's published artifacts
 release.py plan                         print which stages this run executes and why
-release.py feed-check <app-id>           fail when the splunk-apps feed holds no version of the app
+release.py feed-check <app-id>          fail when the splunk-apps feed holds no version of the app
 release.py tag                          tag HEAD as v<version>, push the tag, and set APP_ID/APP_VERSION (CI only)
 release.py import-nonprod <export-dir>  replace package/ from a nonprod export and open a pull request
 
@@ -26,7 +27,7 @@ SPLUNK_SEARCH_HEAD selects a target search head for compare and smoke tests.
 import subprocess
 import sys
 
-from splunk_release.acs import deploy, export, install_acs, restart, status, wait_version
+from splunk_release.acs import deploy, export, install_acs, restart, status, uninstall, wait_version
 from splunk_release.appinspect import appinspect
 from splunk_release.azure import appinspect_link, plan, report_command_error, report_system_exit
 from splunk_release.compare import diff, local_diff, tree
@@ -39,6 +40,7 @@ commands = {
     "package": package,
     "appinspect": appinspect,
     "deploy": deploy,
+    "uninstall": uninstall,
     "status": status,
     "wait-version": wait_version,
     "restart": restart,
