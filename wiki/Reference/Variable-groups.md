@@ -9,7 +9,9 @@
 - `splunk-appinspect`: AppInspect stage; also declared by the Nonprod job.
 - `splunk-nonprod`: Nonprod deployment.
 - `splunk-itsi-nonprod`: Import from the nonprod ITSI search head.
-- `splunk-prod`: Proddiff comparison.
+- `splunk-prod`: Proddiff comparison with the search head installs replace,
+  and the Prod deployment.
+- `splunk-itsi-prod`: Proddiff comparison with the prod ITSI search head.
 
 ## Manual pipelines
 

@@ -143,37 +143,39 @@ stages:
       displayName: Compare with prod
       dependsOn: nonprod
       condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
-      variables:
-        - group: splunk-prod
       jobs:
-        - job: proddiff
-          displayName: Compare the package with prod (no install)
-          pool: ${{ parameters.pool }}
-          workspace:
-            clean: all
-          steps:
-            - checkout: self
-              path: app
-            - ${{ parameters.setup }}
-            - download: current
-              displayName: Download the package artifact (dist)
-              artifact: dist
-            - template: acs-cli.yml
-            - template: acs-step.yml
-              parameters:
-                command: ../tools/release.py export $(Pipeline.Workspace)/prod-export
-                displayName: Export the app from production via ACS
-                workingDirectory: $(Pipeline.Workspace)/app
-            - template: diff-tools.yml
-            - template: compare-steps.yml
-              parameters:
-                target: $(Pipeline.Workspace)/prod-export
-                source: $(Pipeline.Workspace)/dist
-                out: $(Pipeline.Workspace)/prod-diff
-                label: production against this package
-            - publish: $(Pipeline.Workspace)/prod-diff
-              displayName: Publish the prod compare artifact
-              artifact: prod-diff-$(System.JobAttempt)
+        # prod is the search head installs replace; itsi-prod is the prod ITSI search head.
+        - ${{ each side in split('prod itsi-prod', ' ') }}:
+            - job: proddiff_${{ replace(side, '-', '_') }}
+              displayName: ${{ iif(eq(side, 'prod'), 'Compare the package with prod (no install)', 'Compare the package with the prod ITSI search head (no install)') }}
+              pool: ${{ parameters.pool }}
+              workspace:
+                clean: all
+              variables:
+                - group: splunk-${{ side }}
+              steps:
+                - checkout: self
+                  path: app
+                - ${{ parameters.setup }}
+                - download: current
+                  displayName: Download the package artifact (dist)
+                  artifact: dist
+                - template: acs-cli.yml
+                - template: acs-step.yml
+                  parameters:
+                    command: ../tools/release.py export $(Pipeline.Workspace)/${{ side }}-export
+                    displayName: Export the app from ${{ side }} via ACS
+                    workingDirectory: $(Pipeline.Workspace)/app
+                - template: diff-tools.yml
+                - template: compare-steps.yml
+                  parameters:
+                    target: $(Pipeline.Workspace)/${{ side }}-export
+                    source: $(Pipeline.Workspace)/dist
+                    out: $(Pipeline.Workspace)/${{ side }}-diff
+                    label: ${{ side }} against this package
+                - publish: $(Pipeline.Workspace)/${{ side }}-diff
+                  displayName: Publish the ${{ side }} compare artifact
+                  artifact: ${{ side }}-diff-$(System.JobAttempt)
 
     - stage: release
       displayName: Release
