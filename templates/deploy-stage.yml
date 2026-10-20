@@ -1,0 +1,43 @@
+# One app pipeline stage that compares the dist package with an environment, then installs it.
+parameters:
+  - name: environment
+    type: string
+  - name: dependsOn
+    type: string
+  - name: condition
+    type: string
+  - name: pool
+    type: object
+  - name: setup
+    type: stepList
+
+stages:
+  - stage: ${{ parameters.environment }}
+    displayName: Deploy to ${{ parameters.environment }}
+    dependsOn: ${{ parameters.dependsOn }}
+    condition: ${{ parameters.condition }}
+    lockBehavior: sequential
+    jobs:
+      - deployment: deploy
+        displayName: Compare with ${{ parameters.environment }} and install
+        pool: ${{ parameters.pool }}
+        workspace:
+          clean: all
+        environment: splunk-${{ parameters.environment }}
+        variables:
+          - group: splunk-appinspect
+          - group: splunk-${{ parameters.environment }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - ${{ parameters.setup }}
+                - template: diff-tools.yml
+                - template: acs-cli.yml
+                - download: current
+                  displayName: Download the package artifact (dist)
+                  artifact: dist
+                - template: deploy.yml
+                  parameters:
+                    environment: ${{ parameters.environment }}
+                    packageDirectory: $(Pipeline.Workspace)/dist
