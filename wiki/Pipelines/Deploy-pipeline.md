@@ -52,6 +52,8 @@ Both per-app jobs run `templates/deploy-app.yml`:
   Writes the local-versus-default report.
 - **Compare `<environment>` with this package (merged defaults):** Writes the
   merged-default reports.
+- **Compare `<environment>` with this package (data models):** Prints each
+  changed data model in its own collapsed group.
 - **Publish the `<environment>` compare artifact:** Publishes
   `<environment>-diff-<app-id>-<attempt>`.
 - **Uninstall the app from `<environment>` via ACS:** Removes the app and its

@@ -44,6 +44,12 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   file with the same stanzas in the source default file and writes
   `<app-id>-local-vs-default.diff`. Lines with `-` are target local settings;
   lines with `+` are source package defaults. It runs as its own step.
+- `data-models <target-dir> <source-dir> <out-dir>` merges local into default
+  on both sides, then compares each `default/data/models/*.json` file. It
+  formats the JSON with one key per line and sorted keys, skips files that
+  differ only in formatting, prints each model in its own collapsed group, and
+  writes `<app-id>-data-models.patch`. `diff` leaves data models out of its
+  patch, stanza list, and HTML report; its summary still lists them.
 - `tree`, `local-diff` and `diff` accept `--reverse` as a last argument. It
   shows the source side as `-` and the target side as `+`. The nonprod import
   uses it, so its diffs show nonprod as `+`.

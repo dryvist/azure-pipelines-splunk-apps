@@ -54,9 +54,12 @@ Steps, in order:
 - **Compare `<target>` with `<source>` (merged defaults):** Runs
   `release.py diff`. **Inputs:** Target and source exports.
   **Outputs:** HTML, patch, summary, and merged archive files in `compare/`.
+- **Compare `<target>` with `<source>` (data models):** Runs
+  `release.py data-models`. **Inputs:** Target and source exports.
+  **Outputs:** `<app-id>-data-models.patch` in `compare/`.
 The `release.py diff` step adds each Markdown summary to the run summary tab.
 - **Publish artifact (`compare`):** Publishes the reports.
-  **Inputs:** Per-app reports from the three compare steps.
+  **Inputs:** Per-app reports from the four compare steps.
   **Outputs:** `compare` artifact.
 
 ![Compare any two environments.](../diagrams/compare-any-environments.png)

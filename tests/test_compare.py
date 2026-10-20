@@ -61,6 +61,8 @@ def check_compare():
                 "my_ta/metadata/default.meta": "[]\nexport = system\n\n[]\nowner = nobody\n",
                 "my_ta/users/admin/local/savedsearches.conf": "[search]\n",
                 "my_ta/lookups/same.csv": "a,b\r\n1,2\r\n",
+                "my_ta/default/data/models/Net.json": '{"a": 1, "b": 3}',
+                "my_ta/default/data/models/Same.json": '{"a":1}',
                 "my_ta/lookups/rows.csv": "h\nb\na\n",
                 "my_ta/lookups/quoted.csv": 'h\n"x\ny"\na\n',
             },
@@ -72,6 +74,8 @@ def check_compare():
                 "my_ta/default/source-only.conf": "[source]\n",
                 "my_ta/lookups/same.csv": "a,b\n1,2 \n\n",
                 "my_ta/lookups/only.csv": "h\n1\n",
+                "my_ta/default/data/models/Net.json": '{\n  "b": 2,\n  "a": 1\n}\n',
+                "my_ta/default/data/models/Same.json": '{\n  "a": 1\n}\n',
                 "my_ta/lookups/rows.csv": "h\na\nb\n",
                 "my_ta/lookups/quoted.csv": 'h\n"x\ny"\na\n',
                 "my_ta/local/added.conf": "[source-local]\n",
@@ -82,6 +86,11 @@ def check_compare():
             compare.tree(target_dir, source_dir, out)
             compare.local_diff(target_dir, source_dir, out)
             compare.diff(target_dir, source_dir, out)
+        with redirect_stdout(io.StringIO()):
+            compare.data_models(target_dir, source_dir, out)
+        models = (out / "my_ta-data-models.patch").read_text()
+        assert '-  "b": 3\n+  "b": 2\n' in models and "Same.json" not in models
+        assert "data/models" not in (out / "my_ta.patch").read_text()
         tree_text = (out / "my_ta-tree.txt").read_text()
         reverse = Path(tmp, "reverse")
         with redirect_stdout(io.StringIO()):

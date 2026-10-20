@@ -4,6 +4,7 @@ import csv
 import difflib
 import filecmp
 import html
+import json
 import io
 import re
 import shutil
@@ -106,6 +107,21 @@ def merge_local(root):
 def deployed(path):
     """Files a deploy compares: default/ and metadata/default.meta."""
     return path.parts[0] == "default" or path == Path("metadata/default.meta")
+
+def data_model(path):
+    """Data model definitions, compared in their own step."""
+    return path.parts[:3] == ("default", "data", "models") and path.suffix == ".json"
+
+def json_lines(path):
+    """A JSON file's lines with one key per line and sorted keys; other text as is; a missing file is empty."""
+    if not path.exists():
+        return []
+    text = path.read_text(encoding="utf-8", errors="replace")
+    try:
+        text = json.dumps(json.loads(text), indent=2, sort_keys=True) + "\n"
+    except json.JSONDecodeError:
+        pass
+    return text.splitlines(keepends=True)
 
 def merged_archive(app, root, path):
     """Write an app archive without local/, users/ or metadata/local.meta."""
@@ -320,6 +336,7 @@ def diff(target_dir, source_dir, out_dir, *flags):
         old, new = ordered(target, source, "--reverse" in flags)
         changes = file_changes(old, new, deployed)
         text = summary(changes, target_before, source_before)
+        changes = [(status, path) for status, path in changes if not data_model(path)]
         write_html_diff(app, old, new, changes, out)
         merged_archive(app, target if in_target else source, out / f"{app}-merged.tar.gz")
         confs = [(status, path) for status, path in changes if path.suffix in (".conf", ".meta")]
@@ -353,3 +370,22 @@ def diff(target_dir, source_dir, out_dir, *flags):
         log("group", "User files")
         print(users, end="")
         log("endgroup")
+
+def data_models(target_dir, source_dir, out_dir, *flags):
+    """Print and write each changed data model's JSON diff, one collapsed group per model."""
+    for app, target, source, out, _ in each_app(target_dir, source_dir, out_dir, flags):
+        merge_local(target)
+        merge_local(source)
+        old, new = ordered(target, source, "--reverse" in flags)
+        patch = []
+        for status, path in file_changes(old, new, lambda p: deployed(p) and data_model(p)):
+            a, b = json_lines(old / path), json_lines(new / path)
+            if a == b:
+                continue
+            name = path.as_posix()
+            patch.append("".join(difflib.unified_diff(a, b, f"target/{name}", f"source/{name}")))
+            size = f", {percent_changed(a, b)}" if status == "Changed" else ""
+            print_file_diff(name, status + size, patch[-1])
+        if not patch:
+            print_colored_patch("NO DIFFERENCES")
+        (out / f"{app}-data-models.patch").write_text("".join(patch) or "NO DIFFERENCES\n", encoding="utf-8")

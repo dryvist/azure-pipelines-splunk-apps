@@ -42,6 +42,10 @@ lifecycle. `templates/deploy.yml` runs these steps for the package:
 - **Compare nonprod with this package (merged defaults):** Writes the patch,
   summary, HTML report, and merged archive. **Inputs:** Nonprod export and
   `dist` package. **Outputs:** `nonprod-diff/`.
+- **Compare nonprod with this package (data models):** Prints each changed
+  data model JSON file in its own collapsed group, one key per line, and
+  writes `<app-id>-data-models.patch`. **Inputs:** Nonprod export and `dist`
+  package. **Outputs:** `nonprod-diff/`.
 - **Publish artifact (`nonprod-diff-<app>-$(System.JobAttempt)`):** Publishes
   this app's diff. **Inputs:** App diff directory. **Outputs:** Attempt-named
   pipeline artifact.
