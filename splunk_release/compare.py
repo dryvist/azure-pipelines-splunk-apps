@@ -61,16 +61,21 @@ def kept(path):
 
 def merge_local(root):
     """Merge local configuration into default files with ksconf and copy other local files."""
+    from ksconf.conf.merge import merge_conf_dicts
+    from ksconf.conf.parser import DUP_MERGE, PARSECONF_MID, ConfParserException, parse_conf, write_conf
+    # Splunk combines a stanza repeated in one file; the ksconf CLI rejects it.
+    profile = {**PARSECONF_MID, "dup_stanza": DUP_MERGE}
     pairs = [(root / "local" / p, root / "default" / p) for p in sorted(files(root / "local"))]
     if (root / "metadata" / "local.meta").exists():
         pairs.append((root / "metadata" / "local.meta", root / "metadata" / "default.meta"))
     for local, default in pairs:
         default.parent.mkdir(parents=True, exist_ok=True)
         if local.suffix in (".conf", ".meta"):
-            # Write the merge to a separate file before replacing the default.
-            merged = default.with_name(default.name + ".merged")
-            run(["ksconf", "merge", "--ignore-missing", "--target", str(merged), str(default), str(local)], check=True)
-            merged.replace(default)
+            try:
+                confs = [parse_conf(p, profile=profile) for p in (default, local) if p.exists()]
+            except ConfParserException as error:
+                raise SystemExit(str(error))
+            write_conf(default, merge_conf_dicts(*confs))
         else:
             shutil.copy2(local, default)
     sort_confs(root / "default")
