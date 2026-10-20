@@ -1,8 +1,10 @@
 """Compare exported and packaged apps and write deployment reports."""
 
+import csv
 import difflib
 import filecmp
 import html
+import io
 import re
 import shutil
 import tarfile
@@ -36,6 +38,18 @@ def extract(archive, dest):
 
             tar.extractall(dest, filter=member)
     drop_install_checksum(dest)
+    sort_csvs(dest)
+
+def sort_csvs(root):
+    """Sort the rows of every CSV file, keeping the first row as the header."""
+    for path in sorted(root.rglob("*.csv")):
+        lines = path.read_bytes().splitlines()
+        rows = sorted(line for line in lines[1:] if line.strip())
+        # shortcut: a CSV with line breaks inside quoted fields stays unsorted; parse records if that becomes common.
+        if len(list(csv.reader(io.StringIO(path.read_text(encoding="utf-8", errors="replace"))))) != len(lines):
+            continue
+        if lines and lines[1:] != rows:
+            path.write_bytes(b"\n".join(lines[:1] + rows) + b"\n")
 
 def drop_install_checksum(root):
     """Print, then remove, the install checksums Splunk Cloud writes to metadata/local.meta and app.conf."""
