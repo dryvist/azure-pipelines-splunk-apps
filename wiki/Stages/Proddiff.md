@@ -27,6 +27,8 @@ Steps, in order:
   `$(Pipeline.Workspace)/tools` checkout.
 - **UsePythonVersion@0 (default `setup`):** Selects Python 3.13.
   **Inputs:** `versionSpec: 3.13`. **Outputs:** Python on `PATH`.
+- **Use UTF-8 for Python files and output (default `setup`):** Sets
+  `PYTHONUTF8=1` for later steps.
 - **Download artifact (`download: current`, `dist`):** Gets the package.
   **Inputs:** `dist` artifact. **Outputs:** `dist/` in the workspace.
 - **Set up ACS CLI 2.26.0 for $(SPLUNK_STACK):** Prepares the ACS CLI
