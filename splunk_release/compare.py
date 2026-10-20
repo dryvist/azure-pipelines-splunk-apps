@@ -43,14 +43,18 @@ def extract(archive, dest):
 
 def sort_csvs(root):
     """Sort the rows of every CSV file, keeping the first row as the header."""
-    for path in sorted(root.rglob("*.csv")):
-        lines = path.read_bytes().splitlines()
-        rows = sorted(line for line in lines[1:] if line.strip())
-        # shortcut: a CSV with line breaks inside quoted fields stays unsorted; parse records if that becomes common.
-        if len(list(csv.reader(io.StringIO(path.read_text(encoding="utf-8", errors="replace"))))) != len(lines):
-            continue
-        if lines and lines[1:] != rows:
-            path.write_bytes(b"\n".join(lines[:1] + rows) + b"\n")
+    for path in sorted(p for p in root.rglob("*.csv") if p.is_file()):
+        try:
+            data = path.read_bytes()
+            lines = data.splitlines()
+            rows = sorted(line for line in lines[1:] if line.strip())
+            # shortcut: a CSV with line breaks inside quoted fields stays unsorted; parse records if that becomes common.
+            if len(list(csv.reader(io.StringIO(data.decode("utf-8", "replace"))))) != len(lines):
+                continue
+            if lines and lines[1:] != rows:
+                path.write_bytes(b"\n".join(lines[:1] + rows) + b"\n")
+        except OSError as error:
+            log("warning", f"{path.relative_to(root).as_posix()} not sorted: {error.strerror}")
 
 def drop_install_checksum(root):
     """Print, then remove, the install checksums Splunk Cloud writes to metadata/local.meta and app.conf."""
