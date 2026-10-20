@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import subprocess
 from pathlib import Path
 
 from splunk_release.azure import run
@@ -14,8 +15,12 @@ def sort_confs(root):
     """Sort stanzas and keys in every .conf file under root with ksconf, one blank line apart."""
     confs = sorted(str(p) for p in Path(root).rglob("*.conf"))
     if confs:
-        # ksconf uses exit code 9 after rewriting a file.
-        run(["ksconf", "sort", "--inplace", "--quiet", *confs], check=False)
+        # ksconf returns 9 when it rewrites a file.
+        result = run(["ksconf", "sort", "--inplace", "--quiet", *confs], check=False)
+        if result.returncode not in (0, 9):
+            raise subprocess.CalledProcessError(
+                result.returncode, result.args, result.stdout, result.stderr
+            )
 
 def stage():
     """Copy package/ to build/<app>; slim requires the folder and tarball root to match the app id."""
