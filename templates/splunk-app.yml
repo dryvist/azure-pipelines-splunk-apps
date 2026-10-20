@@ -194,8 +194,11 @@ stages:
             - script: python ../tools/release.py tag
               workingDirectory: $(Pipeline.Workspace)/app
               displayName: Tag the release version
+              env:
+                SYSTEM_ACCESSTOKEN: $(System.AccessToken)
             - task: UniversalPackages@0
               displayName: Publish the package to the splunk-apps feed
+              condition: and(succeeded(), ne(variables['PACKAGE_PUBLISHED'], 'true'))
               inputs:
                 command: publish
                 publishDirectory: $(Pipeline.Workspace)/dist

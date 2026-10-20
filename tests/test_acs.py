@@ -262,6 +262,17 @@ def check_acs():
         assert Path(tmp, "export", "my-app", "my-app.tgz").exists()
         assert "##vso[task.setvariable variable=APP_ID]my-app" in output.getvalue()
 
+    # An app missing from the stack exports nothing and prints NOT INSTALLED.
+    with tempfile.TemporaryDirectory() as tmp:
+        missing = subprocess.CompletedProcess([], 1, "", "Failed in app_export with: APP_NOT_FOUND: New_App")
+        output = io.StringIO()
+        with patch("splunk_release.acs.acs_env", return_value={}), patch(
+            "splunk_release.acs.run", return_value=missing
+        ), redirect_stdout(output):
+            acs.export(Path(tmp), "New_App")
+        assert "NOT INSTALLED New_App" in output.getvalue()
+        assert not any(Path(tmp).glob("*.tgz"))
+
     # The smoke result command passes only when all three jobs succeeded.
     result_script = Path(__file__).resolve().parents[1] / "smoke-test" / "smoke_test.py"
     passed = subprocess.run(

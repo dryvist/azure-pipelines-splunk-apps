@@ -180,8 +180,12 @@ def export(out_dir, *app_ids):
             apps = sorted({app for app in installed if app.casefold() not in splunkbase})
         for app in apps:
             apps_file.write_text(json.dumps({"Apps": [app]}))
-            acs(env, "apps", "export", f"--file={apps_file}", "--default=true", "--local=true",
-                "--users=true", "--confs-only=false", f"--export-dir={out}", main=True)
+            try:
+                acs(env, "apps", "export", f"--file={apps_file}", "--default=true", "--local=true",
+                    "--users=true", "--confs-only=false", f"--export-dir={out}", main=True)
+            except subprocess.CalledProcessError as error:
+                if "APP_NOT_FOUND" not in f"{error.stdout}{error.stderr}":
+                    raise
             exported = out / f"{app}.tar.gz"
             if exported.exists():
                 exported.rename(out / f"{app}.tgz")

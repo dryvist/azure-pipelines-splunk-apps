@@ -3,6 +3,7 @@
 from unittest import TestCase
 
 import io
+import os
 import tempfile
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -34,6 +35,7 @@ def check_version():
             patch("splunk_release.version.CONF", app_conf),
             patch("splunk_release.version.APP", "my_ta"),
             patch("splunk_release.version.git", side_effect=lambda *args: calls.append(args)),
+            patch("splunk_release.version.published", return_value=False),
             redirect_stdout(output),
         ):
             version_module.tag()
@@ -45,6 +47,16 @@ def check_version():
             "##vso[task.setvariable variable=APP_ID]my_ta",
             "##vso[task.setvariable variable=APP_VERSION]1.4.9",
         ]
+
+    # The feed check maps the collection URL to the package host and treats 404 as unpublished.
+    env = {"SYSTEM_COLLECTIONURI": "https://dev.azure.com/org/", "SYSTEM_TEAMPROJECTID": "p1",
+           "SYSTEM_ACCESSTOKEN": "t"}
+    with patch.dict(os.environ, env), patch("splunk_release.version.http", return_value=None) as http:
+        assert not version_module.published("my_ta", "1.4.9")
+    assert http.call_args.args[0] == ("https://pkgs.dev.azure.com/org/p1/_apis/packaging/feeds/"
+                                      "splunk-apps/upack/packages/my_ta/versions/1.4.9?api-version=7.1")
+    with patch.dict(os.environ, env), patch("splunk_release.version.http", return_value=b"{}"):
+        assert version_module.published("my_ta", "1.4.9")
 
 
 class VersionTests(TestCase):
