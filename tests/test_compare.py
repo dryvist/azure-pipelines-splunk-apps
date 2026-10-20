@@ -26,6 +26,17 @@ def check_install_checksum():
         with redirect_stdout(io.StringIO()):
             compare.drop_install_checksum(Path(tmp))
         assert not meta.exists()
+        # app.conf [install] checksum keys are removed from default/ and local/.
+        default_conf, local_conf = Path(tmp, "default", "app.conf"), Path(tmp, "local", "app.conf")
+        default_conf.parent.mkdir()
+        local_conf.parent.mkdir()
+        default_conf.write_text("[install]\ninstall_source_checksum = abc\nis_configured = 1\n")
+        local_conf.write_text("[install]\ninstall_source_checksum = abc\ninstall_source_local_checksum = def\n")
+        with redirect_stdout(io.StringIO()) as out:
+            compare.drop_install_checksum(Path(tmp))
+        assert "install_source_local_checksum = def" in out.getvalue()
+        assert default_conf.read_text() == "[install]\nis_configured = 1\n"
+        assert not local_conf.exists()
 
 
 def check_compare():

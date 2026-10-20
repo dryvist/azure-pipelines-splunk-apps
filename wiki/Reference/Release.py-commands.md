@@ -40,10 +40,12 @@
   and side-by-side file tables. The patch compares deployed defaults as unified
   diffs. The summary lists deployed changes, local files, and user files, and
   is uploaded to the run summary.
-- `tree`, `local-diff`, `diff` and `import-nonprod` print the
-  `[app/install/install_source_checksum]` stanza from `metadata/local.meta`
-  on its own, then leave it out of every compare. A compare with no other
-  change prints `NO DIFFERENCES`.
+- `tree`, `local-diff`, `diff` and `import-nonprod` print the install
+  checksums Splunk Cloud writes on its own, then leave them out of every
+  compare and import: the `[app/install/install_source_checksum]` stanza in
+  `metadata/local.meta`, and the `install_source_checksum` and
+  `install_source_local_checksum` keys in every `app.conf`. AppInspect rejects
+  both keys. A compare with no other change prints `NO DIFFERENCES`.
 - `install-acs` downloads ACS CLI 2.26.0 for Linux or Windows x64 agents,
   verifies its SHA-256 checksum, extracts it to `AGENT_TEMPDIRECTORY`, prepends
   that directory to `PATH`, runs `acs version`, adds the selected stack, and
