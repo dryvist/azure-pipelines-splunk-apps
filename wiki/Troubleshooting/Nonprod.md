@@ -64,7 +64,7 @@ but the import command needs the exported app archive.
 4. Run the import option again.
 
 **Docs:** [Nonprod stage](/Stages/Nonprod),
-[Import from nonprod](/Pipelines/Nonprod-import).
+[Import from nonprod or prod](/Pipelines/App-import).
 
 ## Related
 

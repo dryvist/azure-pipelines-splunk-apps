@@ -1,4 +1,4 @@
-"""Tests for the nonprod import command."""
+"""Tests for the import command."""
 
 from unittest import TestCase
 
@@ -11,10 +11,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 from _common import CONF, write_tgz
-from splunk_release import import_nonprod
+from splunk_release import import_app
 
 
-def check_import_nonprod(*flags):
+def check_import_app(environment, *flags):
     with tempfile.TemporaryDirectory() as temp_dir:
         root = Path(temp_dir)
         package = root / "package"
@@ -25,7 +25,7 @@ def check_import_nonprod(*flags):
         (package / "lookups" / "keep.csv").write_text("h\nmain\n")
         main_conf = package / "default" / "app.conf"
         main_conf.write_text(CONF, encoding="utf-8")
-        export_dir = root / "nonprod-export"
+        export_dir = root / "export"
         export_dir.mkdir()
         write_tgz(
             export_dir / "my_ta.tgz",
@@ -33,7 +33,7 @@ def check_import_nonprod(*flags):
                 "my_ta/default/app.conf": CONF,
                 "my_ta/default/props.conf": "[changed]\nvalue = default\n",
                 "my_ta/local/props.conf": "[changed]\nvalue = local\n",
-                "my_ta/lookups/keep.csv": "h\nnonprod\n",
+                "my_ta/lookups/keep.csv": "h\nexported\n",
                 "my_ta/lookups/new.csv": "h\n1\n",
                 "my_ta/lookups/lookup_file_backups/my_ta/nobody/new.csv/1700000000": "h\n1\n",
                 "my_ta/default/datamodels.conf": "[Fast]\nacceleration = 0\n\n[Slow]\nacceleration = false\n",
@@ -60,24 +60,24 @@ def check_import_nonprod(*flags):
         }
         output = io.StringIO()
         with (
-            patch("splunk_release.import_nonprod.SRC", package),
-            patch("splunk_release.import_nonprod.CONF", main_conf),
-            patch("splunk_release.import_nonprod.APP", "my_ta"),
-            patch("splunk_release.import_nonprod.generate_manifest", side_effect=write_manifest) as generate,
-            patch("splunk_release.import_nonprod.git") as git,
-            patch("splunk_release.import_nonprod.http", return_value=b'{"pullRequestId": 34}') as http,
+            patch("splunk_release.import_app.SRC", package),
+            patch("splunk_release.import_app.CONF", main_conf),
+            patch("splunk_release.import_app.APP", "my_ta"),
+            patch("splunk_release.import_app.generate_manifest", side_effect=write_manifest) as generate,
+            patch("splunk_release.import_app.git") as git,
+            patch("splunk_release.import_app.http", return_value=b'{"pullRequestId": 34}') as http,
             patch.dict(os.environ, environment),
             redirect_stdout(output),
         ):
-            import_nonprod.import_nonprod(export_dir, *flags)
+            import_app.import_app(environment, export_dir, *flags)
 
         version = "1.4.10"
-        branch = f"nonprod-import/{version}-8421"
+        branch = f"{environment}-import/{version}-8421"
         generate.assert_called_once_with()
         assert git.call_args_list == [
             (("checkout", "-b", branch),),
             (("add", "--all", str(package)),),
-            (("commit", "-m", f"Import my_ta {version} from nonprod"),),
+            (("commit", "-m", f"Import my_ta {version} from {environment}"),),
             (("push", "origin", f"HEAD:refs/heads/{branch}"),),
         ]
         request_url, headers, body = http.call_args.args
@@ -92,7 +92,7 @@ def check_import_nonprod(*flags):
         assert json.loads(body) == {
             "sourceRefName": f"refs/heads/{branch}",
             "targetRefName": "refs/heads/main",
-            "title": f"Import my_ta {version} from nonprod",
+            "title": f"Import my_ta {version} from {environment}",
             "description": "Created by build 8421.",
         }
         assert output.getvalue().splitlines()[-1] == (
@@ -100,7 +100,7 @@ def check_import_nonprod(*flags):
         )
         assert not (package / "default" / "old.conf").exists()
         skipped = "--skip-lookups" in flags
-        assert (package / "lookups" / "keep.csv").read_text() == ("h\nmain\n" if skipped else "h\nnonprod\n")
+        assert (package / "lookups" / "keep.csv").read_text() == ("h\nmain\n" if skipped else "h\nexported\n")
         assert (package / "lookups" / "new.csv").exists() != skipped
         assert (package / "lookups" / "lookup_file_backups").exists() == (not flags)
         assert not (package / "local" / "props.conf").exists()
@@ -123,15 +123,15 @@ def check_import_nonprod(*flags):
         assert manifest.read_text(encoding="utf-8") == "generated manifest\n"
 
 
-class ImportNonprodTests(TestCase):
-    def test_import_nonprod(self):
-        check_import_nonprod("--skip-lookups")
-        check_import_nonprod("--skip-lookup-backups")
-        check_import_nonprod()
+class ImportAppTests(TestCase):
+    def test_import_app(self):
+        check_import_app("nonprod", "--skip-lookups")
+        check_import_app("prod", "--skip-lookup-backups")
+        check_import_app("nonprod")
 
 
 if __name__ == "__main__":
-    check_import_nonprod("--skip-lookups")
-    check_import_nonprod("--skip-lookup-backups")
-    check_import_nonprod()
+    check_import_app("nonprod", "--skip-lookups")
+    check_import_app("prod", "--skip-lookup-backups")
+    check_import_app("nonprod")
     print("ok")

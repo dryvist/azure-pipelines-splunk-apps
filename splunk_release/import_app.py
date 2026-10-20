@@ -1,4 +1,4 @@
-"""Import the nonprod app into a new app repository branch and pull request."""
+"""Import an environment's installed app into a new app repository branch and pull request."""
 
 import json
 import os
@@ -45,7 +45,7 @@ def cloud_settings_off(root):
             write_conf(path, conf)
 
 
-def open_pull_request(branch, version):
+def open_pull_request(branch, version, environment):
     """Push an import branch and create its pull request into main."""
     build_id = os.environ["BUILD_BUILDID"]
     source = f"refs/heads/{branch}"
@@ -57,7 +57,7 @@ def open_pull_request(branch, version):
     body = {
         "sourceRefName": source,
         "targetRefName": "refs/heads/main",
-        "title": f"Import {APP} {version} from nonprod",
+        "title": f"Import {APP} {version} from {environment}",
         "description": f"Created by build {build_id}.",
     }
     response = json.loads(
@@ -78,14 +78,14 @@ def open_pull_request(branch, version):
     print(pull_request_url)
 
 
-def import_nonprod(export_dir, *flags):
-    """Replace package/ with the merged nonprod export and open a pull request."""
+def import_app(environment, export_dir, *flags):
+    """Replace package/ with the merged export from environment and open a pull request."""
     if set(flags) - set(compare.SKIPPED):
         sys.exit(f"Unknown option: {' '.join(flags)}")
     version = bumped(app_conf_version(CONF.read_text(**TEXT)), "patch")
     archive = Path(export_dir, f"{APP}.tgz")
     if not archive.is_file():
-        sys.exit(f"Nonprod export is missing {archive.name}; confirm the app is installed")
+        sys.exit(f"{environment} export is missing {archive.name}; confirm the app is installed")
 
     with tempfile.TemporaryDirectory() as temp_dir:
         imported = Path(temp_dir, APP)
@@ -111,9 +111,9 @@ def import_nonprod(export_dir, *flags):
     sort_confs(SRC)
     generate_manifest()
     build_id = os.environ["BUILD_BUILDID"]
-    branch = f"nonprod-import/{version}-{build_id}"
+    branch = f"{environment}-import/{version}-{build_id}"
     git("checkout", "-b", branch)
     git("add", "--all", str(SRC))
-    git("commit", "-m", f"Import {APP} {version} from nonprod")
+    git("commit", "-m", f"Import {APP} {version} from {environment}")
     git("push", "origin", f"HEAD:refs/heads/{branch}")
-    open_pull_request(branch, version)
+    open_pull_request(branch, version, environment)

@@ -6,6 +6,10 @@ parameters:
     displayName: Import this app from nonprod into a new pull request
     type: boolean
     default: false
+  - name: importFromProd
+    displayName: Import this app from prod into a new pull request
+    type: boolean
+    default: false
   - name: skipLookups
     displayName: When importing, skip lookups (CSV files) and keep the ones on main
     type: boolean
@@ -32,6 +36,7 @@ extends:
   template: templates/splunk-app.yml@tools
   parameters:
     importFromNonprod: ${{ parameters.importFromNonprod }}
+    importFromProd: ${{ parameters.importFromProd }}
     skipLookups: ${{ parameters.skipLookups }}
     skipLookupBackups: ${{ parameters.skipLookupBackups }}
     # Remove pool to use Microsoft-hosted ubuntu-latest agents.

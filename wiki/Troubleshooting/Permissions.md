@@ -53,7 +53,7 @@ extend that template.
 
 ## Import pull request receives HTTP 403
 
-**Symptom:** `Open a pull request with the nonprod app` fails with HTTP 403.
+**Symptom:** `Open a pull request with the <env> app` fails with HTTP 403.
 
 **Cause:** The app repository Build Service identity cannot create pull
 requests.
@@ -66,12 +66,12 @@ requests.
 4. Rerun the import pipeline.
 
 **Docs:** [App repository permissions](/Getting-started/App-repository),
-[Import from nonprod](/Pipelines/Nonprod-import).
+[Import from nonprod or prod](/Pipelines/App-import).
 
 ## Related
 
 - [Agent setup](/Troubleshooting/Agent-setup)
-- [Import from nonprod](/Pipelines/Nonprod-import)
+- [Import from nonprod or prod](/Pipelines/App-import)
 
 ---
 

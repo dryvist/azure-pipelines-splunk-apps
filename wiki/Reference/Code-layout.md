@@ -10,7 +10,7 @@
 | `splunk_release/__init__.py` | Package marker. |
 | `splunk_release/azure.py` | Pipeline plan, HTTP requests, and log helpers. |
 | `splunk_release/version.py` | App identity, versions, manifests, and Git. |
-| `splunk_release/import_nonprod.py` | Nonprod export import and pull request. |
+| `splunk_release/import_app.py` | Environment export import and pull request. |
 | `splunk_release/package.py` | Configuration sorting, staging, and packaging. |
 | `splunk_release/appinspect.py` | AppInspect requests, polling, and reports. |
 | `splunk_release/acs.py` | ACS CLI install, sessions, deployment, and export. |
