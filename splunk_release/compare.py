@@ -104,6 +104,11 @@ def merged_archive(app, root, path):
 def listed(paths):
     return [f"- {p.as_posix()}" for p in sorted(paths)] or ["- None"]
 
+def same_text(a, b):
+    """True when two files differ only in line endings, trailing spaces or trailing blank lines."""
+    lines = [[line.rstrip() for line in f.read_bytes().rstrip().splitlines()] for f in (a, b)]
+    return lines[0] == lines[1]
+
 def file_changes(target, source, wanted):
     t, s = files(target), files(source)
     changes = []
@@ -112,7 +117,7 @@ def file_changes(target, source, wanted):
             status = "Added"
         elif p not in s:
             status = "Removed"
-        elif not filecmp.cmp(target / p, source / p, shallow=False):
+        elif not filecmp.cmp(target / p, source / p, shallow=False) and not same_text(target / p, source / p):
             status = "Changed"
         else:
             continue
