@@ -111,7 +111,8 @@ def file_changes(target, source, wanted):
         changes.append((status, p))
     return changes
 
-def change_tree(changes):
+def change_tree(changes, target, source):
+    """Indented tree of changed files with line counts, target -> source."""
     lines, folders = [], set()
     for status, path in changes:
         for depth in range(1, len(path.parts)):
@@ -119,7 +120,8 @@ def change_tree(changes):
             if folder not in folders:
                 lines.append("  " * (depth - 1) + f"{path.parts[depth - 1]}/")
                 folders.add(folder)
-        lines.append("  " * (len(path.parts) - 1) + f"{path.name} [{status.lower()}]")
+        counts = " -> ".join(str(len(f.read_bytes().splitlines())) for f in (target / path, source / path) if f.exists())
+        lines.append("  " * (len(path.parts) - 1) + f"{path.name} [{status.lower()}] {counts} lines")
     return "\n".join(lines) or "NO DIFFERENCES"
 
 def summary(target, source, target_before, source_before):
@@ -157,7 +159,7 @@ def write_html_diff(app, target, source, changes, out):
     page += "<style>body{font-family:Arial;margin:2em}table.diff{border-collapse:collapse;width:100%}"
     page += "td,th{padding:.2em;vertical-align:top}.diff_add{background:#cfc}"
     page += ".diff_sub{background:#fcc}.diff_chg{background:#ffc}</style></head><body>"
-    page += f"<h1>{html.escape(app)} deployed diff</h1><pre>{html.escape(change_tree(changes))}</pre>"
+    page += f"<h1>{html.escape(app)} deployed diff</h1><pre>{html.escape(change_tree(changes, target, source))}</pre>"
     page += tables or "<p>No deployed file changes.</p>"
     page += "</body></html>\n"
     (out / f"{app}-diff.html").write_text(page, encoding="utf-8")
@@ -232,7 +234,7 @@ def tree(target_dir, source_dir, out_dir):
     """Write and print the tree of raw target and source app files."""
     for app, target, source, out, _ in each_app(target_dir, source_dir, out_dir):
         changes = file_changes(target, source, lambda _: True)
-        text = change_tree(changes) + "\n"
+        text = change_tree(changes, target, source) + "\n"
         (out / f"{app}-tree.txt").write_text(text, encoding="utf-8")
         print_colored_patch(text)
 
