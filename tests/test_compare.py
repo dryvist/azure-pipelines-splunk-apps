@@ -172,8 +172,10 @@ def check_compare():
         assert "--- target/default/props.conf" in logs
         assert "##[" not in patch_text
         assert "##vso[task.uploadsummary]" in logs
-        assert logs.endswith(summary)
+        head, users = summary.split("## User files\n")
+        assert head in logs and logs.endswith("User files\n" + users)
         assert "my_ta: target vs source" in logs
+        assert "users/ (1 files)\nusers/\n  admin/" in logs
         merged_path = out / "my_ta-merged.tar.gz"
         assert merged_path.exists()
         with tarfile.open(merged_path, "r:gz") as archive:
