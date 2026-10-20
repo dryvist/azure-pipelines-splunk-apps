@@ -58,6 +58,7 @@ def check_compare():
                 ),
                 "my_ta/local/data/ui/views/example.xml": "<view/>\n",
                 "my_ta/metadata/local.meta": "[my_ta]\naccess = read : [*]\n",
+                "my_ta/metadata/default.meta": "[]\nexport = system\n\n[]\nowner = nobody\n",
                 "my_ta/users/admin/local/savedsearches.conf": "[search]\n",
             },
         )
@@ -161,9 +162,9 @@ def check_compare():
             assert archive.extractfile(
                 "my_ta/default/data/ui/views/example.xml"
             ).read().decode() == "<view/>\n"
-            assert "access = read : [*]" in archive.extractfile(
-                "my_ta/metadata/default.meta"
-            ).read().decode()
+            meta = archive.extractfile("my_ta/metadata/default.meta").read().decode()
+            assert "access = read : [*]" in meta
+            assert "export = system" in meta and "owner = nobody" in meta
 
 
 class CompareTests(TestCase):

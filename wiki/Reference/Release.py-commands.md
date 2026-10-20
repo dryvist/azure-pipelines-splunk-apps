@@ -41,7 +41,7 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   `<app-id>-local-vs-default.diff`. Lines with `-` are target local settings;
   lines with `+` are source package defaults. It runs as its own step.
 - `diff <target-dir> <source-dir> <out-dir>` merges local into default on both
-  sides with `ksconf merge`, then compares the archives for each app id. It
+  sides with ksconf, combining repeated stanzas as Splunk does, then compares the archives for each app id. It
   writes `<app-id>.patch`, `<app-id>-diff.html`, `<app-id>-summary.md`, and
   `<app-id>-merged.tar.gz`. The HTML report includes an indented folder tree
   and side-by-side file tables. The patch compares deployed defaults as unified

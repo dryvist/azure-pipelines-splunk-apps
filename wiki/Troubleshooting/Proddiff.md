@@ -15,8 +15,8 @@ or summary shows added, changed, or removed files.
 
 **Cause:** The export or diff command failed, or production differs from the
 package. The tree step compares raw files. Local files are compared with
-matching package defaults in a separate step. The merged-default step runs
-`ksconf merge`, sorts defaults, and compares deployed files.
+matching package defaults in a separate step. The merged-default step merges
+local into default with ksconf, combines repeated stanzas, sorts defaults, and compares deployed files.
 
 **Fix:**
 
