@@ -39,9 +39,8 @@ def drop_install_checksum(root):
     stanza = re.search(r"^\[app/install/install_source_checksum\]\n(?:(?!\[).*\n?)*", text, re.M)
     if not stanza:
         return
-    log("group", f"{root.name} install checksum excluded from comparison")
+    log("section", f"{root.name} metadata/local.meta install checksum (not compared)")
     print(stanza[0].strip())
-    log("endgroup")
     rest = text.replace(stanza[0], "")
     if rest.strip():
         meta.write_text(rest, encoding="utf-8", newline="\n")
@@ -202,20 +201,22 @@ def local_diff(target_dir, source_dir, out_dir):
         work = target.with_name("local-vs-default")
         work.mkdir()
         reports = local_vs_default(target, source, work)
-        changed = [report for report in reports if report[1] == "Changed"]
-        skipped = [report for report in reports if report[1] == "Skipped"]
-        if not changed and not skipped:
-            text = "NO DIFFERENCES\n"
-        else:
-            text = "\n\n".join(
-                f"{path} ({status})\n{report.rstrip()}"
-                for path, status, report in reports
-                if status != "Unchanged"
-            ) + "\n"
-        (out / f"{app}-local-vs-default.diff").write_text(text, encoding="utf-8")
-        print_colored_patch(text)
-        for path, _, _ in skipped:
-            log("warning", f"{path}: ksconf could not parse a file; skipped")
+        shown = [r for r in reports if r[1] != "Unchanged"]
+        text = "\n\n".join(f"{path} ({status})\n{report.rstrip()}" for path, status, report in shown)
+        (out / f"{app}-local-vs-default.diff").write_text((text or "NO DIFFERENCES") + "\n", encoding="utf-8")
+        for path, status, report in shown:
+            print_file_banner(path, status)
+            if status == "Skipped":
+                log("warning", f"{path}: ksconf could not parse a file; skipped")
+            print_colored_patch(report)
+        if not shown:
+            print_colored_patch("NO DIFFERENCES")
+
+def print_file_banner(path, status):
+    rule = "=" * 100
+    print("\n\n")
+    for line in (rule, f"{path} ({status})", rule):
+        log("section", line)
 
 def tree(target_dir, source_dir, out_dir):
     """Write and print the tree of raw target and source app files."""
@@ -245,12 +246,11 @@ def diff(target_dir, source_dir, out_dir):
                 f"target/{path.as_posix()}".encode(), f"source/{path.as_posix()}".encode(),
             ))
             patch.append(file_patch)
+            print_file_banner(path.as_posix(), status)
+            print_colored_patch(file_patch)
         if not changes:
             print_colored_patch("NO DIFFERENCES")
-        patch_text = b"".join(patch) or b"NO DIFFERENCES\n"
-        if changes:
-            print_colored_patch(patch_text)
-        (out / f"{app}.patch").write_bytes(patch_text)
+        (out / f"{app}.patch").write_bytes(b"".join(patch) or b"NO DIFFERENCES\n")
         (out / f"{app}-summary.md").write_text(text, encoding="utf-8")
         print(f"##vso[task.uploadsummary]{(out / f'{app}-summary.md').resolve()}")
         print(text, end="")

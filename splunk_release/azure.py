@@ -53,7 +53,7 @@ def http(url, headers, data=None, timeout=900):
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.read()
     except urllib.error.HTTPError as e:
-        sys.exit(f"HTTP {e.code} from {url}")
+        sys.exit(f"HTTP {e.code} from {url}: {e.read().decode(errors='replace')}")
     except urllib.error.URLError as e:
         sys.exit(f"HTTP request failed: {e.reason}")
 
