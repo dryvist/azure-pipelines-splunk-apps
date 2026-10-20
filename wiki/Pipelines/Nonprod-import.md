@@ -17,12 +17,19 @@ install the package in nonprod.
 4. Select **Import this app from nonprod into a new pull request**.
 5. To import lookups too, clear **When importing, skip lookups (CSV files) and
    keep the ones on main**.
-6. Select **Run**.
+6. To import Splunk lookup backups too, clear **When importing, skip Splunk
+   lookup backups (lookups/lookup_file_backups)**.
+7. Select **Run**.
 
 With the skip lookups option selected (the default), the compare steps leave
 out `lookups/` on both sides and the pull request keeps the lookups on `main`.
 An app repository whose `azure-pipelines.yml` has no `skipLookups` parameter
 always skips lookups.
+
+With the skip lookup backups option selected (the default), the compare steps
+leave out `lookups/lookup_file_backups/` on both sides and the pull request
+does not add the nonprod backups. An app repository whose
+`azure-pipelines.yml` has no `skipLookupBackups` parameter always skips them.
 
 ## Import stage
 

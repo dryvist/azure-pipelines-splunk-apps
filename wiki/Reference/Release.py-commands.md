@@ -40,8 +40,9 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   changed paths. Files that differ only in line endings, trailing spaces or
   trailing blank lines count as unchanged in every compare. Each path shows its line count. A changed path also shows the
   share of lines added or removed, such as `8% (120 -> 135 lines)`.
-  Changes under `users/` print in a collapsed `users/` group, and `diff`
-  prints its summary's user files in a collapsed `User files` group.
+  Changes under `users/` and `lookups/lookup_file_backups/` print in one
+  collapsed group per folder, and `diff` prints its summary's user files in a
+  collapsed `User files` group.
 - `local-diff <target-dir> <source-dir> <out-dir>` compares each target local
   file with the same stanzas in the source default file and writes
   `<app-id>-local-vs-default.diff`. Lines with `-` are target local settings;
@@ -90,13 +91,17 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
 - `feed-check <app-id>` prints that the app is in the `splunk-apps` feed, or
   fails with `<app-id> is not in the splunk-apps feed; run its app pipeline on
   main to release it`. It reads `SYSTEM_ACCESSTOKEN`.
-- `import-nonprod <export-dir>` merges local app configuration into default,
-  removes `local/`, `users/`, and `metadata/local.meta`, sets both version rows
+- `import-nonprod <export-dir> [--skip-lookups] [--skip-lookup-backups]`
+  merges local app configuration into default, removes `local/`, `users/`,
+  and `metadata/local.meta`, sets both version rows
   to one patch above `main`, regenerates `app.manifest`, commits the package,
   pushes a new import branch, and opens a pull request to `main`. It uses
   `BUILD_BUILDID`, `BUILD_REPOSITORY_ID`, `BUILD_REPOSITORY_NAME`,
   `SYSTEM_ACCESSTOKEN`, `SYSTEM_COLLECTIONURI`, `SYSTEM_TEAMPROJECT`, and
-  `SYSTEM_TEAMPROJECTID`.
+  `SYSTEM_TEAMPROJECTID`. `--skip-lookups` keeps the `lookups/` folder on
+  `main`. `--skip-lookup-backups` leaves out `lookups/lookup_file_backups/`.
+  The compare commands take the same two options and remove those folders on
+  both sides.
 
 ACS setup maps the variable-group `ACS_TOKEN` to `STACK_TOKEN`. It runs
 once per job; later steps reuse the CLI configuration.

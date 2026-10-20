@@ -80,7 +80,7 @@ def open_pull_request(branch, version):
 
 def import_nonprod(export_dir, *flags):
     """Replace package/ with the merged nonprod export and open a pull request."""
-    if set(flags) - {"--skip-lookups"}:
+    if set(flags) - set(compare.SKIPPED):
         sys.exit(f"Unknown option: {' '.join(flags)}")
     version = bumped(app_conf_version(CONF.read_text(**TEXT)), "patch")
     archive = Path(export_dir, f"{APP}.tgz")
@@ -95,11 +95,12 @@ def import_nonprod(export_dir, *flags):
             if compare.kept(path):
                 (imported / path).unlink()
         cloud_settings_off(imported)
-        if "--skip-lookups" in flags:
+        for flag, folder in compare.SKIPPED.items():
+            if flag in flags:
+                shutil.rmtree(imported / folder, ignore_errors=True)
+        if "--skip-lookups" in flags and (SRC / "lookups").is_dir():
             # Keep the lookups already on main.
-            shutil.rmtree(imported / "lookups", ignore_errors=True)
-            if (SRC / "lookups").is_dir():
-                shutil.copytree(SRC / "lookups", imported / "lookups")
+            shutil.copytree(SRC / "lookups", imported / "lookups")
         imported_conf = imported / "default" / "app.conf"
         imported_conf.write_text(
             set_version(imported_conf.read_text(**TEXT), version), **TEXT

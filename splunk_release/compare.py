@@ -265,9 +265,16 @@ def local_vs_default(target, source, work, reverse=False):
         report.append((name, status, result.stdout))
     return report
 
+SKIPPED = {"--skip-lookups": "lookups", "--skip-lookup-backups": "lookups/lookup_file_backups"}
+COLLAPSED = ("users", "lookups/lookup_file_backups")
+
+def collapsed(path):
+    """The COLLAPSED folder that holds path, or None."""
+    return next((folder for folder in COLLAPSED if path.as_posix().startswith(folder + "/")), None)
+
 def each_app(target_dir, source_dir, out_dir, flags=()):
     """Yield app id, extracted target and source folders, and the output folder for every app."""
-    unknown = set(flags) - {"--reverse", "--skip-lookups"}
+    unknown = set(flags) - {"--reverse", *SKIPPED}
     if unknown:
         raise SystemExit(f"Unknown option: {' '.join(sorted(unknown))}")
     targets, sources = archives(target_dir), archives(source_dir)
@@ -283,10 +290,11 @@ def each_app(target_dir, source_dir, out_dir, flags=()):
             target, source = Path(tmp, "target"), Path(tmp, "source")
             extract(targets.get(app), target)
             extract(sources.get(app), source)
-            if "--skip-lookups" in flags:
-                print("lookups/ skipped on both sides")
-                for root in (target, source):
-                    shutil.rmtree(root / "lookups", ignore_errors=True)
+            for flag, folder in SKIPPED.items():
+                if flag in flags:
+                    print(f"{folder}/ skipped on both sides")
+                    for root in (target, source):
+                        shutil.rmtree(root / folder, ignore_errors=True)
             yield app, target, source, out, app in targets
 
 def local_diff(target_dir, source_dir, out_dir, *flags):
@@ -324,12 +332,14 @@ def tree(target_dir, source_dir, out_dir, *flags):
         changes = file_changes(old, new, lambda _: True)
         text = change_tree(changes, old, new) + "\n"
         (out / f"{app}-tree.txt").write_text(text, encoding="utf-8")
-        users = [c for c in changes if c[1].parts[0] == "users"]
-        rest = [c for c in changes if c[1].parts[0] != "users"]
-        if rest or not users:
+        groups = {}
+        for change in changes:
+            groups.setdefault(collapsed(change[1]), []).append(change)
+        rest = groups.pop(None, [])
+        if rest or not groups:
             print_colored_patch(change_tree(rest, old, new))
-        if users:
-            print_group(f"users/ ({len(users)} files)", change_tree(users, old, new))
+        for folder, group in groups.items():
+            print_group(f"{folder}/ ({len(group)} files)", change_tree(group, old, new))
 
 def diff(target_dir, source_dir, out_dir, *flags):
     """Write each app's merged archive, default-only diffs, and Markdown summary."""

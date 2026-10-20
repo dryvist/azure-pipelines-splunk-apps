@@ -8,6 +8,9 @@ parameters:
   - name: skipLookups
     type: boolean
     default: true
+  - name: skipLookupBackups
+    type: boolean
+    default: true
   - name: pool
     type: object
     default:
@@ -48,8 +51,8 @@ stages:
                 environment: nonprod
                 packageDirectory: $(Pipeline.Workspace)/app/dist
                 install: false
-                compareFlags: --reverse ${{ iif(parameters.skipLookups, '--skip-lookups', '') }}
-            - script: python ../tools/release.py import-nonprod $(Pipeline.Workspace)/nonprod-export/$(APP_ID) ${{ iif(parameters.skipLookups, '--skip-lookups', '') }}
+                compareFlags: --reverse ${{ iif(parameters.skipLookups, '--skip-lookups', '') }} ${{ iif(parameters.skipLookupBackups, '--skip-lookup-backups', '') }}
+            - script: python ../tools/release.py import-nonprod $(Pipeline.Workspace)/nonprod-export/$(APP_ID) ${{ iif(parameters.skipLookups, '--skip-lookups', '') }} ${{ iif(parameters.skipLookupBackups, '--skip-lookup-backups', '') }}
               workingDirectory: $(Pipeline.Workspace)/app
               displayName: Open a pull request with the nonprod app
               env:
