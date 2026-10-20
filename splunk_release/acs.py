@@ -84,18 +84,19 @@ def acs_env():
     home = str(Path(os.environ["AGENT_TEMPDIRECTORY"]) / "acs-home")
     return {**os.environ, "HOME": home, "USERPROFILE": home}
 
-def stack_status(env):
-    """Return the decoded "response" JSON from the single object acs status prints."""
-    raw = acs(env, "status", "current-stack", "-f", "structured")
+def structured_response(env, *args):
+    """Run an acs command with -f structured and return the decoded "response" object it prints."""
     try:
-        envelope = json.loads(raw)
-        response = json.loads(envelope[0]["response"])
+        response = json.loads(json.loads(acs(env, *args, "-f", "structured"))[0]["response"])
         if not isinstance(response, dict):
             raise ValueError("response must be an object")
         return response
     except (ValueError, IndexError, KeyError, TypeError):
-        log("error", 'acs status output has no JSON "response" object')
+        log("error", f'acs {" ".join(args)} output has no JSON "response" object')
         raise SystemExit(1)
+
+def stack_status(env):
+    return structured_response(env, "status", "current-stack")
 
 def restart_required(response):
     return response.get("messages", {}).get("restartRequired") is True
@@ -165,15 +166,9 @@ def listed_apps(env, splunkbase=False):
         args = ["apps", "list", "--count", "100", "--offset", str(offset)]
         if splunkbase:
             args.append("--splunkbase=true")
-        raw = acs(env, *args, "-f", "structured")
-        try:
-            rows = json.loads(raw)["apps"]
-            if not isinstance(rows, list) or any(
-                not isinstance(item, dict) or not isinstance(item.get("name"), str)
-                for item in rows
-            ):
-                raise ValueError
-        except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        rows = structured_response(env, *args).get("apps")
+        if not isinstance(rows, list) or any(not isinstance(item, dict) or not isinstance(item.get("name"), str)
+                                             for item in rows):
             log("error", "Missing apps in ACS output")
             raise SystemExit(1)
         apps.extend(item["name"] for item in rows)

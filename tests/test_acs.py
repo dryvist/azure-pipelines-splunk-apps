@@ -110,7 +110,15 @@ def check_acs():
             pass
         else:
             raise AssertionError("expected SystemExit")
-    assert '##[error]acs status output has no JSON "response" object' in output.getvalue()
+    assert '##[error]acs status current-stack output has no JSON "response" object' in output.getvalue()
+
+    # The app list reads the names in each page's "response" object.
+    with patch("splunk_release.acs.run") as run, redirect_stdout(io.StringIO()):
+        run.return_value = subprocess.CompletedProcess(
+            ["acs"], 0, stdout=structured({"apps": [{"appID": "a1", "name": "a1"}, {"name": "b2"}]}), stderr=""
+        )
+        assert acs.listed_apps({}) == ["a1", "b2"]
+        assert run.call_args.args[0] == ["acs", "apps", "list", "--count", "100", "--offset", "0", "-f", "structured"]
 
     # Restart polls restartRequired every 30 seconds until it clears.
     with (
@@ -240,7 +248,7 @@ def check_acs():
                     [{"name": f"custom_{i}"} for i in range(100)] if offset == 0
                     else [{"name": "base_app"}]
                 )
-                return subprocess.CompletedProcess(command, 0, json.dumps({"apps": rows}), "")
+                return subprocess.CompletedProcess(command, 0, structured({"apps": rows}), "")
             if command[1:3] == ["apps", "export"]:
                 app = json.loads(Path(command[3].split("=", 1)[1]).read_text())["Apps"][0]
                 destination = Path(command[-1].split("=", 1)[1])
