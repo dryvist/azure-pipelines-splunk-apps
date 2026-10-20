@@ -227,18 +227,19 @@ def local_diff(target_dir, source_dir, out_dir):
         text = "\n\n".join(f"{path} ({status})\n{report.rstrip()}" for path, status, report in shown)
         (out / f"{app}-local-vs-default.diff").write_text((text or "NO DIFFERENCES") + "\n", encoding="utf-8")
         for path, status, report in shown:
-            print_file_banner(path, status)
             if status == "Skipped":
                 log("warning", f"{path}: ksconf could not parse a file; skipped")
-            print_colored_patch(report)
+            print_file_diff(path, status, report)
         if not shown:
             print_colored_patch("NO DIFFERENCES")
 
-def print_file_banner(path, status):
-    rule = "=" * 100
+def print_file_diff(path, status, patch):
+    """Print a separator, then the file's diff in a collapsed log group."""
     print("\n\n")
-    for line in (rule, f"{path} ({status})", rule):
-        log("section", line)
+    log("section", "=" * 100)
+    log("group", f"{path} ({status})")
+    print_colored_patch(patch)
+    log("endgroup")
 
 def tree(target_dir, source_dir, out_dir):
     """Write and print the tree of raw target and source app files."""
@@ -260,16 +261,14 @@ def diff(target_dir, source_dir, out_dir):
         merged_archive(app, target if in_target else source, out / f"{app}-merged.tar.gz")
         patch = []
         for status, path in changes:
-            old, new = (r / path for r in (target, source))
+            old, new = (f.read_bytes().splitlines(keepends=True) if f.exists() else [] for f in (target / path, source / path))
             file_patch = b"".join(difflib.diff_bytes(
-                difflib.unified_diff,
-                old.read_bytes().splitlines(keepends=True) if old.exists() else [],
-                new.read_bytes().splitlines(keepends=True) if new.exists() else [],
+                difflib.unified_diff, old, new,
                 f"target/{path.as_posix()}".encode(), f"source/{path.as_posix()}".encode(),
             ))
             patch.append(file_patch)
-            print_file_banner(path.as_posix(), status)
-            print_colored_patch(file_patch)
+            size = f", {percent_changed(old, new)}" if status == "Changed" else ""
+            print_file_diff(path.as_posix(), status + size, file_patch)
         if not changes:
             print_colored_patch("NO DIFFERENCES")
         (out / f"{app}.patch").write_bytes(b"".join(patch) or b"NO DIFFERENCES\n")

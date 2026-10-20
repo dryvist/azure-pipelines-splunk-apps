@@ -48,6 +48,9 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   and side-by-side file tables. The patch compares deployed defaults as unified
   diffs. The summary lists deployed changes, local files, and user files, and
   is uploaded to the run summary.
+- `local-diff` and `diff` print each file's diff in a collapsed log group
+  under a separator line. Select the file name to expand it. In `diff`, a
+  changed file's name also shows the percent of lines changed.
 - `tree`, `local-diff`, `diff` and `import-nonprod` print the install
   checksums Splunk Cloud writes on its own, then leave them out of every
   compare and import: the `[app/install/install_source_checksum]` stanza in

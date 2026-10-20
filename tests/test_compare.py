@@ -143,7 +143,7 @@ def check_compare():
         assert "  props.conf [changed]" not in summary
         logs = output.getvalue()
         assert logs.index("local/props.conf (Changed)") < logs.index("--- target/default/props.conf")
-        assert "\n\n\n" + "=" * 100 + "\ndefault/props.conf (Changed)\n" + "=" * 100 in logs
+        assert "\n\n\n" + "=" * 100 + "\ndefault/props.conf (Changed, " in logs
         assert "--- target/default/props.conf" in logs
         assert "##[" not in patch_text
         assert "##vso[task.uploadsummary]" in logs
