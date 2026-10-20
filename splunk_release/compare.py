@@ -285,13 +285,17 @@ def local_diff(target_dir, source_dir, out_dir, *flags):
         if not shown:
             print_colored_patch("NO DIFFERENCES")
 
+def print_group(title, text):
+    """Print text in a collapsed log group."""
+    log("group", title)
+    print_colored_patch(text)
+    log("endgroup")
+
 def print_file_diff(path, status, patch):
     """Print a separator, then the file's diff in a collapsed log group."""
     print("\n\n")
     log("section", "=" * 100)
-    log("group", f"{path} ({status})")
-    print_colored_patch(patch)
-    log("endgroup")
+    print_group(f"{path} ({status})", patch)
 
 def tree(target_dir, source_dir, out_dir, *flags):
     """Write and print the tree of raw target and source app files."""
@@ -300,7 +304,12 @@ def tree(target_dir, source_dir, out_dir, *flags):
         changes = file_changes(old, new, lambda _: True)
         text = change_tree(changes, old, new) + "\n"
         (out / f"{app}-tree.txt").write_text(text, encoding="utf-8")
-        print_colored_patch(text)
+        users = [c for c in changes if c[1].parts[0] == "users"]
+        rest = [c for c in changes if c[1].parts[0] != "users"]
+        if rest or not users:
+            print_colored_patch(change_tree(rest, old, new))
+        if users:
+            print_group(f"users/ ({len(users)} files)", change_tree(users, old, new))
 
 def diff(target_dir, source_dir, out_dir, *flags):
     """Write each app's merged archive, default-only diffs, and Markdown summary."""
@@ -339,4 +348,8 @@ def diff(target_dir, source_dir, out_dir, *flags):
         (out / f"{app}.patch").write_bytes(b"".join(patch) or b"NO DIFFERENCES\n")
         (out / f"{app}-summary.md").write_text(text, encoding="utf-8")
         print(f"##vso[task.uploadsummary]{(out / f'{app}-summary.md').resolve()}")
-        print(text, end="")
+        head, users = text.split("## User files\n")
+        print(head, end="")
+        log("group", "User files")
+        print(users, end="")
+        log("endgroup")

@@ -38,6 +38,8 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   changed paths. Files that differ only in line endings, trailing spaces or
   trailing blank lines count as unchanged in every compare. Each path shows its line count. A changed path also shows the
   share of lines added or removed, such as `8% (120 -> 135 lines)`.
+  Changes under `users/` print in a collapsed `users/` group, and `diff`
+  prints its summary's user files in a collapsed `User files` group.
 - `local-diff <target-dir> <source-dir> <out-dir>` compares each target local
   file with the same stanzas in the source default file and writes
   `<app-id>-local-vs-default.diff`. Lines with `-` are target local settings;
