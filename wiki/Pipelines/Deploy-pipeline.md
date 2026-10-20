@@ -7,8 +7,10 @@
 ## Run path
 
 The pipeline in `deploy/azure-pipelines.yml` takes an environment and
-space-separated app ids. Each app gets two stages, and the run ends with one
-restart stage. Every stage and job names the app and environment, so a failure
+space-separated app ids. Each app gets two stages. A restart stage is optional:
+the Run form parameter **Restart the stack after the deploys if a restart is
+required** defaults off. The stage appears only when it is checked and app ids
+are given. Every stage and job names the app and environment, so a failure
 shows where it happened.
 
 - **Compare `<app-id>` with `<environment>`**, job **Compare `<app-id>` with
@@ -19,13 +21,15 @@ shows where it happened.
   `<environment>`**: waits for the `splunk-<environment>` approval, then
   compares again and installs the package.
 - **Restart `<environment>` if required**, job **Restart `<environment>` if
-  required and check status**: waits for approval, restarts only when ACS
-  reports `messages.restartRequired`, then checks status.
+  required and check status**: appears only when Restart is checked and app ids
+  are given. It waits for approval, restarts only when ACS reports
+  `messages.restartRequired`, then checks status.
 
 All compare stages start at once. Each deploy stage starts after its own
 compare stage. The exclusive lock check on `splunk-<environment>` runs the
-deploy stages one at a time. The restart stage runs after every deploy stage
-finishes, including rejected ones.
+deploy stages one at a time. When included, the restart stage runs after every
+deploy stage finishes, including rejected ones. If Restart is unchecked, each
+app's **Check stack status after deploy** step still reports a pending restart.
 
 Both per-app jobs run `templates/deploy-app.yml`:
 

@@ -43,8 +43,10 @@ Steps, in order:
 ## Related
 
 - [Proddiff stage](/Stages/Proddiff)
+- [Prod stage](/Stages/Prod)
 - [release.py commands](/Reference/Release.py-commands)
 
 ---
 
-[< Previous: Proddiff stage](/Stages/Proddiff)
+[< Previous: Proddiff stage](/Stages/Proddiff) |
+[Next: Prod stage >](/Stages/Prod)

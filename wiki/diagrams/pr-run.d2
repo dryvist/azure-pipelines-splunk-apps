@@ -95,8 +95,13 @@ page: "" {
     release: "06 · Release stage" {class: [card; ghost]; width: 320}
     proddiff -> release: "main only" {class: link-planned}
   }
+  fourth: "" {
+    class: columns
+    direction: left
+    prod: "07 · Deploy to prod" {class: [card; ghost]; width: 320}
+  }
   first.build -> second.inspect: {class: link}
   second.nonprod -> third.proddiff: {class: link-emphasis}
-
+  third.release -> fourth.prod: "main only" {class: link-planned}
 
 }

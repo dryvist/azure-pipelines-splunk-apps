@@ -14,8 +14,11 @@ The YAML `trigger` queues commits to `main`; Azure Repos ignores YAML `pr:`
 triggers. `Show stage plan` prints the run reason and stage conditions.
 
 Build and AppInspect run first. Nonprod and Proddiff run on pull requests and
-`main`. Release depends on Proddiff and runs only on `main`. The app pipeline
-has no production stage; production installation uses manual deployment.
+`main`. Release depends on Proddiff and runs only on `main`. Prod follows
+Release on successful `main` runs and waits for approval on `splunk-prod` before
+comparing and installing the package. A rejection stops the stage. If approval
+reaches its Timeout, Azure marks the stage skipped. Nothing installs to prod
+without approval. See [Prod stage](/Stages/Prod).
 
 The shared template also accepts the `importFromNonprod` boolean runtime
 parameter. Its default is `false`, which keeps the stages above. When selected,
@@ -34,6 +37,7 @@ The bump commit starts a new run that validates the bumped version.
 
 - [Stages](/Stages)
 - [Build stage](/Stages/Build)
+- [Prod stage](/Stages/Prod)
 - [Import from nonprod](/Pipelines/Nonprod-import)
 
 ---

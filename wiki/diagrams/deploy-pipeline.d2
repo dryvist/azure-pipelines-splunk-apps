@@ -79,7 +79,7 @@ page: "" {
     grid-columns: 3
     grid-gap: 0
     pad_left: "." {shape: text; width: 360; style.opacity: 0}
-    subtitle: "Each app: compare, approve, install;\none restart at the end" {class: subtitle}
+    subtitle: "Each app: compare, approve, install;\none optional restart when selected" {class: subtitle}
     pad_right: "." {shape: text; width: 360; style.opacity: 0}
   }
 
@@ -103,8 +103,8 @@ page: "" {
   third: "" {
     class: columns
     direction: right
-    approve_restart: "Approve the\nRestart stage" {class: [card; exception]; width: 210}
-    restart: "Restart only if\nACS requires it" {class: [card; emphasis]; width: 210}
+    approve_restart: "Optional Restart stage\nwhen checked with\napp IDs" {class: [card; exception]; width: 210}
+    restart: "Restart only if ACS\nreports it is required" {class: [card; emphasis]; width: 210}
     final: "Check status after\nrestart" {class: card; width: 210}
     approve_restart -> restart: {class: link}
     restart -> final: {class: link}

@@ -95,8 +95,13 @@ page: "" {
     release: "06 · Release (main only)" {class: [card; emphasis]; width: 240}
     proddiff -> release: {class: link-emphasis}
   }
+  fourth: "" {
+    class: columns
+    direction: left
+    prod: "07 · Deploy to prod\n(approval on main)" {class: [card; emphasis]; width: 240}
+  }
   first.build -> second.inspect: {class: link}
   second.nonprod -> third.proddiff: {class: link}
-
+  third.release -> fourth.prod: {class: link-emphasis}
 
 }

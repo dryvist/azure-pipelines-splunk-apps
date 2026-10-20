@@ -32,7 +32,8 @@
   changed paths.
 - `local-diff <target-dir> <source-dir> <out-dir>` compares each target local
   file with the same stanzas in the source default file and writes
-  `<app-id>-local-vs-default.diff`. It runs as its own step.
+  `<app-id>-local-vs-default.diff`. Lines with `-` are target local settings;
+  lines with `+` are source package defaults. It runs as its own step.
 - `diff <target-dir> <source-dir> <out-dir>` merges local into default on both
   sides with `ksconf merge`, then compares the archives for each app id. It
   writes `<app-id>.patch`, `<app-id>-diff.html`, `<app-id>-summary.md`, and
