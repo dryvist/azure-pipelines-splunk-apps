@@ -52,11 +52,22 @@ def configured_value(name):
     value = os.environ.get(name, "").strip()
     return value if value and not value.startswith("$(") else None
 
+# ACS returns these while another deployment task runs on the stack.
+BUSY = ("424-failed-dependency", "503-service-unavailable")
+
 def acs(env, *args, main=False):
-    """Run an ACS CLI command and return stdout; output is grouped unless main or failed."""
+    """Run an ACS CLI command and return stdout; output is grouped unless main or failed.
+
+    A busy stack is retried every 30 seconds for up to 15 minutes."""
     if not main:
         log("group", f"acs {' '.join(args)}")
+    deadline = time.monotonic() + 15 * 60
     result = run(["acs", *args], capture_output=True, text=True, env=env)
+    while (result.returncode and any(code in f"{result.stdout}{result.stderr}" for code in BUSY)
+           and time.monotonic() < deadline):
+        log("warning", "ACS is busy with another deployment task, retrying in 30 seconds")
+        time.sleep(30)
+        result = run(["acs", *args], capture_output=True, text=True, env=env)
     if not main and result.returncode:
         log("endgroup")
     for output in (result.stdout, result.stderr):
@@ -109,13 +120,13 @@ def package_identity(directory):
 
 def wait_version(directory):
     _, app, version = package_identity(directory)
-    deadline = time.monotonic() + 300
+    deadline = time.monotonic() + 15 * 60
     env = acs_env()
     while time.monotonic() < deadline:
         if version in acs(env, "apps", "describe", app):
             return
-        time.sleep(min(3, max(0, deadline - time.monotonic())))
-    log("error", f"Timed out after 300 seconds waiting for {app} version {version}")
+        time.sleep(min(15, max(0, deadline - time.monotonic())))
+    log("error", f"Timed out after 15 minutes waiting for {app} version {version}")
     raise SystemExit(1)
 
 def restart():

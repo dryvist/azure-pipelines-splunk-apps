@@ -21,6 +21,21 @@ group, deployment environment, or its approval checks.
 Each app has its own compare and deploy stage. When **Restart** is checked,
 the restart stage runs once, after every deploy stage finishes.
 
+### ACS is busy
+
+**Symptom:** A step prints `ACS is busy with another deployment task, retrying
+in 30 seconds`.
+
+**Cause:** Another install, uninstall, or configuration change is running on
+the stack. ACS returns `424-failed-dependency` or `503-service-unavailable`
+until it finishes.
+
+**Fix:**
+
+1. Wait. The step retries for up to 15 minutes.
+2. If the step fails after 15 minutes, check the stack for a stuck task.
+3. Rerun the failed job.
+
 ### App is not in the splunk-apps feed
 
 **Symptom:** **Check `<app-id>` is in the splunk-apps feed** fails with

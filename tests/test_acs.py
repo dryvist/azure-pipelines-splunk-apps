@@ -196,7 +196,18 @@ def check_acs():
                 "splunk_release.acs.time.sleep", side_effect=wait
             ), redirect_stdout(io.StringIO()):
                 acs.wait_version(package_dir)
-            assert run.call_count == 2 and sleeps == [3]
+            assert run.call_count == 2 and sleeps == [15]
+
+        # A busy stack response is retried until ACS accepts the command.
+        busy = subprocess.CompletedProcess([], 1, "", "424-failed-dependency: A deployment task is still in progress.")
+        with (
+            patch("splunk_release.acs.run", side_effect=[busy, subprocess.CompletedProcess([], 0, "ok", "")]) as run,
+            patch("splunk_release.acs.time.sleep") as sleep,
+            redirect_stdout(io.StringIO()) as output,
+        ):
+            assert acs.acs({}, "apps", "uninstall", "my-app", main=True) == "ok"
+        assert run.call_count == 2 and sleep.call_args.args == (30,)
+        assert "ACS is busy" in output.getvalue()
 
         with (
             patch("splunk_release.acs.acs_env", return_value={}),
@@ -213,7 +224,7 @@ def check_acs():
                 assert error.code == 1
             else:
                 raise AssertionError("version wait should time out")
-            assert now == [300]
+            assert now == [900]
 
     # Custom export pages in blocks of 100 and excludes Splunkbase names.
     with tempfile.TemporaryDirectory() as tmp:

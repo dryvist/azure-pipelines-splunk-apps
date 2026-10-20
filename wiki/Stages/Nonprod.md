@@ -48,8 +48,8 @@ lifecycle. `templates/deploy.yml` runs these steps for the package:
 - **Deploy to nonprod via ACS:** Installs the package as a private app.
   **Inputs:** `dist`, `SPLUNK_USERNAME`, `SPLUNK_PASSWORD`, `SPLUNK_STACK`,
   and `ACS_TOKEN`. **Outputs:** App install result.
-- **Wait for the deployed version:** Checks `acs apps describe` every three
-  seconds for up to 300 seconds. **Inputs:** Package version and ACS session.
+- **Wait for the deployed version:** Checks `acs apps describe` every 15
+  seconds for up to 15 minutes. **Inputs:** Package version and ACS session.
   **Outputs:** Confirmed app version or a timeout error.
 - **Check stack status after deploy:** Prints current stack status and warns
   if a restart is required. **Inputs:** Nonprod ACS session.
