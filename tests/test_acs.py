@@ -20,6 +20,7 @@ def structured(response):
     return json.dumps([{"response": json.dumps(response)}])
 
 
+@patch.dict(os.environ, {"TF_BUILD": "1"})
 def check_acs():
     # ACS setup downloads the platform archive, verifies it, adds the stack, and logs in.
     payload = io.BytesIO()
@@ -109,7 +110,7 @@ def check_acs():
             pass
         else:
             raise AssertionError("expected SystemExit")
-    assert '##[error]acs status output has no JSON "response" field' in output.getvalue()
+    assert '##[error]acs status output has no JSON "response" object' in output.getvalue()
 
     # Restart polls restartRequired every 30 seconds until it clears.
     with (
