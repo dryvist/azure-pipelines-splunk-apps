@@ -53,17 +53,10 @@ stages:
                   workingDirectory: $(Pipeline.Workspace)/app
                   displayName: Package main app
                 - template: acs-cli.yml
-                - template: deploy.yml
+                - template: import-steps.yml
                   parameters:
                     environment: ${{ env }}
-                    packageDirectory: $(Pipeline.Workspace)/app/dist
-                    install: false
-                    compareFlags: --reverse ${{ iif(parameters.skipLookups, '--skip-lookups', '') }} ${{ iif(parameters.skipLookupBackups, '--skip-lookup-backups', '') }}
-                - script: python ../tools/release.py import ${{ env }} $(Pipeline.Workspace)/${{ env }}-export/$(APP_ID) ${{ iif(parameters.skipLookups, '--skip-lookups', '') }} ${{ iif(parameters.skipLookupBackups, '--skip-lookup-backups', '') }}
-                  workingDirectory: $(Pipeline.Workspace)/app
-                  displayName: Open a pull request with the ${{ env }} app
-                  env:
-                    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+                    flags: ${{ iif(parameters.skipLookups, '--skip-lookups', '') }} ${{ iif(parameters.skipLookupBackups, '--skip-lookup-backups', '') }}
   - ${{ else }}:
     - stage: build
       displayName: Build

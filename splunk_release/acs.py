@@ -142,9 +142,9 @@ def stack_ready(env):
     return task.lower() not in ("new", "pending", "running") and stack.lower() == "ready", \
         f"deployment task {task or 'none'}, stack {stack or 'unknown'}"
 
-def wait_done(env, done, what):
-    """Wait up to 15 minutes until the stack is ready and done() is true, checking every 15 seconds."""
-    deadline = time.monotonic() + 15 * 60
+def wait_done(env, done, what, minutes=15):
+    """Wait up to minutes until the stack is ready and done() is true, checking every 15 seconds."""
+    deadline = time.monotonic() + minutes * 60
     while time.monotonic() < deadline:
         ready, state = stack_ready(env)
         if ready and done():
@@ -152,7 +152,7 @@ def wait_done(env, done, what):
             return
         print(f"Waiting for {what}: {state}")
         time.sleep(min(15, max(0, deadline - time.monotonic())))
-    log("error", f"Timed out after 15 minutes waiting for {what}")
+    log("error", f"Timed out after {minutes} minutes waiting for {what}")
     raise SystemExit(1)
 
 def wait_version(directory):
@@ -166,13 +166,7 @@ def restart():
         log("section", f"No restart required on {os.environ['SPLUNK_STACK']}, skipping restart")
         return
     acs(env, "restart", "current-stack", main=True)
-    deadline = time.monotonic() + 30 * 60
-    while time.monotonic() < deadline:
-        if not restart_required(stack_status(env)):
-            return
-        time.sleep(min(30, max(0, deadline - time.monotonic())))
-    log("error", "Timed out after 30 minutes waiting for restart completion")
-    raise SystemExit(1)
+    wait_done(env, lambda: not restart_required(stack_status(env)), f"restart of {os.environ['SPLUNK_STACK']}", 30)
 
 def deploy(directory):
     package, app, version = package_identity(directory)
@@ -263,11 +257,10 @@ def repackage(package, out_dir, app, version, conf=None, stanzas=()):
     """Write <out_dir>/<app>-<version>.tar.gz from package with a new version and without the given stanzas."""
     from ksconf.conf.parser import write_conf
 
-    from splunk_release.compare import parse
+    from splunk_release.compare import extract, parse
     with tempfile.TemporaryDirectory() as tmp:
-        with tarfile.open(package) as archive:
-            archive.extractall(tmp, filter="data")
         root = Path(tmp, app)
+        extract(package, root)
         if stanzas:
             path = root / "default" / f"{conf}.conf"
             parsed = parse(path)

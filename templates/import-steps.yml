@@ -1,0 +1,21 @@
+# Compare an environment's installed app with the package from main, then open a pull request with it.
+parameters:
+  - name: environment
+    type: string
+  # --skip-lookups and --skip-lookup-backups, used by both the compare and the import.
+  - name: flags
+    type: string
+    default: ''
+
+steps:
+  - template: deploy.yml
+    parameters:
+      environment: ${{ parameters.environment }}
+      packageDirectory: $(Pipeline.Workspace)/app/dist
+      install: false
+      compareFlags: --reverse ${{ parameters.flags }}
+  - script: python ../tools/release.py import ${{ parameters.environment }} $(Pipeline.Workspace)/${{ parameters.environment }}-export/$(APP_ID) ${{ parameters.flags }}
+    workingDirectory: $(Pipeline.Workspace)/app
+    displayName: Open a pull request with the ${{ parameters.environment }} app
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
