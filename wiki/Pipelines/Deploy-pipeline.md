@@ -7,41 +7,46 @@
 ## Run path
 
 The pipeline in `deploy/azure-pipelines.yml` takes an environment and
-space-separated app ids. Each app gets two stages. A restart stage is optional:
-the Run form parameter **Restart the stack after the deploys if a restart is
-required** defaults off. The stage appears only when it is checked and app ids
-are given. The Run form parameter **DANGER - Uninstall each app first.
-PERMANENTLY DELETES ALL of its lookups (CSV files) and local settings** also
-defaults off. When checked, each Deploy stage first uninstalls the app from the
-ITSI search head, then from the main search head, then installs the package.
-Every stage and job names the app and environment, so a failure shows where it
-happened.
+space-separated app ids. The Run form parameter **DANGER - Uninstall each app
+first. PERMANENTLY DELETES ALL of its lookups (CSV files) and local settings**
+defaults off. The Run form parameter **Restart the stack after the deploys if a
+restart is required** also defaults off. Every stage and job names the app and
+environment, so a failure shows where it happened.
 
-- **Stage `compare_<app>` (Compare `<app-id>` with `<environment>`):** runs
-  two jobs in parallel. **Compare with `<environment>` (no install)** uses
-  `splunk-<environment>`, the search head the install replaces.
-  **Compare with `itsi-<environment>` (no install)** uses
-  `splunk-itsi-<environment>`, the ITSI search head. Both download the latest
-  package, export the installed app, and compare without installing.
-- **Stage `deploy_<app>` (Deploy `<app-id>` to `<environment>`):** has the
-  deployment job **Install on `<environment>`**. It waits for the
-  `splunk-<environment>` approval, then installs the package. With the DANGER
-  uninstall option, the job **Uninstall from `itsi-<environment>`** runs first
-  with the `splunk-itsi-<environment>` group, after the same approval. The
-  install job is then named **Uninstall and install on `<environment>`** and
-  uninstalls from the main search head before it installs. It does not compare
-  the package.
-- **Restart `<environment>` if required**, job **Restart `<environment>` if
-  required and check status**: appears only when Restart is checked and app ids
-  are given. It waits for approval, restarts only when ACS reports
-  `messages.restartRequired`, then checks status.
+The stages run in this order. A run restarts at most twice:
 
-All compare stages start at once. Each deploy stage starts after its matching
-compare stage. The exclusive lock check on `splunk-<environment>` runs the
-deploy stages one at a time. When included, the restart stage runs only after
-every deploy stage succeeds; a failed or rejected deploy stage skips it. If
-Restart is unchecked, each app's **Check stack status after deploy** step still
-reports a pending restart.
+1. **Stage `compare_<app>` (Compare `<app-id>` with `<environment>`)**, one
+   per app: runs two jobs in parallel. **Compare with `<environment>` (no
+   install)** uses `splunk-<environment>`, the main search head. **Compare with
+   `itsi-<environment>` (no install)** uses `splunk-itsi-<environment>`, the
+   ITSI search head. Both download the latest package, export the installed
+   app, and compare without installing.
+2. **Stage `uninstall_<app>` (Uninstall `<app-id>` from `<environment>`)**, one
+   per app, only with the DANGER uninstall option: after the
+   `splunk-<environment>` approval, the job **Uninstall from
+   `itsi-<environment>`** runs, then the job **Uninstall from
+   `<environment>`**.
+3. **Stage `restart_uninstall` (Restart `<environment>` after the
+   uninstalls)**, only with the DANGER uninstall option: runs after every
+   uninstall stage succeeds. The job **Restart `itsi-<environment>` after the
+   uninstalls** runs, then **Restart `<environment>` after the uninstalls**.
+   Each always restarts, prints a warning to check the uninstall steps, and
+   waits until the stack is Ready.
+4. **Stage `deploy_<app>` (Install `<app-id>` on `<environment>`)**, one per
+   app: the job **Install on `<environment>`** waits for the
+   `splunk-<environment>` approval, then installs the package. With the
+   uninstall option, it starts only after `restart_uninstall` succeeds.
+5. **Stage `restart` (Restart `<environment>` if required)**, only when Restart
+   is checked: runs after every install stage succeeds. The jobs **Restart
+   `itsi-<environment>` if required** and **Restart `<environment>` if
+   required** restart only when ACS reports `messages.restartRequired`, then
+   check status.
+
+All compare stages start at once. The exclusive lock check on
+`splunk-<environment>` runs the other stages one at a time. Each of them waits
+for the `splunk-<environment>` approval. A failed or rejected stage skips every
+stage that depends on it. If Restart is unchecked, each app's **Check stack
+status after deploy** step still reports a pending restart.
 
 Both stages use `templates/feed-package.yml` to check the feed and download
 the latest package. Compare stages use `templates/compare-stage.yml`. Deploy
@@ -72,11 +77,9 @@ stages use `templates/deploy-stage.yml`:
 - **Publish the `<side>` compare artifact:** Publishes
   `<side>-diff-<app-id>-<attempt>` from each compare job.
 - **Uninstall the app from `itsi-<environment>` via ACS**, then
-  **Uninstall the app from `<environment>` via ACS:** When the DANGER uninstall
-  option is checked, first remove the copy installed on the ITSI search head
-  only (`--scope local`), then remove the app from all search heads. After each uninstall, the step restarts that search head
-  when ACS reports `restartRequired`, and waits until the restart clears and
-  the stack is Ready. Deploy stage only. The `splunk-itsi-<environment>` ACS
+  **Uninstall the app from `<environment>` via ACS:** Remove the app from the
+  ITSI search head, then from the main search head, when the DANGER uninstall
+  option is checked. Uninstall stage only. The `splunk-itsi-<environment>` ACS
   token needs the same app install capabilities as the main token.
 - **Deploy to `<environment>` via ACS:** Installs the package in the deploy
   stage.

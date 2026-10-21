@@ -161,6 +161,22 @@ def check_acs():
     assert [call.args[0] for call in run.call_args_list] == [["acs", "status", "current-stack", "-f", "structured"]]
     assert "No restart required on stack" in output.getvalue()
 
+    # --force restarts without reading restartRequired first and prints the uninstall warning.
+    with (
+        patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
+        patch("splunk_release.acs.acs_env", return_value={}),
+        patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
+        patch("splunk_release.acs.run") as run,
+        redirect_stdout(io.StringIO()) as output,
+    ):
+        run.side_effect = [
+            subprocess.CompletedProcess(["acs"], 0, stdout="", stderr=""),
+            subprocess.CompletedProcess(["acs"], 0, stdout=structured({"messages": {"restartRequired": False}}), stderr=""),
+        ]
+        acs.restart("--force")
+    assert run.call_args_list[0].args[0] == ["acs", "restart", "current-stack"]
+    assert "Check that every uninstall step above" in output.getvalue()
+
     # The package filename supplies the app id and version for install and polling.
     with tempfile.TemporaryDirectory() as tmp:
         package_dir = Path(tmp, "my-app")
@@ -182,33 +198,16 @@ def check_acs():
                 patch.dict(os.environ, {"SPLUNK_STACK": "stack", "AGENT_TEMPDIRECTORY": tmp}),
                 patch("splunk_release.acs.installed_version", side_effect=["1.0.0" if "my-app" in listed else None, None]),
                 patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
-                patch("splunk_release.acs.restart") as restart,
                 patch("splunk_release.acs.run") as run,
                 redirect_stdout(io.StringIO()) as out,
             ):
                 run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
                 acs.uninstall(package_dir)
-            assert restart.call_count == calls
             assert run.call_count == calls
             assert ("PERMANENTLY DELETES ALL of its lookups" in out.getvalue()) == bool(calls)
             assert ("my-app uninstalled from stack (ready)" in out.getvalue()) == bool(calls)
             if calls:
                 assert run.call_args.args[0] == ["acs", "apps", "uninstall", "my-app"]
-
-        # With a target search head, the uninstall removes that search head's own copy; a 404 means it has none.
-        not_found = subprocess.CompletedProcess([], 1, stdout="", stderr="code: 404 Not Found")
-        for result, message in ((subprocess.CompletedProcess([], 0, "", ""), "uninstall from stack search head sh-i-1"),
-                                (not_found, "has no copy of my-app of its own")):
-            with (
-                patch.dict(os.environ, {"SPLUNK_STACK": "stack", "SPLUNK_SEARCH_HEAD": "sh-i-1", "AGENT_TEMPDIRECTORY": tmp}),
-                patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
-                patch("splunk_release.acs.restart") as restart,
-                patch("splunk_release.acs.run", return_value=result) as run,
-                redirect_stdout(io.StringIO()) as out,
-            ):
-                acs.uninstall(package_dir)
-            assert run.call_args.args[0] == ["acs", "apps", "uninstall", "my-app", "--scope", "local"]
-            assert restart.call_count == 1 and message in out.getvalue()
 
         with (
             patch("splunk_release.acs.acs_env", return_value={}),

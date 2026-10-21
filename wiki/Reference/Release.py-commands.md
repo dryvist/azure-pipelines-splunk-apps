@@ -14,19 +14,12 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   `dist/<app-id>-<version>.tar.gz`.
 - `appinspect <dir>` uses `SPLUNK_USERNAME` and `SPLUNK_PASSWORD`.
 - `deploy <dir>` runs `acs apps install private` with `SPLUNK_STACK` and
-  `STACK_TOKEN`. The app installs on every search head, including the ITSI
-  search head.
+  `STACK_TOKEN`.
 - `uninstall <dir>` runs `acs apps uninstall <app-id>` when `acs apps
   describe` finds the app, and otherwise prints that it is not installed. Before it
   uninstalls, it prints a DANGER warning: the uninstall permanently deletes
   ALL of the app's lookups (CSV files) and local settings. It then waits as
-  described below until `acs apps describe` no longer finds the app, then
-  runs `restart`, which restarts only when ACS reports a restart is required.
-  With `SPLUNK_SEARCH_HEAD` set, it instead runs `acs apps uninstall <app-id>
-  --scope local`. This removes the copy installed on that search head only,
-  such as one installed in Splunk Web on the ITSI search head. A 404 means that
-  search head has no copy of its own. `acs apps describe` has no `--scope`
-  option, so this path waits only for the stack to be Ready.
+  described below until `acs apps describe` no longer finds the app.
 - `status` runs `acs status current-stack -f structured` and warns when the
   output reports `restartRequired: true`.
 - `wait-version <dir>` reads the version from the single
@@ -37,9 +30,11 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   They finish only when `acs status current-stack` reports
   `infrastructure.status` `Ready` and the app change shows in `acs apps
   describe`. A `Failed` stack status fails the step.
-- `restart` runs `acs restart current-stack`, then waits as `uninstall` and
+- `restart` runs `acs restart current-stack` when `acs status current-stack`
+  reports `restartRequired: true`, then waits as `uninstall` and
   `wait-version` do, for up to 30 minutes, until restart-required status
-  clears.
+  clears. `restart --force` always restarts and prints a warning to check the
+  uninstall steps.
 - `export <dir> [app-id ...]` runs `acs apps export` with `SPLUNK_STACK` and
   `STACK_TOKEN`. It saves `<dir>/<app-id>.tgz` with default, local, and users
   content. With no app ids, it exports this app. An app that is not installed
