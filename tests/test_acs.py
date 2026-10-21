@@ -182,11 +182,13 @@ def check_acs():
                 patch.dict(os.environ, {"SPLUNK_STACK": "stack", "AGENT_TEMPDIRECTORY": tmp}),
                 patch("splunk_release.acs.installed_version", side_effect=["1.0.0" if "my-app" in listed else None, None]),
                 patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
+                patch("splunk_release.acs.restart") as restart,
                 patch("splunk_release.acs.run") as run,
                 redirect_stdout(io.StringIO()) as out,
             ):
                 run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
                 acs.uninstall(package_dir)
+            assert restart.call_count == calls
             assert run.call_count == calls
             assert ("PERMANENTLY DELETES ALL of its lookups" in out.getvalue()) == bool(calls)
             assert ("my-app uninstalled from stack (ready)" in out.getvalue()) == bool(calls)

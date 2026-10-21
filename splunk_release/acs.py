@@ -193,6 +193,7 @@ def uninstall(directory):
     log("section", f"Uninstalling {app} from {stack}")
     acs(env, "apps", "uninstall", app, main=True)
     wait_done(env, lambda: installed_version(env, app) is None, f"{app} uninstalled from {stack}")
+    restart()
 
 def listed_apps(env, splunkbase=False):
     apps, offset = [], 0
