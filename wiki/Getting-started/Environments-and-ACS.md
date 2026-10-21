@@ -24,7 +24,7 @@ Steps 3 and 4 cover deployment environments, ACS tokens, and export access.
 9. Select **+**.
 10. Select **Approvals**.
 11. Add the approvers.
-12. Set **Timeout** to `24 hours` in the **Approvals** check.
+12. Set **Timeout** to `12 hours` in the **Approvals** check.
 13. Select **Create**.
 14. Select **+**.
 15. Select **Exclusive Lock**.
@@ -39,12 +39,12 @@ Steps 3 and 4 cover deployment environments, ACS tokens, and export access.
    Lock** check.
 4. Confirm `splunk-nonprod` shows an **Exclusive Lock** check.
 5. Confirm the `splunk-prod` **Approvals** check has a **Timeout** of
-   `24 hours`.
+   `12 hours`.
 
 The approval stops each prod deploy stage until someone approves it. The
 exclusive lock runs one deploy stage at a time on each environment. Azure's
 default approval timeout is 30 days. Set the prod **Approvals** check timeout
-to `24 hours` so a pending approval skips the stage after one day.
+to `12 hours` so a pending approval skips the stage after 12 hours.
 
 ## Step 4: Create ACS tokens and grant export access
 
