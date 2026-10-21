@@ -66,7 +66,7 @@ def check_import_app(environment, *flags):
             patch("splunk_release.import_app.generate_manifest", side_effect=write_manifest) as generate,
             patch("splunk_release.import_app.git") as git,
             patch("splunk_release.import_app.feed_versions", return_value=["1.4.20", "1.4.3"]),
-            patch("splunk_release.import_app.http", return_value=b'{"pullRequestId": 34}') as http,
+            patch("splunk_release.import_app.http", return_value=b'{"pullRequestId": 34, "createdBy": {"id": "build-id"}}') as http,
             patch.dict(os.environ, environment),
             redirect_stdout(output),
         ):
@@ -81,7 +81,7 @@ def check_import_app(environment, *flags):
             (("commit", "-m", f"Import my_ta {version} from {environment}"),),
             (("push", "origin", f"HEAD:refs/heads/{branch}"),),
         ]
-        request_url, headers, body = http.call_args.args
+        request_url, headers, body = http.call_args_list[0].args
         assert request_url == (
             "https://dev.azure.com/<org>/<project-id>/_apis/git/repositories/"
             "<repo-id>/pullrequests?api-version=7.1"
@@ -95,6 +95,12 @@ def check_import_app(environment, *flags):
             "targetRefName": "refs/heads/main",
             "title": f"Import my_ta {version} from {environment}",
             "description": "Created by build 8421.",
+        }
+        update_url, _, update = http.call_args.args
+        assert update_url.endswith("/pullrequests/34?api-version=7.1") and http.call_args.kwargs == {"method": "PATCH"}
+        assert json.loads(update) == {
+            "autoCompleteSetBy": {"id": "build-id"},
+            "completionOptions": {"deleteSourceBranch": True},
         }
         assert output.getvalue().splitlines()[-1] == (
             "https://dev.azure.com/<org>/<project>/_git/<app-id>/pullrequest/34"
