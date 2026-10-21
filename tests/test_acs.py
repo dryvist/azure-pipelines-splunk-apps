@@ -211,9 +211,10 @@ def check_acs():
             with patch("splunk_release.acs.time.monotonic", side_effect=lambda: now[0]), patch(
                 "splunk_release.acs.time.sleep", side_effect=wait
             ), patch("splunk_release.acs.stack_ready", side_effect=[(False, "pending"), (True, "ready"), (True, "ready")]
-                     ), redirect_stdout(io.StringIO()):
+                     ), redirect_stdout(io.StringIO()) as out:
                 acs.wait_version(package_dir)
             assert run.call_count == 2 and sleeps == [15, 15]
+            assert "reports my-app version 1.4.100, expected 1.4.10" in out.getvalue()
 
         # A busy stack response is retried until ACS accepts the command.
         busy = subprocess.CompletedProcess([], 1, "", "424-failed-dependency: A deployment task is still in progress.")

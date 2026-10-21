@@ -165,7 +165,14 @@ def wait_done(env, done, what, minutes=15):
 def wait_version(directory):
     _, app, version = package_identity(directory)
     env = acs_env()
-    wait_done(env, lambda: installed_version(env, app) == version, f"{app} version {version} installed")
+
+    def matches():
+        installed = installed_version(env, app)
+        if installed != version:
+            print(f"acs apps describe reports {app} version {installed or 'not installed'}, expected {version}")
+        return installed == version
+
+    wait_done(env, matches, f"{app} version {version} installed")
 
 def restart():
     env = acs_env()
