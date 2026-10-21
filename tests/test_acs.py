@@ -180,7 +180,7 @@ def check_acs():
         for listed, calls in ((["my-app"], 1), (["other"], 0)):
             with (
                 patch.dict(os.environ, {"SPLUNK_STACK": "stack", "AGENT_TEMPDIRECTORY": tmp}),
-                patch("splunk_release.acs.installed", side_effect=["my-app" in listed, False]),
+                patch("splunk_release.acs.installed_version", side_effect=["1.0.0" if "my-app" in listed else None, None]),
                 patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
                 patch("splunk_release.acs.run") as run,
                 redirect_stdout(io.StringIO()) as out,
@@ -197,9 +197,10 @@ def check_acs():
             patch("splunk_release.acs.acs_env", return_value={}),
             patch("splunk_release.acs.run") as run,
         ):
+            # 1.4.100 contains the text 1.4.10 but is a different version.
             run.side_effect = [
-                subprocess.CompletedProcess([], 0, stdout="version 1.4.9", stderr=""),
-                subprocess.CompletedProcess([], 0, stdout="version 1.4.10", stderr=""),
+                subprocess.CompletedProcess([], 0, stdout=structured({"version": "1.4.100"}), stderr=""),
+                subprocess.CompletedProcess([], 0, stdout=structured({"version": "1.4.10"}), stderr=""),
             ]
             now, sleeps = [0], []
             def wait(seconds):
@@ -231,7 +232,7 @@ def check_acs():
             patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
             redirect_stdout(io.StringIO()),
         ):
-            run.return_value = subprocess.CompletedProcess([], 0, stdout="version 1.4.9", stderr="")
+            run.return_value = subprocess.CompletedProcess([], 0, stdout=structured({"version": "1.4.9"}), stderr="")
             now[0] = 0
             try:
                 acs.wait_version(package_dir)
@@ -348,10 +349,12 @@ def check_stack_ready():
         except SystemExit as error:
             assert error.code == 1
     missing = subprocess.CalledProcessError(2, [], "", 'failed, code: 404 Not Found')
-    with patch("splunk_release.acs.acs", side_effect=["ok", missing, subprocess.CalledProcessError(2, [], "", "code: 500")]):
-        assert acs.installed({}, "a") is True and acs.installed({}, "a") is False
+    with patch("splunk_release.acs.acs", side_effect=[
+        structured({"version": "1.0.1"}), missing, subprocess.CalledProcessError(2, [], "", "code: 500")
+    ]):
+        assert acs.installed_version({}, "a") == "1.0.1" and acs.installed_version({}, "a") is None
         try:
-            acs.installed({}, "a")
+            acs.installed_version({}, "a")
             raise AssertionError("expected CalledProcessError")
         except subprocess.CalledProcessError:
             pass
@@ -388,7 +391,7 @@ def check_repair():
         with (
             patch("splunk_release.acs.rest", return_value=b"{}"),
             patch("splunk_release.acs.acs_env", return_value={}),
-            patch("splunk_release.acs.structured_response", return_value={"version": "1.4.11"}),
+            patch("splunk_release.acs.installed_version", return_value="1.4.11"),
             patch("splunk_release.acs.feed_versions", return_value=["1.4.9", "1.4.10"]),
             redirect_stdout(output),
         ):
@@ -403,7 +406,7 @@ def check_repair():
             assert manifest["info"]["id"]["version"] == version and app_conf.count(f"version = {version}") == 2
         for rest, stanzas, message in ((b"{}", "Missing", "has no stanza [Missing]"), (None, "Fix me", "is not in")):
             with patch("splunk_release.acs.rest", return_value=rest), patch(
-                "splunk_release.acs.structured_response", return_value={"version": "1.4.9"}
+                "splunk_release.acs.installed_version", return_value="1.4.9"
             ), patch("splunk_release.acs.feed_versions", return_value=[]), patch("splunk_release.acs.acs_env"):
                 try:
                     acs.repair_packages(package_dir, Path(tmp, "other"), "savedsearches", stanzas)

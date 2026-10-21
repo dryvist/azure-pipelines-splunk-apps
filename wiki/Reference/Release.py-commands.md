@@ -24,7 +24,7 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   output reports `restartRequired: true`.
 - `wait-version <dir>` reads the version from the single
   `<app-id>-<version>.tar.gz` package and waits until `acs apps describe`
-  shows that version.
+  reports exactly that version in its `version` field.
 - `uninstall` and `wait-version` check every 15 seconds for up to 15 minutes.
   They finish only when `acs status current-stack` reports
   `infrastructure.status` `Ready` and the app change shows in `acs apps
