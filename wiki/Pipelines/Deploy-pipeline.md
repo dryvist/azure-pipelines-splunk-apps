@@ -36,9 +36,10 @@ happened.
 
 All compare stages start at once. Each deploy stage starts after its matching
 compare stage. The exclusive lock check on `splunk-<environment>` runs the
-deploy stages one at a time. When included, the restart stage runs after every
-deploy stage finishes, including rejected ones. If Restart is unchecked, each
-app's **Check stack status after deploy** step still reports a pending restart.
+deploy stages one at a time. When included, the restart stage runs only after
+every deploy stage succeeds; a failed or rejected deploy stage skips it. If
+Restart is unchecked, each app's **Check stack status after deploy** step still
+reports a pending restart.
 
 Both stages use `templates/feed-package.yml` to check the feed and download
 the latest package. Compare stages use `templates/compare-stage.yml`. Deploy

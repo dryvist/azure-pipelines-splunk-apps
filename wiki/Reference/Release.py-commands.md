@@ -15,21 +15,20 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
 - `appinspect <dir>` uses `SPLUNK_USERNAME` and `SPLUNK_PASSWORD`.
 - `deploy <dir>` runs `acs apps install private` with `SPLUNK_STACK` and
   `STACK_TOKEN`.
-- `uninstall <dir>` runs `acs apps uninstall <app-id>` when `acs apps list`
-  shows the app, and otherwise prints that it is not installed. Before it
+- `uninstall <dir>` runs `acs apps uninstall <app-id>` when `acs apps
+  describe` finds the app, and otherwise prints that it is not installed. Before it
   uninstalls, it prints a DANGER warning: the uninstall permanently deletes
   ALL of the app's lookups (CSV files) and local settings. It then waits as
-  described below until `acs apps list` no longer shows the app.
+  described below until `acs apps describe` no longer finds the app.
 - `status` runs `acs status current-stack -f structured` and warns when the
   output reports `restartRequired: true`.
 - `wait-version <dir>` reads the version from the single
   `<app-id>-<version>.tar.gz` package and waits until `acs apps describe`
   shows that version.
 - `uninstall` and `wait-version` check every 15 seconds for up to 15 minutes.
-  They finish only when all three hold: `acs deployment status` reports the
-  last deployment task is no longer `new`, `pending` or `running`;
-  `acs status current-stack` reports `infrastructure.status` `Ready`; and the
-  app change shows in ACS. A `failed` task or stack status fails the step.
+  They finish only when `acs status current-stack` reports
+  `infrastructure.status` `Ready` and the app change shows in `acs apps
+  describe`. A `Failed` stack status fails the step.
 - `restart` runs `acs restart current-stack`, then waits as `uninstall` and
   `wait-version` do, for up to 30 minutes, until restart-required status
   clears.
