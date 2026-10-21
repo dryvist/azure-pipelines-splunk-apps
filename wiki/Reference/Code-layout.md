@@ -21,6 +21,7 @@
 | `templates/diff-tools.yml` | Package and diff dependency installation. |
 | `templates/python.yml` | Python 3.13 selection. |
 | `templates/deploy.yml` | Per-package deploy steps. |
+| `templates/import-steps.yml` | Import compare and pull request steps. |
 | `templates/splunk-app.yml` | Shared app pipeline stages. |
 | `tests/` | Unit tests for release commands. |
 

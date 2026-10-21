@@ -121,10 +121,11 @@ def check_acs():
         assert acs.listed_apps({}) == ["a1", "b2"]
         assert run.call_args.args[0] == ["acs", "apps", "list", "--count", "100", "--offset", "0", "-f", "structured"]
 
-    # Restart polls restartRequired every 30 seconds until it clears.
+    # Restart polls every 15 seconds until restartRequired clears and the stack is ready.
     with (
         patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
         patch("splunk_release.acs.acs_env", return_value={}),
+        patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
         patch("splunk_release.acs.run") as run,
     ):
         run.side_effect = [
@@ -144,7 +145,7 @@ def check_acs():
             ["acs", "status", "current-stack", "-f", "structured"],
             ["acs", "status", "current-stack", "-f", "structured"],
         ]
-        assert now == [30]
+        assert now == [15]
 
     # Restart is skipped when no restart is required.
     with (
