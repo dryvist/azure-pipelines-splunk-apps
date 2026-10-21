@@ -179,7 +179,8 @@ def check_acs():
         for listed, calls in ((["my-app"], 1), (["other"], 0)):
             with (
                 patch.dict(os.environ, {"SPLUNK_STACK": "stack", "AGENT_TEMPDIRECTORY": tmp}),
-                patch("splunk_release.acs.listed_apps", return_value=listed),
+                patch("splunk_release.acs.listed_apps", side_effect=[listed, ["other"]]),
+                patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
                 patch("splunk_release.acs.run") as run,
                 redirect_stdout(io.StringIO()) as out,
             ):
@@ -187,6 +188,7 @@ def check_acs():
                 acs.uninstall(package_dir)
             assert run.call_count == calls
             assert ("PERMANENTLY DELETES ALL of its lookups" in out.getvalue()) == bool(calls)
+            assert ("my-app uninstalled from stack (ready)" in out.getvalue()) == bool(calls)
             if calls:
                 assert run.call_args.args[0] == ["acs", "apps", "uninstall", "my-app"]
 
@@ -204,9 +206,10 @@ def check_acs():
                 now[0] += seconds
             with patch("splunk_release.acs.time.monotonic", side_effect=lambda: now[0]), patch(
                 "splunk_release.acs.time.sleep", side_effect=wait
-            ), redirect_stdout(io.StringIO()):
+            ), patch("splunk_release.acs.stack_ready", side_effect=[(False, "pending"), (True, "ready"), (True, "ready")]
+                     ), redirect_stdout(io.StringIO()):
                 acs.wait_version(package_dir)
-            assert run.call_count == 2 and sleeps == [15]
+            assert run.call_count == 2 and sleeps == [15, 15]
 
         # A busy stack response is retried until ACS accepts the command.
         busy = subprocess.CompletedProcess([], 1, "", "424-failed-dependency: A deployment task is still in progress.")
@@ -224,6 +227,7 @@ def check_acs():
             patch("splunk_release.acs.run") as run,
             patch("splunk_release.acs.time.sleep", side_effect=lambda seconds: now.__setitem__(0, now[0] + seconds)),
             patch("splunk_release.acs.time.monotonic", side_effect=lambda: now[0]),
+            patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
             redirect_stdout(io.StringIO()),
         ):
             run.return_value = subprocess.CompletedProcess([], 0, stdout="version 1.4.9", stderr="")
@@ -329,6 +333,24 @@ def check_acs():
     assert "RESULT: FAILED - open each failed job for its FAIL or Error line" in failed.stdout
 
 
+def check_stack_ready():
+    responses = {("deployment", "status"): {"lastDeployment": {"status": "running"}},
+                 ("status", "current-stack"): {"infrastructure": {"status": "Ready"}}}
+    with patch("splunk_release.acs.structured_response", side_effect=lambda env, *args: responses[args]):
+        assert acs.stack_ready({}) == (False, "deployment task running, stack Ready")
+        responses[("deployment", "status")] = {"lastDeployment": {"status": "completed"}}
+        assert acs.stack_ready({}) == (True, "deployment task completed, stack Ready")
+        responses[("status", "current-stack")] = {"infrastructure": {"status": "Pending"}}
+        assert acs.stack_ready({})[0] is False
+        responses[("deployment", "status")] = {"lastDeployment": {"status": "failed"}}
+        try:
+            with redirect_stdout(io.StringIO()):
+                acs.stack_ready({})
+            raise AssertionError("expected SystemExit")
+        except SystemExit as error:
+            assert error.code == 1
+
+
 @patch.dict(os.environ, {"SPLUNK_STACK": "stack", "SPLUNK_SEARCH_HEAD": "", "SPLUNK_REST_URL": "",
                          "STACK_TOKEN": "token"})
 def check_repair():
@@ -413,8 +435,12 @@ class AcsTests(TestCase):
     def test_repair(self):
         check_repair()
 
+    def test_stack_ready(self):
+        check_stack_ready()
+
 
 if __name__ == "__main__":
     check_acs()
     check_repair()
+    check_stack_ready()
     print("ok")
