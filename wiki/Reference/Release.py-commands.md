@@ -30,9 +30,11 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   They finish only when `acs status current-stack` reports
   `infrastructure.status` `Ready` and the app change shows in `acs apps
   describe`. A `Failed` stack status fails the step.
-- `restart` runs `acs restart current-stack`, then waits as `uninstall` and
+- `restart` runs `acs restart current-stack` when `acs status current-stack`
+  reports `restartRequired: true`, then waits as `uninstall` and
   `wait-version` do, for up to 30 minutes, until restart-required status
-  clears.
+  clears. `restart --force` always restarts and prints a warning to check the
+  uninstall steps.
 - `export <dir> [app-id ...]` runs `acs apps export` with `SPLUNK_STACK` and
   `STACK_TOKEN`. It saves `<dir>/<app-id>.tgz` with default, local, and users
   content. With no app ids, it exports this app. An app that is not installed

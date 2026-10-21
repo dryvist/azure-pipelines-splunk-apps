@@ -174,10 +174,16 @@ def wait_version(directory):
 
     wait_done(env, matches, f"{app} version {version} installed")
 
-def restart():
-    env = acs_env()
-    if not restart_required(stack_status(env)):
-        log("section", f"No restart required on {os.environ['SPLUNK_STACK']}, skipping restart")
+def restart(*flags):
+    """Restart when ACS reports a restart is required, or always with --force."""
+    if set(flags) - {"--force"}:
+        sys.exit(f"Unknown option: {' '.join(flags)}")
+    env, stack = acs_env(), os.environ["SPLUNK_STACK"]
+    if flags:
+        log("warning", f"Restarting {stack} after the uninstalls. Check that every uninstall step above reports"
+                       " the app uninstalled before the installs run.")
+    elif not restart_required(stack_status(env)):
+        log("section", f"No restart required on {stack}, skipping restart")
         return
     acs(env, "restart", "current-stack", main=True)
     wait_done(env, lambda: not restart_required(stack_status(env)), f"restart of {os.environ['SPLUNK_STACK']}", 30)

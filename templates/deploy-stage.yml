@@ -25,6 +25,9 @@ parameters:
   - name: uninstall
     type: boolean
     default: false
+  - name: install
+    type: boolean
+    default: true
   - name: target
     type: string
     default: splunk
@@ -64,29 +67,52 @@ stages:
                       compare: false
                       install: false
                       uninstall: true
-      - deployment: deploy
-        displayName: ${{ iif(parameters.uninstall, 'Uninstall and install on', 'Install on') }} ${{ parameters.environment }}
-        ${{ if parameters.uninstall }}:
+        - deployment: uninstall
+          displayName: Uninstall from ${{ parameters.environment }}
           dependsOn: uninstall_itsi
-        ${{ if parameters.pool }}:
-          pool: ${{ parameters.pool }}
-        workspace:
-          clean: all
-        environment: splunk-${{ parameters.environment }}
-        variables:
-          - group: splunk-appinspect
-          - group: ${{ parameters.target }}-${{ parameters.environment }}
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - ${{ parameters.steps }}
-                - template: acs-cli.yml
-                - ${{ if eq(length(parameters.deploySteps), 0) }}:
+          ${{ if parameters.pool }}:
+            pool: ${{ parameters.pool }}
+          workspace:
+            clean: all
+          environment: splunk-${{ parameters.environment }}
+          variables:
+            - group: ${{ parameters.target }}-${{ parameters.environment }}
+          strategy:
+            runOnce:
+              deploy:
+                steps:
+                  - ${{ parameters.steps }}
+                  - template: acs-cli.yml
                   - template: deploy.yml
                     parameters:
                       environment: ${{ parameters.environment }}
                       packageDirectory: ${{ parameters.packageDirectory }}
                       compare: false
-                      uninstall: ${{ parameters.uninstall }}
-                - ${{ parameters.deploySteps }}
+                      install: false
+                      uninstall: true
+      - ${{ if parameters.install }}:
+        - deployment: deploy
+          displayName: Install on ${{ parameters.environment }}
+          ${{ if parameters.uninstall }}:
+            dependsOn: uninstall
+          ${{ if parameters.pool }}:
+            pool: ${{ parameters.pool }}
+          workspace:
+            clean: all
+          environment: splunk-${{ parameters.environment }}
+          variables:
+            - group: splunk-appinspect
+            - group: ${{ parameters.target }}-${{ parameters.environment }}
+          strategy:
+            runOnce:
+              deploy:
+                steps:
+                  - ${{ parameters.steps }}
+                  - template: acs-cli.yml
+                  - ${{ if eq(length(parameters.deploySteps), 0) }}:
+                    - template: deploy.yml
+                      parameters:
+                        environment: ${{ parameters.environment }}
+                        packageDirectory: ${{ parameters.packageDirectory }}
+                        compare: false
+                  - ${{ parameters.deploySteps }}

@@ -161,6 +161,22 @@ def check_acs():
     assert [call.args[0] for call in run.call_args_list] == [["acs", "status", "current-stack", "-f", "structured"]]
     assert "No restart required on stack" in output.getvalue()
 
+    # --force restarts without reading restartRequired first and prints the uninstall warning.
+    with (
+        patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
+        patch("splunk_release.acs.acs_env", return_value={}),
+        patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
+        patch("splunk_release.acs.run") as run,
+        redirect_stdout(io.StringIO()) as output,
+    ):
+        run.side_effect = [
+            subprocess.CompletedProcess(["acs"], 0, stdout="", stderr=""),
+            subprocess.CompletedProcess(["acs"], 0, stdout=structured({"messages": {"restartRequired": False}}), stderr=""),
+        ]
+        acs.restart("--force")
+    assert run.call_args_list[0].args[0] == ["acs", "restart", "current-stack"]
+    assert "Check that every uninstall step above" in output.getvalue()
+
     # The package filename supplies the app id and version for install and polling.
     with tempfile.TemporaryDirectory() as tmp:
         package_dir = Path(tmp, "my-app")
