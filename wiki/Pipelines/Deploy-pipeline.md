@@ -12,9 +12,10 @@ the Run form parameter **Restart the stack after the deploys if a restart is
 required** defaults off. The stage appears only when it is checked and app ids
 are given. The Run form parameter **DANGER - Uninstall each app first.
 PERMANENTLY DELETES ALL of its lookups (CSV files) and local settings** also
-defaults off. When checked, each Deploy stage uninstalls the app before it
-installs the package. Every stage and job names the app and environment, so a
-failure shows where it happened.
+defaults off. When checked, each Deploy stage first uninstalls the app from the
+ITSI search head, then from the main search head, then installs the package.
+Every stage and job names the app and environment, so a failure shows where it
+happened.
 
 - **Stage `compare_<app>` (Compare `<app-id>` with `<environment>`):** runs
   two jobs in parallel. **Compare with `<environment>` (no install)** uses
@@ -24,7 +25,9 @@ failure shows where it happened.
   package, export the installed app, and compare without installing.
 - **Stage `deploy_<app>` (Deploy `<app-id>` to `<environment>`):** has the
   deployment job **Install on `<environment>`**. It waits for the
-  `splunk-<environment>` approval, then installs the package. It does not
+  `splunk-<environment>` approval, then installs the package. With the DANGER
+  uninstall option, the job **Uninstall from `itsi-<environment>`** runs first
+  with the `splunk-itsi-<environment>` group, after the same approval. It does not
   compare the package.
 - **Restart `<environment>` if required**, job **Restart `<environment>` if
   required and check status**: appears only when Restart is checked and app ids
@@ -65,8 +68,11 @@ stages use `templates/deploy-stage.yml`:
   changed data model in its own collapsed group.
 - **Publish the `<side>` compare artifact:** Publishes
   `<side>-diff-<app-id>-<attempt>` from each compare job.
-- **Uninstall the app from `<environment>` via ACS:** Removes the app when the
-  DANGER uninstall option is checked. Deploy stage only.
+- **Uninstall the app from `itsi-<environment>` via ACS**, then
+  **Uninstall the app from `<environment>` via ACS:** Remove the app from the
+  ITSI search head, then from the main search head, when the DANGER uninstall
+  option is checked. Deploy stage only. The `splunk-itsi-<environment>` ACS
+  token needs the same app install capabilities as the main token.
 - **Deploy to `<environment>` via ACS:** Installs the package in the deploy
   stage.
 - **Wait for the deployed version:** Confirms the package version in the

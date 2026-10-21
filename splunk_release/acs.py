@@ -75,12 +75,22 @@ def acs(env, *args, main=False):
         log("endgroup")
     for output in (result.stdout, result.stderr):
         if output.strip():
-            print(output.rstrip())
+            print(readable(output))
     if not main and not result.returncode:
         log("endgroup")
     if result.returncode:
         raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
     return result.stdout
+
+def readable(output):
+    """Output with each "response" JSON string of ACS structured output decoded, or the output unchanged."""
+    try:
+        items = json.loads(output)
+        for item in items:
+            item["response"] = json.loads(item["response"])
+        return json.dumps(items, indent=2)
+    except (ValueError, TypeError, KeyError):
+        return output.rstrip()
 
 def acs_env():
     """Environment whose HOME holds the ACS CLI configuration written by install-acs."""
