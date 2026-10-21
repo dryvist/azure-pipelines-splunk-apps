@@ -65,13 +65,14 @@ def check_import_app(environment, *flags):
             patch("splunk_release.import_app.APP", "my_ta"),
             patch("splunk_release.import_app.generate_manifest", side_effect=write_manifest) as generate,
             patch("splunk_release.import_app.git") as git,
+            patch("splunk_release.import_app.feed_versions", return_value=["1.4.20", "1.4.3"]),
             patch("splunk_release.import_app.http", return_value=b'{"pullRequestId": 34}') as http,
             patch.dict(os.environ, environment),
             redirect_stdout(output),
         ):
             import_app.import_app(environment, export_dir, *flags)
 
-        version = "1.4.10"
+        version = "1.4.21"
         branch = f"{environment}-import/{version}-8421"
         generate.assert_called_once_with()
         assert git.call_args_list == [
