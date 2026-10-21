@@ -132,16 +132,33 @@ def package_identity(directory):
         sys.exit(f"Expected <app-id>-<version>.tar.gz package name, found {package.name}")
     return package, app, version
 
+def stack_ready(env):
+    """Return (ready, state): ready when the last deployment task finished and the stack status is Ready."""
+    task = structured_response(env, "deployment", "status").get("lastDeployment", {}).get("status", "")
+    stack = stack_status(env).get("infrastructure", {}).get("status", "")
+    if task.lower() == "failed" or stack.lower() == "failed":
+        log("error", f"ACS reports deployment task {task}, stack {stack}")
+        raise SystemExit(1)
+    return task.lower() not in ("new", "pending", "running") and stack.lower() == "ready", \
+        f"deployment task {task or 'none'}, stack {stack or 'unknown'}"
+
+def wait_done(env, done, what):
+    """Wait up to 15 minutes until the stack is ready and done() is true, checking every 15 seconds."""
+    deadline = time.monotonic() + 15 * 60
+    while time.monotonic() < deadline:
+        ready, state = stack_ready(env)
+        if ready and done():
+            log("section", f"{what} ({state})")
+            return
+        print(f"Waiting for {what}: {state}")
+        time.sleep(min(15, max(0, deadline - time.monotonic())))
+    log("error", f"Timed out after 15 minutes waiting for {what}")
+    raise SystemExit(1)
+
 def wait_version(directory):
     _, app, version = package_identity(directory)
-    deadline = time.monotonic() + 15 * 60
     env = acs_env()
-    while time.monotonic() < deadline:
-        if version in acs(env, "apps", "describe", app):
-            return
-        time.sleep(min(15, max(0, deadline - time.monotonic())))
-    log("error", f"Timed out after 15 minutes waiting for {app} version {version}")
-    raise SystemExit(1)
+    wait_done(env, lambda: version in acs(env, "apps", "describe", app), f"{app} version {version} installed")
 
 def restart():
     env = acs_env()
@@ -174,6 +191,7 @@ def uninstall(directory):
                    " and local settings")
     log("section", f"Uninstalling {app} from {stack}")
     acs(env, "apps", "uninstall", app, main=True)
+    wait_done(env, lambda: app not in listed_apps(env), f"{app} uninstalled from {stack}")
 
 def listed_apps(env, splunkbase=False):
     apps, offset = [], 0
