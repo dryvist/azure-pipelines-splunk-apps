@@ -74,9 +74,7 @@ stages use `templates/deploy-stage.yml`:
 - **Uninstall the app from `itsi-<environment>` via ACS**, then
   **Uninstall the app from `<environment>` via ACS:** Remove the app from the
   ITSI search head, then from the main search head, when the DANGER uninstall
-  option is checked. After each uninstall, the step restarts that search head
-  when ACS reports `restartRequired`, and waits until the restart clears and
-  the stack is Ready. Deploy stage only. The `splunk-itsi-<environment>` ACS
+  option is checked. Deploy stage only. The `splunk-itsi-<environment>` ACS
   token needs the same app install capabilities as the main token.
 - **Deploy to `<environment>` via ACS:** Installs the package in the deploy
   stage.

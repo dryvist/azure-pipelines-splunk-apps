@@ -19,8 +19,7 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   describe` finds the app, and otherwise prints that it is not installed. Before it
   uninstalls, it prints a DANGER warning: the uninstall permanently deletes
   ALL of the app's lookups (CSV files) and local settings. It then waits as
-  described below until `acs apps describe` no longer finds the app, then
-  runs `restart`, which restarts only when ACS reports a restart is required.
+  described below until `acs apps describe` no longer finds the app.
 - `status` runs `acs status current-stack -f structured` and warns when the
   output reports `restartRequired: true`.
 - `wait-version <dir>` reads the version from the single
