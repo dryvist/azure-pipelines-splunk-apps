@@ -63,8 +63,8 @@ Repeat for every app you plan to deploy.
    **DANGER:** checking it deletes every lookup (CSV file) and every local
    setting of each app on prod before the install, with no undo. See
    [Deploy pipeline](/Pipelines/Deploy-pipeline).
-7. If you want a restart, check **Restart the stack after the deploys if a
-   restart is required**.
+7. If you want restarts, check **Restart both search heads - always after the
+   uninstalls, after the installs only if required. Unchecked never restarts**.
 8. Select **Run**.
 9. Wait until every **Compare `<app-id>` with prod** stage is green.
 
@@ -131,9 +131,12 @@ Repeat for every app, one at a time.
 
 ## Restart (optional)
 
-The **Restart the stack after the deploys if a restart is required** checkbox
-defaults off. Check it on the Run form if you want a restart stage. It appears
-only when checked and app ids are given. If unchecked, each app's **Check stack
+The **Restart both search heads - always after the uninstalls, after the
+installs only if required. Unchecked never restarts** checkbox defaults off. It
+controls every restart in the run. Unchecked, the run never restarts either
+search head. Checked, the run always restarts both search heads after the
+uninstalls, and restarts them after the installs only if a restart is required.
+Restart stages appear only when it is checked and app ids are given. If unchecked, each app's **Check stack
 status after deploy** step still reports a pending restart.
 
 **Do:**

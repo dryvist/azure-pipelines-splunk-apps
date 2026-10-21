@@ -20,7 +20,7 @@ parameters:
   - name: restart
     type: boolean
     default: false
-    displayName: Restart the stack after the deploys if a restart is required
+    displayName: Restart both search heads - always after the uninstalls, after the installs only if required. Unchecked never restarts
 
 stages:
   - ${{ each app in split(parameters.apps, ' ') }}:
@@ -50,7 +50,7 @@ stages:
                     parameters:
                       app: ${{ app }}
   # One restart after all uninstalls, before any install.
-  - ${{ if and(parameters.uninstall, ne(trim(parameters.apps), '')) }}:
+  - ${{ if and(parameters.restart, parameters.uninstall, ne(trim(parameters.apps), '')) }}:
     - template: ../templates/restart-stage.yml
       parameters:
         name: restart_uninstall
@@ -70,8 +70,12 @@ stages:
               environment: ${{ parameters.environment }}
               dependsOn:
                 - compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
-                - ${{ if parameters.uninstall }}:
+                - ${{ if and(parameters.restart, parameters.uninstall) }}:
                   - restart_uninstall
+                - ${{ elseif parameters.uninstall }}:
+                  - ${{ each uninstalled in split(parameters.apps, ' ') }}:
+                    - ${{ if ne(uninstalled, '') }}:
+                      - uninstall_${{ replace(replace(uninstalled, '-', '_'), '.', '_') }}
               packageDirectory: $(Pipeline.Workspace)/packages/${{ lower(app) }}
               steps:
                 - template: ../templates/feed-package.yml
