@@ -17,6 +17,8 @@ from splunk_release.version import (
     TEXT,
     app_conf_version,
     bumped,
+    feed_versions,
+    highest,
     generate_manifest,
     git,
     set_version,
@@ -82,7 +84,7 @@ def import_app(environment, export_dir, *flags):
     """Replace package/ with the merged export from environment and open a pull request."""
     if set(flags) - set(compare.SKIPPED):
         sys.exit(f"Unknown option: {' '.join(flags)}")
-    version = bumped(app_conf_version(CONF.read_text(**TEXT)), "patch")
+    version = bumped(highest(app_conf_version(CONF.read_text(**TEXT)), *feed_versions(APP.lower())), "patch")
     archive = Path(export_dir, f"{APP}.tgz")
     if not archive.is_file():
         sys.exit(f"{environment} export is missing {archive.name}; confirm the app is installed")

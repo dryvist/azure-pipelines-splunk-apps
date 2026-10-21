@@ -64,7 +64,8 @@ The stage is named `import_<env>`.
     `<env>-diff-<app-id>-<attempt>`.
 15. **Open a pull request with the `<env>` app:** Merges local configuration
     into default, removes `local/`, `users/`, and `metadata/local.meta`, sets
-    both app version rows to one patch above `main`, and regenerates
+    both app version rows to one patch above the highest of `main` and the
+    splunk-apps feed versions, and regenerates
     `app.manifest`. It sets `acceleration = false` in `datamodels.conf` and
     removes `action.populate_lookup` from `savedsearches.conf`, with one warning
     per stanza, because Splunk Cloud AppInspect rejects them. The stack

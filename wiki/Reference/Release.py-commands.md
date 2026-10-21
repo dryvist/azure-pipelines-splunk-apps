@@ -100,7 +100,8 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
 - `import <env> <export-dir> [--skip-lookups] [--skip-lookup-backups]`
   merges local app configuration into default, removes `local/`, `users/`,
   and `metadata/local.meta`, sets both version rows
-  to one patch above `main`, regenerates `app.manifest`, commits the package,
+  to one patch above the highest of `main` and the splunk-apps feed versions,
+  regenerates `app.manifest`, commits the package,
   pushes a new `<env>-import/` branch, and opens a pull request to `main`. It uses
   `BUILD_BUILDID`, `BUILD_REPOSITORY_ID`, `BUILD_REPOSITORY_NAME`,
   `SYSTEM_ACCESSTOKEN`, `SYSTEM_COLLECTIONURI`, `SYSTEM_TEAMPROJECT`, and
