@@ -205,24 +205,22 @@ def deploy(directory):
     acs(env, "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(package), main=True)
 
 def uninstall(directory):
-    """Uninstall the search head's own copy of the app (--scope local) and the copy on all search heads.
-
-    Repeats both uninstalls until each returns 404, which confirms that no copy is left."""
+    """Uninstall the app from all search heads, repeating until ACS returns 404, which confirms it is gone."""
     _, app, _ = package_identity(directory)
     env, stack = acs_env(), os.environ["SPLUNK_STACK"]
     log("warning", f"DANGER: uninstalling {app} from {stack} PERMANENTLY DELETES ALL of its lookups (CSV files)"
                    " and local settings")
 
-    def gone(*scope):
+    def gone():
         try:
-            acs(env, "apps", "uninstall", app, *scope, main=True)
+            acs(env, "apps", "uninstall", app, main=True)
             return False
         except subprocess.CalledProcessError as error:
             if not missing(error):
                 raise
             return True
 
-    wait_done(env, lambda: all([gone("--scope", "local"), gone()]), f"{app} gone from {stack}")
+    wait_done(env, gone, f"{app} gone from {stack}")
 
 def listed_apps(env, splunkbase=False):
     apps, offset = [], 0
