@@ -9,8 +9,11 @@
 The pipeline in `deploy/azure-pipelines.yml` takes an environment and
 space-separated app ids. The Run form parameter **DANGER - Uninstall each app
 first. PERMANENTLY DELETES ALL of its lookups (CSV files) and local settings**
-defaults off. The Run form parameter **Restart the stack after the deploys if a
-restart is required** also defaults off. Every stage and job names the app and
+defaults off. The Run form parameter
+**Restart both search heads - always after the uninstalls, after the installs
+only if required. Unchecked never restarts** also defaults off. It
+controls every restart: unchecked, the run never restarts either search head.
+Every stage and job names the app and
 environment, so a failure shows where it happened.
 
 The stages run in this order. A run restarts at most twice:
@@ -27,7 +30,8 @@ The stages run in this order. A run restarts at most twice:
    `itsi-<environment>`** runs, then the job **Uninstall from
    `<environment>`**.
 3. **Stage `restart_uninstall` (Restart `<environment>` after the
-   uninstalls)**, only with the DANGER uninstall option: runs after every
+   uninstalls)**, only when both the DANGER uninstall option and Restart are
+   checked: runs after every
    uninstall stage succeeds. The job **Restart `itsi-<environment>` after the
    uninstalls** runs, then **Restart `<environment>` after the uninstalls**.
    Each always restarts, prints a warning to check the uninstall steps, and
@@ -35,7 +39,8 @@ The stages run in this order. A run restarts at most twice:
 4. **Stage `deploy_<app>` (Install `<app-id>` on `<environment>`)**, one per
    app: the job **Install on `<environment>`** waits for the
    `splunk-<environment>` approval, then installs the package. With the
-   uninstall option, it starts only after `restart_uninstall` succeeds.
+   uninstall option, it starts only after `restart_uninstall` succeeds, or,
+   with Restart unchecked, after every uninstall stage succeeds.
 5. **Stage `restart` (Restart `<environment>` if required)**, only when Restart
    is checked: runs after every install stage succeeds. The jobs **Restart
    `itsi-<environment>` if required** and **Restart `<environment>` if
