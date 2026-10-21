@@ -133,14 +133,22 @@ def package_identity(directory):
     return package, app, version
 
 def stack_ready(env):
-    """Return (ready, state): ready when the last deployment task finished and the stack status is Ready."""
-    task = structured_response(env, "deployment", "status").get("lastDeployment", {}).get("status", "")
+    """Return (ready, state): ready when acs status current-stack reports infrastructure status Ready."""
     stack = stack_status(env).get("infrastructure", {}).get("status", "")
-    if task.lower() == "failed" or stack.lower() == "failed":
-        log("error", f"ACS reports deployment task {task}, stack {stack}")
+    if stack.lower() == "failed":
+        log("error", f"ACS reports stack status {stack}")
         raise SystemExit(1)
-    return task.lower() not in ("new", "pending", "running") and stack.lower() == "ready", \
-        f"deployment task {task or 'none'}, stack {stack or 'unknown'}"
+    return stack.lower() == "ready", f"stack {stack or 'unknown'}"
+
+def installed(env, app):
+    """Whether acs apps describe finds the app on the stack."""
+    try:
+        acs(env, "apps", "describe", app)
+        return True
+    except subprocess.CalledProcessError as error:
+        if "code: 404" in f"{error.stdout}{error.stderr}" or "APP_NOT_FOUND" in f"{error.stdout}{error.stderr}":
+            return False
+        raise
 
 def wait_done(env, done, what, minutes=15):
     """Wait up to minutes until the stack is ready and done() is true, checking every 15 seconds."""
@@ -178,14 +186,14 @@ def uninstall(directory):
     """Uninstall the package's app from the stack, or report that it is not installed."""
     _, app, _ = package_identity(directory)
     env, stack = acs_env(), os.environ["SPLUNK_STACK"]
-    if app not in listed_apps(env):
+    if not installed(env, app):
         log("section", f"{app} is not installed on {stack}, nothing to uninstall")
         return
     log("warning", f"DANGER: uninstalling {app} from {stack} PERMANENTLY DELETES ALL of its lookups (CSV files)"
                    " and local settings")
     log("section", f"Uninstalling {app} from {stack}")
     acs(env, "apps", "uninstall", app, main=True)
-    wait_done(env, lambda: app not in listed_apps(env), f"{app} uninstalled from {stack}")
+    wait_done(env, lambda: not installed(env, app), f"{app} uninstalled from {stack}")
 
 def listed_apps(env, splunkbase=False):
     apps, offset = [], 0

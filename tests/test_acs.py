@@ -180,7 +180,7 @@ def check_acs():
         for listed, calls in ((["my-app"], 1), (["other"], 0)):
             with (
                 patch.dict(os.environ, {"SPLUNK_STACK": "stack", "AGENT_TEMPDIRECTORY": tmp}),
-                patch("splunk_release.acs.listed_apps", side_effect=[listed, ["other"]]),
+                patch("splunk_release.acs.installed", side_effect=["my-app" in listed, False]),
                 patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
                 patch("splunk_release.acs.run") as run,
                 redirect_stdout(io.StringIO()) as out,
@@ -335,21 +335,26 @@ def check_acs():
 
 
 def check_stack_ready():
-    responses = {("deployment", "status"): {"lastDeployment": {"status": "running"}},
-                 ("status", "current-stack"): {"infrastructure": {"status": "Ready"}}}
-    with patch("splunk_release.acs.structured_response", side_effect=lambda env, *args: responses[args]):
-        assert acs.stack_ready({}) == (False, "deployment task running, stack Ready")
-        responses[("deployment", "status")] = {"lastDeployment": {"status": "completed"}}
-        assert acs.stack_ready({}) == (True, "deployment task completed, stack Ready")
-        responses[("status", "current-stack")] = {"infrastructure": {"status": "Pending"}}
-        assert acs.stack_ready({})[0] is False
-        responses[("deployment", "status")] = {"lastDeployment": {"status": "failed"}}
+    response = {"infrastructure": {"status": "Ready"}}
+    with patch("splunk_release.acs.stack_status", side_effect=lambda env: response):
+        assert acs.stack_ready({}) == (True, "stack Ready")
+        response["infrastructure"]["status"] = "Pending"
+        assert acs.stack_ready({}) == (False, "stack Pending")
+        response["infrastructure"]["status"] = "Failed"
         try:
             with redirect_stdout(io.StringIO()):
                 acs.stack_ready({})
             raise AssertionError("expected SystemExit")
         except SystemExit as error:
             assert error.code == 1
+    missing = subprocess.CalledProcessError(2, [], "", 'failed, code: 404 Not Found')
+    with patch("splunk_release.acs.acs", side_effect=["ok", missing, subprocess.CalledProcessError(2, [], "", "code: 500")]):
+        assert acs.installed({}, "a") is True and acs.installed({}, "a") is False
+        try:
+            acs.installed({}, "a")
+            raise AssertionError("expected CalledProcessError")
+        except subprocess.CalledProcessError:
+            pass
 
 
 @patch.dict(os.environ, {"SPLUNK_STACK": "stack", "SPLUNK_SEARCH_HEAD": "", "SPLUNK_REST_URL": "",

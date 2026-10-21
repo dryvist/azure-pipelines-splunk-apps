@@ -54,7 +54,7 @@ stages:
         - ${{ each app in split(parameters.apps, ' ') }}:
             - ${{ if ne(app, '') }}:
                 - deploy_${{ replace(replace(app, '-', '_'), '.', '_') }}
-      condition: succeededOrFailed()
+      condition: succeeded()
       lockBehavior: sequential
       variables:
         - group: splunk-${{ parameters.environment }}

@@ -19,7 +19,7 @@ group, deployment environment, or its approval checks.
 4. Complete any approval check on the selected environment.
 
 Each app has its own compare and deploy stage. When **Restart** is checked,
-the restart stage runs once, after every deploy stage finishes.
+the restart stage runs once, only after every deploy stage succeeds.
 
 ### ACS is busy
 
