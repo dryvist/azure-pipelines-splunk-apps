@@ -153,8 +153,14 @@ def wait_done(env, done, what, minutes=15):
     """Wait up to minutes until the stack is ready and done() is true, checking every 15 seconds."""
     deadline = time.monotonic() + minutes * 60
     while time.monotonic() < deadline:
-        ready, state = stack_ready(env)
-        if ready and done():
+        try:
+            ready, state = stack_ready(env)
+            ready = ready and done()
+        except subprocess.CalledProcessError as error:
+            if "code: 401" not in f"{error.stdout}{error.stderr}":
+                raise
+            ready, state = False, "ACS returned 401 Unauthorized, as it does while the search head restarts"
+        if ready:
             log("section", f"{what} ({state})")
             return
         print(f"Waiting for {what}: {state}")
