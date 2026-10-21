@@ -38,12 +38,12 @@ steps:
       - publish: $(Pipeline.Workspace)/${{ parameters.environment }}-diff/$(APP_ID)
         displayName: Publish the ${{ parameters.environment }} compare artifact
         artifact: ${{ parameters.environment }}-diff-$(APP_ID)-$(System.JobAttempt)
+  - ${{ if eq(parameters.uninstall, true) }}:
+      - template: acs-step.yml
+        parameters:
+          command: '"$(Pipeline.Workspace)/tools/release.py" uninstall "${{ parameters.packageDirectory }}"'
+          displayName: Uninstall the app from ${{ parameters.environment }} via ACS
   - ${{ if eq(parameters.install, true) }}:
-      - ${{ if eq(parameters.uninstall, true) }}:
-          - template: acs-step.yml
-            parameters:
-              command: '"$(Pipeline.Workspace)/tools/release.py" uninstall "${{ parameters.packageDirectory }}"'
-              displayName: Uninstall the app from ${{ parameters.environment }} via ACS
       - template: acs-step.yml
         parameters:
           command: '"$(Pipeline.Workspace)/tools/release.py" deploy "${{ parameters.packageDirectory }}"'

@@ -332,6 +332,8 @@ def check_acs():
 @patch.dict(os.environ, {"SPLUNK_STACK": "stack", "SPLUNK_SEARCH_HEAD": "", "SPLUNK_REST_URL": "",
                          "STACK_TOKEN": "token"})
 def check_repair():
+    assert json.loads(acs.readable(structured({"apps": [{"name": "a"}]}))) == [{"response": {"apps": [{"name": "a"}]}}]
+    assert acs.readable("App uninstalled successfully\n") == "App uninstalled successfully"
     assert acs.stanza_names(" a ; b c ;") == ["a", "b c"]
     with patch("splunk_release.acs.http", return_value=b"{}") as http:
         acs.rest("my_ta", "savedsearches", "Fix me/now", "DELETE")
