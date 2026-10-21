@@ -8,7 +8,7 @@ release.py deploy <dir>                 install the single .tar.gz in <dir> with
 release.py status                       report current-stack status and pending restart
 release.py uninstall <dir>              uninstall the app in <dir> from the stack when it is installed
 release.py wait-version <dir>           wait until ACS reports the packaged app version
-release.py restart [--force]            restart current-stack when a restart is required, or always with --force, then wait
+release.py restart                      restart current-stack only when a restart is required, then wait
 release.py export <out-dir> [app-id...] export app data, custom apps (--custom), or a package directory
 release.py tree <target> <source> <out> [--reverse] [--skip-lookups] compare raw files and write tree reports
 release.py local-diff <target> <source> <out> [--reverse] [--skip-lookups] compare target local files with the same source default stanzas

@@ -21,12 +21,12 @@ steps:
   - template: acs-step.yml
     parameters:
       command: '"$(Pipeline.Workspace)/tools/release.py" status'
-      displayName: Check stack status before deploy
+      displayName: Check stack status
   - ${{ if eq(parameters.compare, true) }}:
       - template: acs-step.yml
         parameters:
           command: '"$(Pipeline.Workspace)/tools/release.py" export "$(Pipeline.Workspace)/${{ parameters.environment }}-export" "${{ parameters.packageDirectory }}"'
-          displayName: Export this app from ${{ parameters.environment }} via ACS
+          displayName: Export the app from ${{ parameters.environment }}
       - template: compare-steps.yml
         parameters:
           release: '"$(Pipeline.Workspace)/tools/release.py"'
@@ -42,20 +42,20 @@ steps:
       - template: acs-step.yml
         parameters:
           command: '"$(Pipeline.Workspace)/tools/release.py" uninstall "${{ parameters.packageDirectory }}"'
-          displayName: Uninstall the app from ${{ parameters.environment }} via ACS
+          displayName: Uninstall from ${{ parameters.environment }}
   - ${{ if eq(parameters.install, true) }}:
       - template: acs-step.yml
         parameters:
           command: '"$(Pipeline.Workspace)/tools/release.py" deploy "${{ parameters.packageDirectory }}"'
-          displayName: Deploy to ${{ parameters.environment }} via ACS
+          displayName: Install on ${{ parameters.environment }}
           additionalEnv:
             SPLUNK_USERNAME: $(SPLUNK_USERNAME)
             SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
       - template: acs-step.yml
         parameters:
           command: '"$(Pipeline.Workspace)/tools/release.py" wait-version "${{ parameters.packageDirectory }}"'
-          displayName: Wait for the deployed version
+          displayName: Check the installed version
       - template: acs-step.yml
         parameters:
           command: '"$(Pipeline.Workspace)/tools/release.py" status'
-          displayName: Check stack status after deploy
+          displayName: Check stack status after install

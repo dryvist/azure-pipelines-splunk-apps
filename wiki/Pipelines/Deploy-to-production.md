@@ -63,17 +63,20 @@ Repeat for every app you plan to deploy.
    **DANGER:** checking it deletes every lookup (CSV file) and every local
    setting of each app on prod before the install, with no undo. See
    [Deploy pipeline](/Pipelines/Deploy-pipeline).
-7. If you want restarts, check **Restart both search heads - always after the
-   uninstalls, after the installs only if required. Unchecked never restarts**.
+7. If you want a restart after installs when ACS requires it, check
+   **Restart both search heads at the end if required**.
 8. Select **Run**.
 9. Wait until every **Compare `<app-id>` with prod** stage is green.
 
 **Verify:**
 
-1. The run shows one **Compare** stage and one **Deploy** stage per app.
-2. Each **Deploy `<app-id>` to prod** stage shows **Waiting** for review.
-3. The **Restart prod if required** stage appears only when Restart is checked
-   and app ids are given.
+1. The run shows **Compare**, **Uninstall**, and **Install** stages according
+   to the selected options.
+2. Each **Install `<app-id>` on prod** stage shows **Waiting** for review.
+3. The **Restart prod if required after the uninstalls** stage appears when
+   the DANGER uninstall option is checked and app IDs are given.
+4. The **Restart prod if required after the installs** stage appears only when
+   the restart checkbox and Install are checked and app IDs are given.
 
 ## Deploy an app from its pipeline
 
@@ -101,7 +104,7 @@ Repeat for every app, one at a time.
 **Do:**
 
 1. Open the **Compare `<app-id>` with prod** stage.
-2. Open the job **Compare with prod (no install)**.
+2. Open the job **Compare with prod**.
 3. Open the step **Compare prod with this package (file tree, local and
    default)**.
 4. Read the `[added]` lines. They are files in the package from Azure Repos
@@ -113,42 +116,47 @@ Repeat for every app, one at a time.
    this package's defaults.
 8. Open the step **Compare prod with this package (merged defaults)**.
 9. Read each file's diff.
-10. Open the job **Compare with itsi-prod (no install)**.
+10. Open the job **Compare with itsi-prod**.
 11. Repeat steps 3 to 9 for the prod ITSI search head. Its local settings are
     what was built by hand there.
 12. Return to the run summary.
-13. On the **Deploy `<app-id>` to prod** stage, select **Review**.
+13. On the **Install `<app-id>` on prod** stage, select **Review**.
 14. Select **Approve** if the compare matches what you expect.
 15. Select **Reject** if it does not.
 16. Wait for the stage to finish before reviewing the next app.
 
 **Verify:**
 
-1. The job **Install on prod** shows each step green: **Deploy to
-   prod via ACS**, **Wait for the deployed version** and **Check stack status
-   after deploy**.
+1. The job **Install on prod** shows each step green: **Install on prod**,
+   **Check the installed version**, and **Check stack status after install**.
 2. A failed step names the app in its stage and job title.
 
-## Restart (optional)
+## Restart stages
 
-The **Restart both search heads - always after the uninstalls, after the
-installs only if required. Unchecked never restarts** checkbox defaults off. It
-controls every restart in the run. Unchecked, the run never restarts either
-search head. Checked, the run always restarts both search heads after the
-uninstalls, and restarts them after the installs only if a restart is required.
-Restart stages appear only when it is checked and app ids are given. If unchecked, each app's **Check stack
-status after deploy** step still reports a pending restart.
+The **Restart both search heads at the end if required** checkbox defaults
+off. When checked with Install enabled and app IDs provided, it adds a stage
+after the installs. That stage runs jobs for the ITSI search head and then the
+main search head. Each job restarts only when ACS reports that a restart is
+required.
+
+When the DANGER uninstall option is checked and app IDs are provided, the run
+adds a separate stage after the uninstalls, even if the restart checkbox is
+off. It runs before installs. The jobs check the ITSI search head, then the
+main search head, and restart each only when ACS reports that it is required.
+If there is no restart stage after installs, **Check stack status after
+install** still reports any pending restart.
 
 **Do:**
 
-1. On the **Restart prod if required** stage, select **Review**.
+1. On each **Restart prod if required after the uninstalls** or **Restart prod
+   if required after the installs** stage, select **Review**.
 2. Select **Approve**.
 3. Wait for the stage to finish.
 
 **Verify:**
 
-1. **Restart the current stack** prints that no restart is required, or
-   finishes the restart.
+1. **Restart if required** reports when no restart is required, or completes
+   the restart.
 2. **Check stack status after restart** shows no restart requirement.
 
 A rejected app does not block the restart stage. To deploy a rejected app

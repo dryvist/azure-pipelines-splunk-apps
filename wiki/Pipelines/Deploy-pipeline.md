@@ -10,55 +10,55 @@ The pipeline in `deploy/azure-pipelines.yml` takes an environment and
 space-separated app ids. The Run form parameter **DANGER - Uninstall each app
 first. PERMANENTLY DELETES ALL of its lookups (CSV files) and local settings**
 defaults off. The Run form parameter
-**Restart both search heads - always after the uninstalls, after the installs
-only if required. Unchecked never restarts** also defaults off. It
-controls every restart: unchecked, the run never restarts either search head.
+**Restart both search heads at the end if required** also defaults off. It
+controls the restart stage after installs. The DANGER uninstall option adds a
+restart stage after uninstalls, even when this checkbox is off.
 **Compare each app with the environment first** and **Install each app** both
 default on. Uncheck them to rerun only the part that failed: for example,
 uncheck Compare and the DANGER uninstall option to run only the installs.
-Every stage and job names the app and
-environment, so a failure shows where it happened.
+App stages name the app and environment. Restart stages name the environment.
 
-The stages run in this order. A run restarts at most twice:
+The stages run in this order. A run can restart at two points. Each restart
+happens only when ACS reports that it is required:
 
 1. **Stage `compare_<app>` (Compare `<app-id>` with `<environment>`)**, one
-   per app, only with Compare checked: runs two jobs in parallel. **Compare with `<environment>` (no
-   install)** uses `splunk-<environment>`, the main search head. **Compare with
-   `itsi-<environment>` (no install)** uses `splunk-itsi-<environment>`, the
+   per app, only with Compare checked: runs two jobs in parallel. **Compare
+   with `<environment>`** uses `splunk-<environment>`, the main search head.
+   **Compare with `itsi-<environment>`** uses `splunk-itsi-<environment>`, the
    ITSI search head. Both download the latest package, export the installed
    app, and compare without installing.
 2. **Stage `uninstall_<app>` (Uninstall `<app-id>` from `<environment>`)**, one
-   per app, only with the DANGER uninstall option: after the
-   `splunk-<environment>` approval, the job **Uninstall from
-   `itsi-<environment>`** runs, then the job **Uninstall from
-   `<environment>`**.
-3. **Stage `restart_uninstall` (Restart `<environment>` after the
-   uninstalls)**, only when both the DANGER uninstall option and Restart are
-   checked: runs after every
-   uninstall stage succeeds. The job **Restart `itsi-<environment>` after the
-   uninstalls** runs, then **Restart `<environment>` after the uninstalls**.
-   Each always restarts, prints a warning to check the uninstall steps, and
-   waits until the stack is Ready.
+   per app, only with the DANGER uninstall option: runs one job, **Uninstall
+   from `<environment>`**, after the `splunk-<environment>` approval. ACS
+   removes the app from every search head, including ITSI.
+3. **Stage `restart_uninstall` (Restart `<environment>` if required after the
+   uninstalls)**, whenever the DANGER uninstall option is checked and app IDs
+   are provided: runs after every uninstall stage succeeds, regardless of the
+   restart checkbox. It runs **Restart `itsi-<environment>` if required**,
+   then **Restart `<environment>` if required**. Each job restarts only when
+   ACS reports that a restart is required, then checks stack status.
 4. **Stage `deploy_<app>` (Install `<app-id>` on `<environment>`)**, one per
-   app, only with Install checked: the job **Install on `<environment>`** waits for the
-   `splunk-<environment>` approval, then installs the package. With the
-   uninstall option, it starts only after `restart_uninstall` succeeds, or,
-   with Restart unchecked, after every uninstall stage succeeds.
-5. **Stage `restart` (Restart `<environment>` if required)**, only when Restart
-   and Install are checked: runs after every install stage succeeds. The jobs **Restart
-   `itsi-<environment>` if required** and **Restart `<environment>` if
-   required** restart only when ACS reports `messages.restartRequired`, then
-   check status.
+   app, only with Install checked: runs one job, **Install on
+   `<environment>`**, after the `splunk-<environment>` approval. When the
+   DANGER uninstall option is checked, the install waits for
+   `restart_uninstall` to succeed.
+5. **Stage `restart` (Restart `<environment>` if required after the installs)**,
+   only when the restart checkbox and Install are checked: runs after every
+   install stage succeeds. It runs **Restart `itsi-<environment>` if
+   required**, then **Restart `<environment>` if required**. Each job restarts
+   only when ACS reports that a restart is required, then checks status.
 
-All compare stages start at once. The exclusive lock check on
-`splunk-<environment>` runs the other stages one at a time. Each of them waits
-for the `splunk-<environment>` approval. A failed or rejected stage skips every
-stage that depends on it. If Restart is unchecked, each app's **Check stack
-status after deploy** step still reports a pending restart.
+All compare stages start at once. The exclusive lock on
+`splunk-<environment>` runs deployment jobs one at a time. Uninstall, install,
+and restart jobs wait for the `splunk-<environment>` approval. A failed or
+rejected stage skips every stage that depends on it. If the restart checkbox is
+off, each app's **Check stack status after install** step still reports a
+pending restart.
 
-Both stages use `templates/feed-package.yml` to check the feed and download
-the latest package. Compare stages use `templates/compare-stage.yml`. Deploy
-stages use `templates/deploy-stage.yml`:
+Compare, uninstall, and install stages use `templates/feed-package.yml` to
+check the feed and download the latest package. Compare stages use
+`templates/compare-stage.yml`. Uninstall and install stages use
+`templates/deploy-stage.yml`:
 
 - **Use Python 3.13:** Prepares the agent in both stages.
 - **Check `<app-id>` is in the splunk-apps feed:** Fails when the feed has no
@@ -69,10 +69,10 @@ stages use `templates/deploy-stage.yml`:
   jobs.
 - **Set up ACS CLI:** Prepares the ACS session in both stages. See
   [release.py commands](/Reference/Release.py-commands).
-- **Check stack status before deploy:** Reads the selected stack status in
-  both stages.
-- **Export this app from `<side>` via ACS:** Exports the installed app
-  in each compare job. An app that is not installed prints
+- **Check stack status:** Reads the selected stack status before the job's
+  other ACS steps.
+- **Export the app from `<side>`:** Exports the installed app in each compare
+  job. An app that is not installed prints
   `NOT INSTALLED <app-id>`.
 - **Compare `<side>` with this package (file tree, local and default):**
   Writes `<app-id>-tree.txt` with raw file changes.
@@ -84,17 +84,16 @@ stages use `templates/deploy-stage.yml`:
   changed data model in its own collapsed group.
 - **Publish the `<side>` compare artifact:** Publishes
   `<side>-diff-<app-id>-<attempt>` from each compare job.
-- **Uninstall the app from `itsi-<environment>` via ACS**, then
-  **Uninstall the app from `<environment>` via ACS:** Remove the app from the
-  ITSI search head, then from the main search head, when the DANGER uninstall
-  option is checked. Uninstall stage only. The `splunk-itsi-<environment>` ACS
-  token needs the same app install capabilities as the main token.
-- **Deploy to `<environment>` via ACS:** Installs the package in the deploy
+- **Uninstall from `<environment>`:** Removes the app from all search heads,
+  including ITSI, when the DANGER uninstall option is checked.
+- **Install on `<environment>`:** Installs the package in the deploy stage.
+- **Check the installed version:** Confirms the package version in the deploy
   stage.
-- **Wait for the deployed version:** Confirms the package version in the
+- **Check stack status after install:** Reads the selected stack status in the
   deploy stage.
-- **Check stack status after deploy:** Reads the selected stack status in the
-  deploy stage.
+
+Restart stages use `templates/restart-stage.yml` and restart the ITSI search
+head before the main search head.
 
 > **DANGER: uninstalling deletes ALL of the app's lookups.** Every CSV file in
 > the app's `lookups/` folder on the stack, including lookups people edited or

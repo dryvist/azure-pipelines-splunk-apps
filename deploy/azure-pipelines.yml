@@ -28,7 +28,7 @@ parameters:
   - name: restart
     type: boolean
     default: false
-    displayName: Restart both search heads - always after the uninstalls, after the installs only if required. Unchecked never restarts
+    displayName: Restart both search heads at the end if required
 
 stages:
   - ${{ each app in split(parameters.apps, ' ') }}:
@@ -54,19 +54,17 @@ stages:
                   - compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
               packageDirectory: $(Pipeline.Workspace)/packages/${{ lower(app) }}
               uninstall: true
-              install: false
               steps:
                 - template: ../templates/feed-package.yml
                   parameters:
                     app: ${{ app }}
-  # One restart after all uninstalls, before any install.
-  - ${{ if and(parameters.restart, parameters.uninstall, ne(trim(parameters.apps), '')) }}:
+  # Restart after all uninstalls, before any install.
+  - ${{ if and(parameters.uninstall, ne(trim(parameters.apps), '')) }}:
     - template: ../templates/restart-stage.yml
       parameters:
         name: restart_uninstall
-        displayName: Restart ${{ parameters.environment }} after the uninstalls
+        displayName: Restart ${{ parameters.environment }} if required after the uninstalls
         environment: ${{ parameters.environment }}
-        force: true
         dependsOn:
           - ${{ each app in split(parameters.apps, ' ') }}:
               - ${{ if ne(app, '') }}:
@@ -81,12 +79,8 @@ stages:
               dependsOn:
                 - ${{ if parameters.compare }}:
                   - compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
-                - ${{ if and(parameters.restart, parameters.uninstall) }}:
+                - ${{ if parameters.uninstall }}:
                   - restart_uninstall
-                - ${{ elseif parameters.uninstall }}:
-                  - ${{ each uninstalled in split(parameters.apps, ' ') }}:
-                    - ${{ if ne(uninstalled, '') }}:
-                      - uninstall_${{ replace(replace(uninstalled, '-', '_'), '.', '_') }}
               packageDirectory: $(Pipeline.Workspace)/packages/${{ lower(app) }}
               steps:
                 - template: ../templates/feed-package.yml
@@ -96,7 +90,7 @@ stages:
     - template: ../templates/restart-stage.yml
       parameters:
         name: restart
-        displayName: Restart ${{ parameters.environment }} if required
+        displayName: Restart ${{ parameters.environment }} if required after the installs
         environment: ${{ parameters.environment }}
         dependsOn:
           - ${{ each app in split(parameters.apps, ' ') }}:

@@ -1,5 +1,5 @@
-# One stage that restarts the ITSI search head, then the main search head, of an environment.
-# Without force, each search head restarts only when ACS reports a restart is required.
+# One stage that restarts the ITSI search head, then the main search head, of an environment when ACS reports
+# a restart is required.
 parameters:
   - name: name
     type: string
@@ -10,9 +10,6 @@ parameters:
   - name: dependsOn
     type: object
     default: []
-  - name: force
-    type: boolean
-    default: false
 
 stages:
   - stage: ${{ parameters.name }}
@@ -23,7 +20,7 @@ stages:
     jobs:
       - ${{ each target in split('splunk-itsi splunk', ' ') }}:
         - deployment: ${{ replace(target, '-', '_') }}
-          displayName: Restart ${{ iif(eq(target, 'splunk'), '', 'itsi-') }}${{ parameters.environment }} ${{ iif(parameters.force, 'after the uninstalls', 'if required') }}
+          displayName: Restart ${{ iif(eq(target, 'splunk'), '', 'itsi-') }}${{ parameters.environment }} if required
           ${{ if eq(target, 'splunk') }}:
             dependsOn: splunk_itsi
           workspace:
@@ -41,8 +38,8 @@ stages:
                   - template: acs-cli.yml
                   - template: acs-step.yml
                     parameters:
-                      command: '"$(Pipeline.Workspace)/tools/release.py" restart ${{ iif(parameters.force, ''--force'', '''') }}'
-                      displayName: Restart the current stack
+                      command: '"$(Pipeline.Workspace)/tools/release.py" restart'
+                      displayName: Restart if required
                   - template: acs-step.yml
                     parameters:
                       command: '"$(Pipeline.Workspace)/tools/release.py" status'

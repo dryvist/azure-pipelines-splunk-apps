@@ -31,7 +31,7 @@ stages:
       # <environment> is the search head installs replace; itsi-<environment> is the ITSI search head.
       - ${{ each side in split(format('{0} itsi-{0}', parameters.environment), ' ') }}:
           - job: compare_${{ replace(side, '-', '_') }}
-            displayName: Compare with ${{ side }} (no install)
+            displayName: Compare with ${{ side }}
             ${{ if parameters.pool }}:
               pool: ${{ parameters.pool }}
             workspace:

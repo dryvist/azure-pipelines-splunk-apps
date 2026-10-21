@@ -49,8 +49,8 @@ The stage is named `import_<env>`.
 6. **Package main app:** Builds the app package in `app/dist`.
 7. **Set up ACS CLI:** Adds the `<env>` stack with the ITSI search head as the
    target and authenticates with ACS.
-8. **Check stack status before deploy:** Reports the `<env>` stack status.
-9. **Export this app from `<env>` via ACS:** Writes the export to
+8. **Check stack status:** Reports the `<env>` stack status.
+9. **Export the app from `<env>`:** Writes the export to
    `<env>-export/<app-id>/` and sets `APP_ID`.
 10. **Compare `<env>` with this package (file tree, local and default):**
    Writes raw file changes to the diff output.

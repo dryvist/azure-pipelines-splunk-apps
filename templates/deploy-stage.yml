@@ -1,4 +1,4 @@
-# One stage that installs a package on an environment after its splunk-<environment> approval.
+# One stage that installs, or with uninstall removes, a package on an environment after its splunk-<environment> approval.
 # target picks the variable groups: splunk uses splunk-<environment>, splunk-itsi uses splunk-itsi-<environment>.
 parameters:
   - name: name
@@ -22,12 +22,10 @@ parameters:
     type: stepList
   - name: packageDirectory
     type: string
+  # true uninstalls the app instead of installing it.
   - name: uninstall
     type: boolean
     default: false
-  - name: install
-    type: boolean
-    default: true
   - name: target
     type: string
     default: splunk
@@ -43,76 +41,28 @@ stages:
     condition: ${{ parameters.condition }}
     lockBehavior: sequential
     jobs:
-      # With uninstall, the app is uninstalled from the ITSI search head first, then from the main one.
-      - ${{ if parameters.uninstall }}:
-        - deployment: uninstall_itsi
-          displayName: Uninstall from itsi-${{ parameters.environment }}
-          ${{ if parameters.pool }}:
-            pool: ${{ parameters.pool }}
-          workspace:
-            clean: all
-          environment: splunk-${{ parameters.environment }}
-          variables:
-            - group: splunk-itsi-${{ parameters.environment }}
-          strategy:
-            runOnce:
-              deploy:
-                steps:
-                  - ${{ parameters.steps }}
-                  - template: acs-cli.yml
-                  - template: deploy.yml
-                    parameters:
-                      environment: itsi-${{ parameters.environment }}
-                      packageDirectory: ${{ parameters.packageDirectory }}
-                      compare: false
-                      install: false
-                      uninstall: true
-        - deployment: uninstall
-          displayName: Uninstall from ${{ parameters.environment }}
-          dependsOn: uninstall_itsi
-          ${{ if parameters.pool }}:
-            pool: ${{ parameters.pool }}
-          workspace:
-            clean: all
-          environment: splunk-${{ parameters.environment }}
-          variables:
-            - group: ${{ parameters.target }}-${{ parameters.environment }}
-          strategy:
-            runOnce:
-              deploy:
-                steps:
-                  - ${{ parameters.steps }}
-                  - template: acs-cli.yml
+      - deployment: deploy
+        displayName: ${{ iif(parameters.uninstall, 'Uninstall from', 'Install on') }} ${{ parameters.environment }}
+        ${{ if parameters.pool }}:
+          pool: ${{ parameters.pool }}
+        workspace:
+          clean: all
+        environment: splunk-${{ parameters.environment }}
+        variables:
+          - group: splunk-appinspect
+          - group: ${{ parameters.target }}-${{ parameters.environment }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - ${{ parameters.steps }}
+                - template: acs-cli.yml
+                - ${{ if eq(length(parameters.deploySteps), 0) }}:
                   - template: deploy.yml
                     parameters:
                       environment: ${{ parameters.environment }}
                       packageDirectory: ${{ parameters.packageDirectory }}
                       compare: false
-                      install: false
-                      uninstall: true
-      - ${{ if parameters.install }}:
-        - deployment: deploy
-          displayName: Install on ${{ parameters.environment }}
-          ${{ if parameters.uninstall }}:
-            dependsOn: uninstall
-          ${{ if parameters.pool }}:
-            pool: ${{ parameters.pool }}
-          workspace:
-            clean: all
-          environment: splunk-${{ parameters.environment }}
-          variables:
-            - group: splunk-appinspect
-            - group: ${{ parameters.target }}-${{ parameters.environment }}
-          strategy:
-            runOnce:
-              deploy:
-                steps:
-                  - ${{ parameters.steps }}
-                  - template: acs-cli.yml
-                  - ${{ if eq(length(parameters.deploySteps), 0) }}:
-                    - template: deploy.yml
-                      parameters:
-                        environment: ${{ parameters.environment }}
-                        packageDirectory: ${{ parameters.packageDirectory }}
-                        compare: false
-                  - ${{ parameters.deploySteps }}
+                      install: ${{ not(parameters.uninstall) }}
+                      uninstall: ${{ parameters.uninstall }}
+                - ${{ parameters.deploySteps }}

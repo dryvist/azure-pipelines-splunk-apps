@@ -94,7 +94,7 @@ status step warns and continues; it does not restart the stack.
 
 ### Version wait times out
 
-**Symptom:** `Wait for the deployed version` reports a timeout after 300
+**Symptom:** `Check the installed version` reports a timeout after 300
 seconds.
 
 **Cause:** `acs apps describe` did not report the version in the package name

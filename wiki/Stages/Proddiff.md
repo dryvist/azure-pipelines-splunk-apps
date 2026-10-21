@@ -22,8 +22,8 @@
 - **Outputs:** `prod-diff-<app-id>-<attempt>` or
   `itsi-prod-diff-<app-id>-<attempt>` pipeline artifact.
 
-The jobs display as **Compare with prod (no install)** and **Compare with
-itsi-prod (no install)**. Each job runs the package steps, installs diff
+The jobs display as **Compare with prod** and **Compare with itsi-prod**. They
+do not install the package. Each job runs the package steps, installs diff
 tools, sets up the ACS CLI, then checks stack status and exports the installed
 app. It runs four compare steps:
 
