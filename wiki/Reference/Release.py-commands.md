@@ -112,7 +112,7 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   is on the search head and in the package's `default/<conf>.conf`. It writes
   `<out-dir>/temp` one patch above the highest feed or installed version
   without those stanzas, and `<out-dir>/real` one patch above that with the
-  package content unchanged. It sets `REPAIR_APP` and `REPAIR_VERSION`.
+  package content unchanged. It sets `REPAIR_VERSION`.
   Stanza names are separated by `;`. It reads `SYSTEM_ACCESSTOKEN`.
 - `delete-local <dir> <conf> <stanzas>` deletes each stanza's local copy
   through the search head REST API. A stanza with no local copy prints

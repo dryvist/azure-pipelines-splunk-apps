@@ -62,7 +62,7 @@ stages:
             publishDirectory: $(Pipeline.Workspace)/repair/real
             feedsToUsePublish: internal
             vstsFeedPublish: $(System.TeamProject)/splunk-apps
-            vstsFeedPackagePublish: $(REPAIR_APP)
+            vstsFeedPackagePublish: ${{ lower(parameters.app) }}
             versionOption: custom
             versionPublish: $(REPAIR_VERSION)
         - template: ../templates/deploy.yml

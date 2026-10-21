@@ -301,7 +301,6 @@ def repair_packages(package_dir, out_dir, conf, stanzas):
     repackage(package, Path(out_dir, "real"), app, real)
     log("section", f"{app}: installed {installed}, highest {base}; temporary {temp} without "
                    f"{len(names)} {conf}.conf stanzas, then {real} with them")
-    print(f"##vso[task.setvariable variable=REPAIR_APP]{app.lower()}")
     print(f"##vso[task.setvariable variable=REPAIR_VERSION]{real}")
 
 def delete_local(package_dir, conf, stanzas):
