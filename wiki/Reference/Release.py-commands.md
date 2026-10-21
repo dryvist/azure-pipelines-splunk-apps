@@ -29,7 +29,8 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
 - `uninstall` and `wait-version` check every 15 seconds for up to 15 minutes.
   They finish only when `acs status current-stack` reports
   `infrastructure.status` `Ready` and the app change shows in `acs apps
-  describe`. A `Failed` stack status fails the step.
+  describe`. A `Failed` stack status fails the step. A 401 Unauthorized from
+  ACS, which happens while a search head restarts, counts as not ready yet.
 - `restart` runs `acs restart current-stack` when `acs status current-stack`
   reports `restartRequired: true`, then waits as `uninstall` and
   `wait-version` do, for up to 30 minutes, until restart-required status
