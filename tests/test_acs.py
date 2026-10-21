@@ -209,22 +209,21 @@ def check_acs():
             acs.deploy(package_dir)
         assert run.call_args.args[0][-2:] == ["--app-package", str(package_dir / "my-app-1.4.10.tar.gz")]
 
-        # Uninstall removes the search head's own copy, then the copy on all search heads; a 404 means no copy.
-        for returncode in (0, 1):
-            with (
-                patch.dict(os.environ, {"SPLUNK_STACK": "stack", "AGENT_TEMPDIRECTORY": tmp}),
-                patch("splunk_release.acs.installed_version", return_value=None),
-                patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
-                patch("splunk_release.acs.run") as run,
-                redirect_stdout(io.StringIO()) as out,
-            ):
-                run.return_value = subprocess.CompletedProcess([], returncode, stdout="", stderr="code: 404 Not Found")
-                acs.uninstall(package_dir)
-            assert [call.args[0] for call in run.call_args_list] == [
-                ["acs", "apps", "uninstall", "my-app", "--scope", "local"],
-                ["acs", "apps", "uninstall", "my-app"],
-            ]
-            assert "my-app uninstalled from stack (ready)" in out.getvalue()
+        # Uninstall repeats both uninstalls until each returns 404.
+        uninstalled = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+        not_found = subprocess.CompletedProcess([], 1, stdout="", stderr="code: 404 Not Found")
+        with (
+            patch.dict(os.environ, {"SPLUNK_STACK": "stack", "AGENT_TEMPDIRECTORY": tmp}),
+            patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
+            patch("splunk_release.acs.time.sleep"),
+            patch("splunk_release.acs.run", side_effect=[uninstalled, uninstalled, not_found, not_found]) as run,
+            redirect_stdout(io.StringIO()) as out,
+        ):
+            acs.uninstall(package_dir)
+        local = ["acs", "apps", "uninstall", "my-app", "--scope", "local"]
+        everywhere = ["acs", "apps", "uninstall", "my-app"]
+        assert [call.args[0] for call in run.call_args_list] == [local, everywhere, local, everywhere]
+        assert "my-app gone from stack (ready)" in out.getvalue()
 
         with (
             patch("splunk_release.acs.acs_env", return_value={}),

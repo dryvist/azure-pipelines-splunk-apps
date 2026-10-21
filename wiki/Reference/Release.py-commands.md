@@ -20,8 +20,8 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   uninstall <app-id> --scope local`, which removes the copy installed on the
   target search head only, such as one installed in Splunk Web. It then runs
   `acs apps uninstall <app-id>`, which removes the copy on all search heads. A
-  404 from either means there is no such copy. It then waits as described below
-  until `acs apps describe` no longer finds the app.
+  404 from either means there is no such copy. It repeats both, waiting as
+  described below, until both return 404. That confirms no copy is left.
 - `status` runs `acs status current-stack -f structured` and warns when the
   output reports `restartRequired: true`.
 - `wait-version <dir>` reads the version from the single
@@ -30,8 +30,8 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   not match prints the version ACS reports, or `not installed`.
 - `uninstall` and `wait-version` check every 15 seconds for up to 15 minutes.
   They finish only when `acs status current-stack` reports
-  `infrastructure.status` `Ready` and the app change shows in `acs apps
-  describe`. A `Failed` stack status fails the step. A 401 Unauthorized from
+  `infrastructure.status` `Ready` and the app change is confirmed: both
+  uninstalls return 404, or `acs apps describe` reports the exact version. A `Failed` stack status fails the step. A 401 Unauthorized from
   ACS, which happens while a search head restarts, counts as not ready yet.
 - `restart` runs `acs restart current-stack` when `acs status current-stack`
   reports `restartRequired: true`, then waits as `uninstall` and
