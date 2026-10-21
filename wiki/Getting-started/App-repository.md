@@ -51,7 +51,6 @@ Steps 5 and 6 cover app repository files and Build Service permissions.
        default: true
 
    trigger:
-     batch: true
      branches:
        include: [main]
 

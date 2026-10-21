@@ -20,7 +20,6 @@ parameters:
     default: true
 
 trigger:
-  batch: true
   branches:
     include: [main]
 
