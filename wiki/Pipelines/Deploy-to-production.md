@@ -20,13 +20,13 @@ you approve its install. Nothing installs until you approve that app.
 6. Confirm the list shows **Approvals** and **Exclusive Lock**. If either is
    missing, add it with
    [Step 3](/Getting-started/Environments-and-ACS).
-7. Confirm the **Approvals** check has a **Timeout** of `24 hours`.
+7. Confirm the **Approvals** check has a **Timeout** of `12 hours`.
 
 **Verify:**
 
 1. `splunk-prod` has an approval check.
 2. `splunk-prod` has an exclusive lock check, so one app installs at a time.
-3. The **Approvals** check has a **Timeout** of `24 hours`.
+3. The **Approvals** check has a **Timeout** of `12 hours`.
 
 ## Release each app
 
