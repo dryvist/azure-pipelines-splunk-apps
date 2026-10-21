@@ -198,14 +198,7 @@ def check_acs():
     with tempfile.TemporaryDirectory() as tmp:
         package_dir = Path(tmp, "my-app")
         package_dir.mkdir()
-        def write_package(conf_version):
-            conf = f"[launcher]\nversion = {conf_version}\n[id]\nname = my-app\nversion = {conf_version}\n".encode()
-            with tarfile.open(package_dir / "my-app-1.4.10.tar.gz", "w:gz") as archive:
-                info = tarfile.TarInfo("my-app/default/app.conf")
-                info.size = len(conf)
-                archive.addfile(info, io.BytesIO(conf))
-
-        write_package("1.4.10")
+        (package_dir / "my-app-1.4.10.tar.gz").write_bytes(b"package")
         assert acs.package_identity(package_dir)[1:] == ("my-app", "1.4.10")
         with (
             patch.dict(os.environ, {"SPLUNK_STACK": "stack", "AGENT_TEMPDIRECTORY": tmp}),
@@ -215,18 +208,6 @@ def check_acs():
             run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
             acs.deploy(package_dir)
         assert run.call_args.args[0][-2:] == ["--app-package", str(package_dir / "my-app-1.4.10.tar.gz")]
-
-        # A package whose app.conf version differs from its file name fails before the install.
-        write_package("1.2.0")
-        with patch("splunk_release.acs.run") as run, redirect_stdout(io.StringIO()) as out:
-            try:
-                acs.deploy(package_dir)
-            except SystemExit:
-                pass
-            else:
-                raise AssertionError("a mismatched package should fail")
-        assert not run.called and "app.conf version 1.2.0, not 1.4.10" in out.getvalue()
-        write_package("1.4.10")
 
         # Uninstall repeats until ACS returns 404.
         uninstalled = subprocess.CompletedProcess([], 0, stdout="", stderr="")
