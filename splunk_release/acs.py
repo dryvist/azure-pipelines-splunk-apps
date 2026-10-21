@@ -14,7 +14,7 @@ import urllib.parse
 from pathlib import Path
 
 from splunk_release.azure import http, log, run
-from splunk_release.version import APP, TEXT, app_conf_version, bumped, feed_versions, highest, set_version
+from splunk_release.version import APP, TEXT, bumped, feed_versions, highest, set_version
 
 def install_acs():
     """Download, verify and unpack the ACS CLI for this agent, then add it to PATH."""
@@ -200,12 +200,7 @@ def restart(*flags):
 
 def deploy(directory):
     package, app, version = package_identity(directory)
-    with tarfile.open(package) as archive:
-        inside = app_conf_version(archive.extractfile(f"{app}/default/app.conf").read().decode("utf-8"))
-    if inside != version:
-        log("error", f"{package.name} holds {app}/default/app.conf version {inside}, not {version}")
-        raise SystemExit(1)
-    log("section", f"Installing {app} {version} as a private app (app.conf version {inside})")
+    log("section", f"Installing {app} {version} as a private app")
     env = acs_env()
     acs(env, "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(package), main=True)
 

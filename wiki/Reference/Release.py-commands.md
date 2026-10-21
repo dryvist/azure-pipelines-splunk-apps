@@ -13,10 +13,8 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
 - `package` (no arguments) runs `slim package` and writes
   `dist/<app-id>-<version>.tar.gz`.
 - `appinspect <dir>` uses `SPLUNK_USERNAME` and `SPLUNK_PASSWORD`.
-- `deploy <dir>` reads the version in `<app-id>/default/app.conf` inside the
-  package. It fails before installing when that version differs from the
-  version in the file name. It then runs `acs apps install private` with
-  `SPLUNK_STACK` and `STACK_TOKEN`.
+- `deploy <dir>` runs `acs apps install private` with `SPLUNK_STACK` and
+  `STACK_TOKEN`.
 - `uninstall <dir>` prints a DANGER warning: the uninstall permanently deletes
   ALL of the app's lookups (CSV files) and local settings. It runs `acs apps
   uninstall <app-id>`, which removes the app from all search heads. It repeats
