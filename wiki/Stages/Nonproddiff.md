@@ -18,10 +18,10 @@
 The jobs run in parallel. Each job compares the package with one search head
 and installs nothing.
 
-- **`compare_nonprod`:** Displays as **Compare with nonprod (no install)** and
-  uses `splunk-nonprod`.
-- **`compare_itsi_nonprod`:** Displays as **Compare with itsi-nonprod (no
-  install)** and uses `splunk-itsi-nonprod`.
+- **`compare_nonprod`:** Displays as **Compare with nonprod** and uses
+  `splunk-nonprod`.
+- **`compare_itsi_nonprod`:** Displays as **Compare with itsi-nonprod** and
+  uses `splunk-itsi-nonprod`.
 
 Each job runs the package steps, installs diff tools, sets up the ACS CLI,
 then checks stack status and exports the installed app. It runs four compare

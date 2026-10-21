@@ -46,13 +46,13 @@ the next release installs over the repaired app.
    before any install when a stanza is not on the search head or not in the
    package's `default/<conf>.conf`. It prints the installed, temporary and real
    versions.
-4. **Deploy to `<environment>` via ACS** and **Wait for the deployed
-   version:** install the temporary package.
+4. **Install on `<environment>`** and **Check the installed version:** install
+   the temporary package.
 5. **Delete the local copies via the REST API:** deletes each stanza's local
    copy. A stanza with no local copy prints `has no local copy`.
 6. **Publish the real package to the splunk-apps feed.**
-7. **Deploy to `<environment>` via ACS** and **Wait for the deployed
-   version:** install the real package.
+7. **Install on `<environment>`** and **Check the installed version:** install
+   the real package.
 8. **Check the stanzas now come from default only:** exports the app and fails
    when a stanza still has a local copy or is missing.
 
