@@ -89,13 +89,14 @@ Timeout, Azure marks the stage skipped.
 
 1. Open the app pipeline's `main` run.
 2. On **Deploy to prod**, select **Review**.
-3. Select **Approve** to allow the prod install.
+3. Select **Approve** to allow the prod install, or select **Reject** to stop
+   it now.
 4. Leave the approval pending to have the stage skip at Timeout.
 
 **Verify:**
 
-1. **Deploy to prod** completes after approval or shows **Skipped** after
-   Timeout.
+1. **Deploy to prod** completes after approval, stops after a rejection, or
+   shows **Skipped** after Timeout.
 
 ## Review and approve each app
 
@@ -159,8 +160,8 @@ install** still reports any pending restart.
    the restart.
 2. **Check stack status after restart** shows no restart requirement.
 
-A rejected app does not block the restart stage. To deploy a rejected app
-later, start a new run with only that app id.
+A rejected or failed app stage skips the restart stage after the installs. To
+deploy a rejected app later, start a new run with only that app id.
 
 ## Related
 
