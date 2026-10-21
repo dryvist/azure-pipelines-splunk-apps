@@ -13,13 +13,16 @@ defaults off. The Run form parameter
 **Restart both search heads - always after the uninstalls, after the installs
 only if required. Unchecked never restarts** also defaults off. It
 controls every restart: unchecked, the run never restarts either search head.
+**Compare each app with the environment first** and **Install each app** both
+default on. Uncheck them to rerun only the part that failed: for example,
+uncheck Compare and the DANGER uninstall option to run only the installs.
 Every stage and job names the app and
 environment, so a failure shows where it happened.
 
 The stages run in this order. A run restarts at most twice:
 
 1. **Stage `compare_<app>` (Compare `<app-id>` with `<environment>`)**, one
-   per app: runs two jobs in parallel. **Compare with `<environment>` (no
+   per app, only with Compare checked: runs two jobs in parallel. **Compare with `<environment>` (no
    install)** uses `splunk-<environment>`, the main search head. **Compare with
    `itsi-<environment>` (no install)** uses `splunk-itsi-<environment>`, the
    ITSI search head. Both download the latest package, export the installed
@@ -37,12 +40,12 @@ The stages run in this order. A run restarts at most twice:
    Each always restarts, prints a warning to check the uninstall steps, and
    waits until the stack is Ready.
 4. **Stage `deploy_<app>` (Install `<app-id>` on `<environment>`)**, one per
-   app: the job **Install on `<environment>`** waits for the
+   app, only with Install checked: the job **Install on `<environment>`** waits for the
    `splunk-<environment>` approval, then installs the package. With the
    uninstall option, it starts only after `restart_uninstall` succeeds, or,
    with Restart unchecked, after every uninstall stage succeeds.
 5. **Stage `restart` (Restart `<environment>` if required)**, only when Restart
-   is checked: runs after every install stage succeeds. The jobs **Restart
+   and Install are checked: runs after every install stage succeeds. The jobs **Restart
    `itsi-<environment>` if required** and **Restart `<environment>` if
    required** restart only when ACS reports `messages.restartRequired`, then
    check status.

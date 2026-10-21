@@ -13,10 +13,18 @@ parameters:
     type: string
     default: ''
     displayName: App IDs, separated by spaces
+  - name: compare
+    type: boolean
+    default: true
+    displayName: Compare each app with the environment first
   - name: uninstall
     type: boolean
     default: false
     displayName: DANGER - Uninstall each app first. PERMANENTLY DELETES ALL of its lookups (CSV files) and local settings
+  - name: install
+    type: boolean
+    default: true
+    displayName: Install each app
   - name: restart
     type: boolean
     default: false
@@ -24,7 +32,7 @@ parameters:
 
 stages:
   - ${{ each app in split(parameters.apps, ' ') }}:
-      - ${{ if ne(app, '') }}:
+      - ${{ if and(ne(app, ''), parameters.compare) }}:
           - template: ../templates/compare-stage.yml
             parameters:
               name: compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
@@ -35,20 +43,22 @@ stages:
                 - template: ../templates/feed-package.yml
                   parameters:
                     app: ${{ app }}
-          - ${{ if parameters.uninstall }}:
-            - template: ../templates/deploy-stage.yml
-              parameters:
-                name: uninstall_${{ replace(replace(app, '-', '_'), '.', '_') }}
-                displayName: Uninstall ${{ app }} from ${{ parameters.environment }}
-                environment: ${{ parameters.environment }}
-                dependsOn: compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
-                packageDirectory: $(Pipeline.Workspace)/packages/${{ lower(app) }}
-                uninstall: true
-                install: false
-                steps:
-                  - template: ../templates/feed-package.yml
-                    parameters:
-                      app: ${{ app }}
+      - ${{ if and(ne(app, ''), parameters.uninstall) }}:
+          - template: ../templates/deploy-stage.yml
+            parameters:
+              name: uninstall_${{ replace(replace(app, '-', '_'), '.', '_') }}
+              displayName: Uninstall ${{ app }} from ${{ parameters.environment }}
+              environment: ${{ parameters.environment }}
+              dependsOn:
+                - ${{ if parameters.compare }}:
+                  - compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
+              packageDirectory: $(Pipeline.Workspace)/packages/${{ lower(app) }}
+              uninstall: true
+              install: false
+              steps:
+                - template: ../templates/feed-package.yml
+                  parameters:
+                    app: ${{ app }}
   # One restart after all uninstalls, before any install.
   - ${{ if and(parameters.restart, parameters.uninstall, ne(trim(parameters.apps), '')) }}:
     - template: ../templates/restart-stage.yml
@@ -62,14 +72,15 @@ stages:
               - ${{ if ne(app, '') }}:
                   - uninstall_${{ replace(replace(app, '-', '_'), '.', '_') }}
   - ${{ each app in split(parameters.apps, ' ') }}:
-      - ${{ if ne(app, '') }}:
+      - ${{ if and(ne(app, ''), parameters.install) }}:
           - template: ../templates/deploy-stage.yml
             parameters:
               name: deploy_${{ replace(replace(app, '-', '_'), '.', '_') }}
               displayName: Install ${{ app }} on ${{ parameters.environment }}
               environment: ${{ parameters.environment }}
               dependsOn:
-                - compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
+                - ${{ if parameters.compare }}:
+                  - compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
                 - ${{ if and(parameters.restart, parameters.uninstall) }}:
                   - restart_uninstall
                 - ${{ elseif parameters.uninstall }}:
@@ -81,7 +92,7 @@ stages:
                 - template: ../templates/feed-package.yml
                   parameters:
                     app: ${{ app }}
-  - ${{ if and(parameters.restart, ne(trim(parameters.apps), '')) }}:
+  - ${{ if and(parameters.restart, parameters.install, ne(trim(parameters.apps), '')) }}:
     - template: ../templates/restart-stage.yml
       parameters:
         name: restart
