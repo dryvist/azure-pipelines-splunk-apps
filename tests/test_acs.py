@@ -195,21 +195,6 @@ def check_acs():
             if calls:
                 assert run.call_args.args[0] == ["acs", "apps", "uninstall", "my-app"]
 
-        # With a target search head, the uninstall removes that search head's own copy; a 404 means it has none.
-        not_found = subprocess.CompletedProcess([], 1, stdout="", stderr="code: 404 Not Found")
-        for result, message in ((subprocess.CompletedProcess([], 0, "", ""), "uninstall from stack search head sh-i-1"),
-                                (not_found, "has no copy of my-app of its own")):
-            with (
-                patch.dict(os.environ, {"SPLUNK_STACK": "stack", "SPLUNK_SEARCH_HEAD": "sh-i-1", "AGENT_TEMPDIRECTORY": tmp}),
-                patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
-                patch("splunk_release.acs.restart") as restart,
-                patch("splunk_release.acs.run", return_value=result) as run,
-                redirect_stdout(io.StringIO()) as out,
-            ):
-                acs.uninstall(package_dir)
-            assert run.call_args.args[0] == ["acs", "apps", "uninstall", "my-app", "--scope", "local"]
-            assert restart.call_count == 1 and message in out.getvalue()
-
         with (
             patch("splunk_release.acs.acs_env", return_value={}),
             patch("splunk_release.acs.run") as run,

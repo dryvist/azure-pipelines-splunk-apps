@@ -72,9 +72,9 @@ stages use `templates/deploy-stage.yml`:
 - **Publish the `<side>` compare artifact:** Publishes
   `<side>-diff-<app-id>-<attempt>` from each compare job.
 - **Uninstall the app from `itsi-<environment>` via ACS**, then
-  **Uninstall the app from `<environment>` via ACS:** When the DANGER uninstall
-  option is checked, first remove the copy installed on the ITSI search head
-  only (`--scope local`), then remove the app from all search heads. After each uninstall, the step restarts that search head
+  **Uninstall the app from `<environment>` via ACS:** Remove the app from the
+  ITSI search head, then from the main search head, when the DANGER uninstall
+  option is checked. After each uninstall, the step restarts that search head
   when ACS reports `restartRequired`, and waits until the restart clears and
   the stack is Ready. Deploy stage only. The `splunk-itsi-<environment>` ACS
   token needs the same app install capabilities as the main token.
