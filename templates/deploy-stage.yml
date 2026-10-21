@@ -65,7 +65,7 @@ stages:
                       install: false
                       uninstall: true
       - deployment: deploy
-        displayName: Install on ${{ parameters.environment }}
+        displayName: ${{ iif(parameters.uninstall, 'Uninstall and install on', 'Install on') }} ${{ parameters.environment }}
         ${{ if parameters.uninstall }}:
           dependsOn: uninstall_itsi
         ${{ if parameters.pool }}:
