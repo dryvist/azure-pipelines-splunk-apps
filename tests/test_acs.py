@@ -209,22 +209,22 @@ def check_acs():
             acs.deploy(package_dir)
         assert run.call_args.args[0][-2:] == ["--app-package", str(package_dir / "my-app-1.4.10.tar.gz")]
 
-        # Uninstall runs only when the stack lists the app.
-        for listed, calls in ((["my-app"], 1), (["other"], 0)):
+        # Uninstall removes the search head's own copy, then the copy on all search heads; a 404 means no copy.
+        for returncode in (0, 1):
             with (
                 patch.dict(os.environ, {"SPLUNK_STACK": "stack", "AGENT_TEMPDIRECTORY": tmp}),
-                patch("splunk_release.acs.installed_version", side_effect=["1.0.0" if "my-app" in listed else None, None]),
+                patch("splunk_release.acs.installed_version", return_value=None),
                 patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
                 patch("splunk_release.acs.run") as run,
                 redirect_stdout(io.StringIO()) as out,
             ):
-                run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+                run.return_value = subprocess.CompletedProcess([], returncode, stdout="", stderr="code: 404 Not Found")
                 acs.uninstall(package_dir)
-            assert run.call_count == calls
-            assert ("PERMANENTLY DELETES ALL of its lookups" in out.getvalue()) == bool(calls)
-            assert ("my-app uninstalled from stack (ready)" in out.getvalue()) == bool(calls)
-            if calls:
-                assert run.call_args.args[0] == ["acs", "apps", "uninstall", "my-app"]
+            assert [call.args[0] for call in run.call_args_list] == [
+                ["acs", "apps", "uninstall", "my-app", "--scope", "local"],
+                ["acs", "apps", "uninstall", "my-app"],
+            ]
+            assert "my-app uninstalled from stack (ready)" in out.getvalue()
 
         with (
             patch("splunk_release.acs.acs_env", return_value={}),

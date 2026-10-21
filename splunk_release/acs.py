@@ -145,9 +145,13 @@ def installed_version(env, app):
     try:
         return structured_response(env, "apps", "describe", app).get("version")
     except subprocess.CalledProcessError as error:
-        if "code: 404" in f"{error.stdout}{error.stderr}" or "APP_NOT_FOUND" in f"{error.stdout}{error.stderr}":
+        if missing(error):
             return None
         raise
+
+def missing(error):
+    """True when a failed acs command reports that the app is not installed."""
+    return "code: 404" in f"{error.stdout}{error.stderr}" or "APP_NOT_FOUND" in f"{error.stdout}{error.stderr}"
 
 def wait_done(env, done, what, minutes=15):
     """Wait up to minutes until the stack is ready and done() is true, checking every 15 seconds."""
@@ -201,16 +205,19 @@ def deploy(directory):
     acs(env, "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(package), main=True)
 
 def uninstall(directory):
-    """Uninstall the package's app from the stack, or report that it is not installed."""
+    """Uninstall the search head's own copy of the app (--scope local), then the copy on all search heads.
+
+    A 404 means there is no such copy."""
     _, app, _ = package_identity(directory)
     env, stack = acs_env(), os.environ["SPLUNK_STACK"]
-    if installed_version(env, app) is None:
-        log("section", f"{app} is not installed on {stack}, nothing to uninstall")
-        return
     log("warning", f"DANGER: uninstalling {app} from {stack} PERMANENTLY DELETES ALL of its lookups (CSV files)"
                    " and local settings")
-    log("section", f"Uninstalling {app} from {stack}")
-    acs(env, "apps", "uninstall", app, main=True)
+    for scope in (["--scope", "local"], []):
+        try:
+            acs(env, "apps", "uninstall", app, *scope, main=True)
+        except subprocess.CalledProcessError as error:
+            if not missing(error):
+                raise
     wait_done(env, lambda: installed_version(env, app) is None, f"{app} uninstalled from {stack}")
 
 def listed_apps(env, splunkbase=False):
