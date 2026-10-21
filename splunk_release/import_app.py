@@ -48,7 +48,7 @@ def cloud_settings_off(root):
 
 
 def open_pull_request(branch, version, environment):
-    """Push an import branch and create its pull request into main."""
+    """Create the import branch's pull request into main, set to auto-complete and delete the branch."""
     build_id = os.environ["BUILD_BUILDID"]
     source = f"refs/heads/{branch}"
     url = (
@@ -56,22 +56,23 @@ def open_pull_request(branch, version, environment):
         f"/_apis/git/repositories/{os.environ['BUILD_REPOSITORY_ID']}/pullrequests"
         "?api-version=7.1"
     )
+    headers = {
+        "Authorization": f"Bearer {os.environ['SYSTEM_ACCESSTOKEN']}",
+        "Content-Type": "application/json",
+    }
     body = {
         "sourceRefName": source,
         "targetRefName": "refs/heads/main",
         "title": f"Import {APP} {version} from {environment}",
         "description": f"Created by build {build_id}.",
     }
-    response = json.loads(
-        http(
-            url,
-            {
-                "Authorization": f"Bearer {os.environ['SYSTEM_ACCESSTOKEN']}",
-                "Content-Type": "application/json",
-            },
-            json.dumps(body).encode("utf-8"),
-        )
-    )
+    response = json.loads(http(url, headers, json.dumps(body).encode("utf-8")))
+    complete = {
+        "autoCompleteSetBy": {"id": response["createdBy"]["id"]},
+        "completionOptions": {"deleteSourceBranch": True},
+    }
+    http(url.replace("pullrequests?", f"pullrequests/{response['pullRequestId']}?"), headers,
+         json.dumps(complete).encode("utf-8"), method="PATCH")
     pull_request_url = (
         f"{os.environ['SYSTEM_COLLECTIONURI']}{os.environ['SYSTEM_TEAMPROJECT']}"
         f"/_git/{os.environ['BUILD_REPOSITORY_NAME']}/pullrequest/"

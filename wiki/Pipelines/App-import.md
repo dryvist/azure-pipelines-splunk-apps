@@ -17,6 +17,8 @@ group. Neither installs the package. Below, `<env>` is `nonprod` or `prod`.
 4. Select **Import this app from nonprod into a new pull request**, or
    **Import this app from prod into a new pull request**. With both selected,
    the run has one import stage and one pull request for each.
+   Each pull request is set to auto-complete and delete its branch once its
+   policies pass.
 5. To import lookups too, clear **When importing, skip lookups (CSV files) and
    keep the ones on main**.
 6. To import Splunk lookup backups too, clear **When importing, skip Splunk
