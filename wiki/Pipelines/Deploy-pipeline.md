@@ -27,8 +27,10 @@ happened.
   deployment job **Install on `<environment>`**. It waits for the
   `splunk-<environment>` approval, then installs the package. With the DANGER
   uninstall option, the job **Uninstall from `itsi-<environment>`** runs first
-  with the `splunk-itsi-<environment>` group, after the same approval. It does not
-  compare the package.
+  with the `splunk-itsi-<environment>` group, after the same approval. The
+  install job is then named **Uninstall and install on `<environment>`** and
+  uninstalls from the main search head before it installs. It does not compare
+  the package.
 - **Restart `<environment>` if required**, job **Restart `<environment>` if
   required and check status**: appears only when Restart is checked and app ids
   are given. It waits for approval, restarts only when ACS reports
