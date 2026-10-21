@@ -209,20 +209,18 @@ def check_acs():
             acs.deploy(package_dir)
         assert run.call_args.args[0][-2:] == ["--app-package", str(package_dir / "my-app-1.4.10.tar.gz")]
 
-        # Uninstall repeats both uninstalls until each returns 404.
+        # Uninstall repeats until ACS returns 404.
         uninstalled = subprocess.CompletedProcess([], 0, stdout="", stderr="")
         not_found = subprocess.CompletedProcess([], 1, stdout="", stderr="code: 404 Not Found")
         with (
             patch.dict(os.environ, {"SPLUNK_STACK": "stack", "AGENT_TEMPDIRECTORY": tmp}),
             patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
             patch("splunk_release.acs.time.sleep"),
-            patch("splunk_release.acs.run", side_effect=[uninstalled, uninstalled, not_found, not_found]) as run,
+            patch("splunk_release.acs.run", side_effect=[uninstalled, not_found]) as run,
             redirect_stdout(io.StringIO()) as out,
         ):
             acs.uninstall(package_dir)
-        local = ["acs", "apps", "uninstall", "my-app", "--scope", "local"]
-        everywhere = ["acs", "apps", "uninstall", "my-app"]
-        assert [call.args[0] for call in run.call_args_list] == [local, everywhere, local, everywhere]
+        assert [call.args[0] for call in run.call_args_list] == [["acs", "apps", "uninstall", "my-app"]] * 2
         assert "my-app gone from stack (ready)" in out.getvalue()
 
         with (
