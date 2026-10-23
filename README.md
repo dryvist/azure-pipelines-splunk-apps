@@ -5,8 +5,10 @@ validating, comparing, and deploying Splunk Cloud apps.
 
 ## Repository contents
 
-- `templates/`: reusable app, deploy, compare, restart, and smoke-test steps.
-- `compare/`, `deploy/`, `restart/`, `smoke-test/`: manual pipeline definitions.
+- `templates/`: reusable app, deploy, compare, restart, smoke-test, and ACS bulk
+  stages.
+- `compare/`, `deploy/`, `restart/`, `smoke-test/`, `bulk-install/`,
+  `bulk-update/`, `bulk-delete/`: manual pipeline definitions.
 - `example/`: app repository pipeline example.
 - `release.py` and `splunk_release/`: packaging, AppInspect, ACS, and compare commands.
 - `tests/`: Python unit tests.

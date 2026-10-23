@@ -1,0 +1,11 @@
+{
+  "apps": [
+    {
+      "name": "my_app",
+      "perms": {
+        "read": ["*"],
+        "write": ["sc_admin"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "indexes": [
+    {
+      "name": "bulk-index-0",
+      "datatype": "event",
+      "maxDataSizeMB": 512
+    }
+  ]
+}

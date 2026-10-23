@@ -4,9 +4,9 @@
 
 [[_TOC_]]
 
-Steps 16 to 18 give the repair pipeline REST API access and create it.
+Steps 19 to 21 give the repair pipeline REST API access and create it.
 
-## Step 16: Allow the agent on the REST API
+## Step 19: Allow the agent on the REST API
 
 **Where:** Splunk Web of the nonprod stack, **Settings → Server settings → IP
 allow list**
@@ -21,7 +21,7 @@ allow list**
 **Verify:** Both stacks list the agent's address under **Search head API
 access**.
 
-## Step 17: Add the REST URL for search head groups
+## Step 20: Add the REST URL for search head groups
 
 **Where:** **Pipelines → Library**
 
@@ -40,7 +40,7 @@ access**.
 
 **Verify:** Each group with `SPLUNK_SEARCH_HEAD` also has `SPLUNK_REST_URL`.
 
-## Step 18: Create the repair pipeline
+## Step 21: Create the repair pipeline
 
 **Where:** **Pipelines → New pipeline → Azure Repos Git**
 
@@ -67,4 +67,4 @@ access**.
 
 ---
 
-[< Previous: Restart pipeline setup](/Getting-started/Restart)
+[< Previous: Bulk pipelines](/Getting-started/Bulk-pipelines)

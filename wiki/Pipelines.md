@@ -14,6 +14,9 @@ Choose a pipeline for its inputs, run path, and outputs.
 | [Deploy to production](/Pipelines/Deploy-to-production) | Review each app's compare with prod, then approve its install. |
 | [Compare pipeline](/Pipelines/Compare-pipeline) | Compare selected environments. |
 | [Restart pipeline](/Pipelines/Restart-pipeline) | Restart a selected target. |
+| [Splunk ACS Bulk Install](/Getting-started/Bulk-pipelines) | Install indexes, HEC tokens, or apps. |
+| [Splunk ACS Bulk Update](/Getting-started/Bulk-pipelines) | Update indexes, HEC tokens, apps, or app permissions. |
+| [Splunk ACS Bulk Delete](/Getting-started/Bulk-pipelines) | Delete indexes, HEC tokens, or apps. |
 | [Repair pipeline](/Pipelines/Repair-pipeline) | Replace local copies of app objects with the app's default. |
 | [Smoke-test pipeline](/Pipelines/Smoke-test-pipeline) | Check read-only access. |
 

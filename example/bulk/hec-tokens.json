@@ -1,0 +1,11 @@
+{
+  "hec-tokens": [
+    {
+      "name": "mock-token-1"
+    },
+    {
+      "name": "mock-token-2",
+      "defaultIndex": "main"
+    }
+  ]
+}
