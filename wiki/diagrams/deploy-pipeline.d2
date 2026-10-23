@@ -79,7 +79,7 @@ page: "" {
     grid-columns: 3
     grid-gap: 0
     pad_left: "." {shape: text; width: 360; style.opacity: 0}
-    subtitle: "Each app: compare, approve, install;\none optional restart when selected" {class: subtitle}
+    subtitle: "Compare each app, then use one shared install stage" {class: subtitle}
     pad_right: "." {shape: text; width: 360; style.opacity: 0}
   }
 
@@ -87,29 +87,32 @@ page: "" {
     class: columns
     direction: right
     selection: "Select environment\nand app IDs" {class: card; width: 190}
-    compare: "Compare <app> with <environment>\nParallel jobs:\nCompare with <environment> (no install)\nCompare with itsi-<environment> (no install)" {class: card; width: 310}
-    review: "Review the compare, then\napprove Deploy <app> to\n<environment>" {class: [card; exception]; width: 230}
+    compare: "compare_<app>\nPer-app parallel compares:\n<environment>\nitsi-<environment>\nNo install" {class: card; width: 330}
+    review: "Review every compare, then\napprove the shared Install apps\nstage for <environment>" {class: [card; exception]; width: 250}
     selection -> compare: {class: link}
     compare -> review: {class: link}
   }
   second: "" {
     class: columns
-    direction: left
-    install: "Install on <environment>:\noptional uninstall,\ninstall via ACS" {class: [card; emphasis]; width: 240}
-    wait: "Wait for the version,\ncheck status" {class: card; width: 210}
-    lock: "Exclusive lock:\none app installs\nat a time" {class: [card; ghost]; width: 210}
-    install -> wait: {class: link}
+    direction: right
+    uninstall: "uninstall\nOptional removal from\n<environment>\nACS bulk-uninstall on\nall search heads" {class: [card; exception]; width: 310}
+    restart_uninstall: "restart_uninstall\nRestart after uninstall\nif ACS requires it" {class: card; width: 260}
+    install: "install · Install apps on <environment>\nJob: Install on <environment>\nACS bulk-install all selected packages" {class: [card; emphasis]; width: 310}
+    wait: "Check every installed version,\nthen check stack status" {class: card; width: 240}
+    lock: "Exclusive lock:\none deployment job\nat a time" {class: [card; ghost]; width: 230}
+    uninstall -> restart_uninstall -> install -> wait: {class: link}
   }
   third: "" {
     class: columns
     direction: right
-    approve_restart: "Optional Restart stage\nwhen checked with\napp IDs" {class: [card; exception]; width: 210}
+    approve_restart: "restart\nOptional after installs\nwhen checked with app IDs" {class: [card; exception]; width: 250}
     restart: "Restart only if ACS\nreports it is required" {class: [card; emphasis]; width: 210}
     final: "Check status after\nrestart" {class: card; width: 210}
     approve_restart -> restart: {class: link}
     restart -> final: {class: link}
   }
-  first.review -> second.install: {class: link-exception}
+  first.review -> second.uninstall: {class: link-exception}
+  first.review -> second.install: skip uninstall {class: link-planned}
   second.wait -> third.approve_restart: {class: link}
 
 }
