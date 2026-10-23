@@ -31,10 +31,12 @@ Step 12 creates the manual app deployment pipeline.
 
 1. Confirm the pipeline uses the selected `splunk-<environment>` group.
 2. Confirm the deployment uses the matching `splunk-<environment>` approval.
-3. Confirm the run shows a **Compare** and a **Deploy** stage for each app id.
+3. Confirm the run shows a **Compare** stage for each app id and one **Install
+   apps on `<environment>`** stage.
 4. Confirm the compare artifact name includes the environment, app id, and
    attempt.
-5. Confirm the **Restart** stage starts after every **Deploy** stage finishes.
+5. Confirm the **Restart** stage starts after the **Install apps** stage
+   finishes.
 
 ## Related
 

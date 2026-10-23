@@ -13,24 +13,26 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
 - `package` (no arguments) runs `slim package` and writes
   `dist/<app-id>-<version>.tar.gz`.
 - `appinspect <dir>` uses `SPLUNK_USERNAME` and `SPLUNK_PASSWORD`.
-- `deploy <dir>` runs `acs apps install private` with `SPLUNK_STACK` and
-  `STACK_TOKEN`.
-- `uninstall <dir>` prints a DANGER warning: the uninstall permanently deletes
-  ALL of the app's lookups (CSV files) and local settings. It runs `acs apps
-  uninstall <app-id>`, which removes the app from all search heads. It repeats
-  it, waiting as described below, until ACS returns 404. That confirms the app
-  is gone. An app that is not installed returns 404 on the first try.
+- `deploy <dir>` runs `acs apps bulk-install private --package-src-dir <dir>`
+  once, for every `<app-id>-<version>.tar.gz` package in the directory, with
+  `SPLUNK_STACK` and `STACK_TOKEN`.
+- `uninstall <dir>` prints a DANGER warning for each app: the uninstall
+  permanently deletes ALL of the app's lookups (CSV files) and local settings.
+  It writes the app ids of every package in the directory to a JSON file, then
+  runs `acs apps bulk-uninstall --file <file>` once, which removes the apps from
+  all search heads. It then waits, as described below, until every app is gone.
 - `status` runs `acs status current-stack -f structured` and warns when the
   output reports `restartRequired: true`.
-- `wait-version <dir>` reads the version from the single
-  `<app-id>-<version>.tar.gz` package and waits until `acs apps describe`
-  reports exactly that version in its `version` field. Each check that does
-  not match prints the version ACS reports, or `not installed`.
+- `wait-version <dir>` reads the version from each `<app-id>-<version>.tar.gz`
+  package in the directory and waits until `acs apps describe` reports exactly
+  that version in its `version` field for every app. Each check that does not
+  match prints the version ACS reports, or `not installed`.
 - `uninstall` and `wait-version` check every 15 seconds for up to 15 minutes.
   They finish only when `acs status current-stack` reports
-  `infrastructure.status` `Ready` and the app change is confirmed: the
-  uninstall returns 404, or `acs apps describe` reports the exact version. A `Failed` stack status fails the step. A 401 Unauthorized from
-  ACS, which happens while a search head restarts, counts as not ready yet.
+  `infrastructure.status` `Ready` and every app change is confirmed: each app
+  is not installed, or `acs apps describe` reports the exact version. A `Failed`
+  stack status fails the step. A 401 Unauthorized from ACS, which happens while
+  a search head restarts, counts as not ready yet.
 - `restart` runs `acs restart current-stack` only when `acs status
   current-stack` reports `restartRequired: true`. It then waits as `uninstall`
   and `wait-version` do, for up to 30 minutes, until restart-required status
