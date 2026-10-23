@@ -49,7 +49,7 @@ def save_appinspect_report(artifact_dir, html, report):
     )
 
 def appinspect(artifact_dir):
-    pkg, _, _ = package_identity(artifact_dir)
+    pkg, _, _ = package_identity(artifact_dir)[0]
     auth = {"Authorization": f"Bearer {appinspect_token()}"}
     content_type, body = multipart(pkg)
     response = json.loads(

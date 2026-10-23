@@ -43,21 +43,26 @@ stages:
                 - template: ../templates/feed-package.yml
                   parameters:
                     app: ${{ app }}
-      - ${{ if and(ne(app, ''), parameters.uninstall) }}:
-          - template: ../templates/deploy-stage.yml
-            parameters:
-              name: uninstall_${{ replace(replace(app, '-', '_'), '.', '_') }}
-              displayName: Uninstall ${{ app }} from ${{ parameters.environment }}
-              environment: ${{ parameters.environment }}
-              dependsOn:
-                - ${{ if parameters.compare }}:
-                  - compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
-              packageDirectory: $(Pipeline.Workspace)/packages/${{ lower(app) }}
-              uninstall: true
-              steps:
-                - template: ../templates/feed-package.yml
-                  parameters:
-                    app: ${{ app }}
+  - ${{ if and(parameters.uninstall, ne(trim(parameters.apps), '')) }}:
+    - template: ../templates/deploy-stage.yml
+      parameters:
+        name: uninstall
+        displayName: Uninstall apps from ${{ parameters.environment }}
+        environment: ${{ parameters.environment }}
+        dependsOn:
+          - ${{ if parameters.compare }}:
+              - ${{ each app in split(parameters.apps, ' ') }}:
+                  - ${{ if ne(app, '') }}:
+                      - compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
+        packageDirectory: $(Pipeline.Workspace)/packages
+        uninstall: true
+        steps:
+          - ${{ each app in split(parameters.apps, ' ') }}:
+              - ${{ if ne(app, '') }}:
+                  - template: ../templates/feed-package.yml
+                    parameters:
+                      app: ${{ app }}
+                      packageDirectory: $(Pipeline.Workspace)/packages
   # Restart after all uninstalls, before any install.
   - ${{ if and(parameters.uninstall, ne(trim(parameters.apps), '')) }}:
     - template: ../templates/restart-stage.yml
@@ -66,26 +71,28 @@ stages:
         displayName: Restart ${{ parameters.environment }} if required after the uninstalls
         environment: ${{ parameters.environment }}
         dependsOn:
+          - uninstall
+  - ${{ if and(parameters.install, ne(trim(parameters.apps), '')) }}:
+    - template: ../templates/deploy-stage.yml
+      parameters:
+        name: install
+        displayName: Install apps on ${{ parameters.environment }}
+        environment: ${{ parameters.environment }}
+        dependsOn:
+          - ${{ if parameters.compare }}:
+              - ${{ each app in split(parameters.apps, ' ') }}:
+                  - ${{ if ne(app, '') }}:
+                      - compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
+          - ${{ if parameters.uninstall }}:
+              - restart_uninstall
+        packageDirectory: $(Pipeline.Workspace)/packages
+        steps:
           - ${{ each app in split(parameters.apps, ' ') }}:
               - ${{ if ne(app, '') }}:
-                  - uninstall_${{ replace(replace(app, '-', '_'), '.', '_') }}
-  - ${{ each app in split(parameters.apps, ' ') }}:
-      - ${{ if and(ne(app, ''), parameters.install) }}:
-          - template: ../templates/deploy-stage.yml
-            parameters:
-              name: deploy_${{ replace(replace(app, '-', '_'), '.', '_') }}
-              displayName: Install ${{ app }} on ${{ parameters.environment }}
-              environment: ${{ parameters.environment }}
-              dependsOn:
-                - ${{ if parameters.compare }}:
-                  - compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
-                - ${{ if parameters.uninstall }}:
-                  - restart_uninstall
-              packageDirectory: $(Pipeline.Workspace)/packages/${{ lower(app) }}
-              steps:
-                - template: ../templates/feed-package.yml
-                  parameters:
-                    app: ${{ app }}
+                  - template: ../templates/feed-package.yml
+                    parameters:
+                      app: ${{ app }}
+                      packageDirectory: $(Pipeline.Workspace)/packages
   - ${{ if and(parameters.restart, parameters.install, ne(trim(parameters.apps), '')) }}:
     - template: ../templates/restart-stage.yml
       parameters:
@@ -93,6 +100,4 @@ stages:
         displayName: Restart ${{ parameters.environment }} if required after the installs
         environment: ${{ parameters.environment }}
         dependsOn:
-          - ${{ each app in split(parameters.apps, ' ') }}:
-              - ${{ if ne(app, '') }}:
-                  - deploy_${{ replace(replace(app, '-', '_'), '.', '_') }}
+          - install
