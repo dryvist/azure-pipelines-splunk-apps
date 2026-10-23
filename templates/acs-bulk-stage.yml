@@ -1,0 +1,78 @@
+parameters:
+  - name: action
+    type: string
+    values: [install, update, delete]
+  - name: environment
+    type: string
+  - name: type
+    type: string
+  - name: file
+    type: string
+  - name: commands
+    type: object
+    default:
+      install:
+        indexes: 'indexes bulk-create --file FILE'
+        hec-tokens: 'hec-token bulk-create --file FILE'
+        private-apps: 'apps bulk-install private --package-src-dir FILE --acs-legal-ack=Y'
+        splunkbase-apps: 'apps bulk-install splunkbase --file $(Agent.TempDirectory)/apps.json'
+      update:
+        indexes: 'indexes bulk-update --file FILE'
+        hec-tokens: 'hec-token bulk-update --file FILE'
+        private-apps: 'apps bulk-install private --package-src-dir FILE --acs-legal-ack=Y'
+        splunkbase-apps: 'apps bulk-update --file FILE'
+        app-permissions: 'permissions apps bulk-update --file FILE'
+      delete:
+        indexes: 'indexes bulk-delete --file FILE'
+        hec-tokens: 'hec-token bulk-delete --file FILE'
+        apps: 'apps bulk-uninstall --file FILE'
+  - name: restart
+    type: boolean
+    default: false
+
+stages:
+  - stage: bulk
+    displayName: Bulk ${{ parameters.action }} ${{ parameters.type }} on ${{ parameters.environment }}
+    dependsOn: []
+    condition: succeeded()
+    lockBehavior: sequential
+    jobs:
+      - deployment: bulk
+        displayName: Run ACS bulk ${{ parameters.action }} for ${{ parameters.type }}
+        workspace:
+          clean: all
+        environment: splunk-${{ parameters.environment }}
+        variables:
+          - group: splunk-appinspect
+          - group: splunk-${{ parameters.environment }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  path: tools
+                - template: python.yml
+                - template: acs-cli.yml
+                - ${{ if and(eq(parameters.action, 'install'), eq(parameters.type, 'splunkbase-apps')) }}:
+                  - template: acs-step.yml
+                    parameters:
+                      command: '"$(Pipeline.Workspace)/tools/release.py" acs apps bulk-fetch-license --file "$(Build.SourcesDirectory)/${{ parameters.file }}" --output-file "$(Agent.TempDirectory)/apps.json"'
+                      displayName: Fetch Splunkbase app licenses
+                      additionalEnv:
+                        SPLUNK_USERNAME: $(SPLUNK_USERNAME)
+                        SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
+                - template: acs-step.yml
+                  parameters:
+                    command: '"$(Pipeline.Workspace)/tools/release.py" acs ${{ replace(parameters.commands[parameters.action][parameters.type], ''FILE'', format(''"$(Build.SourcesDirectory)/{0}"'', parameters.file)) }}'
+                    displayName: ACS bulk ${{ parameters.action }} ${{ parameters.type }}
+                    additionalEnv:
+                      SPLUNK_USERNAME: $(SPLUNK_USERNAME)
+                      SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
+  - ${{ if parameters.restart }}:
+    - template: restart-stage.yml
+      parameters:
+        name: restart
+        displayName: Restart ${{ parameters.environment }} after the bulk action if required
+        environment: ${{ parameters.environment }}
+        dependsOn:
+          - bulk

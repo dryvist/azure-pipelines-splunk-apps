@@ -7,6 +7,8 @@
 ## App pipeline
 
 - `splunk-appinspect`: AppInspect stage; also declared by the Nonprod job.
+  Bulk Splunkbase commands use `SPLUNK_USERNAME` and `SPLUNK_PASSWORD` from
+  this group and map them into the ACS step environment.
 - `splunk-nonprod`: Nonprod deployment.
 - `splunk-itsi-nonprod`: Import from the nonprod ITSI search head.
 - `splunk-prod`: Proddiff comparison with the search head installs replace,
@@ -16,6 +18,8 @@
 ## Manual pipelines
 
 - Deploy declares `splunk-appinspect` and the selected
+  `splunk-<environment>` group.
+- Bulk pipelines use `splunk-appinspect` and the selected
   `splunk-<environment>` group.
 - Restart selects the prefix and environment group for stack and optional
   search-head settings.

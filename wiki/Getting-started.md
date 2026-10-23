@@ -23,9 +23,12 @@ Use this checklist to open each setup procedure.
 | [Step 13](/Getting-started/Publish-wiki) | Publish the repository wiki. |
 | [Step 14](/Getting-started/Compare) | Create the environment compare pipeline. |
 | [Step 15](/Getting-started/Restart) | Create the stack restart pipeline. |
-| [Step 16](/Getting-started/Repair) | Allow the agent on the search head REST API. |
-| [Step 17](/Getting-started/Repair) | Add the REST URL for search head groups. |
-| [Step 18](/Getting-started/Repair) | Create the app object repair pipeline. |
+| [Step 16](/Getting-started/Bulk-pipelines) | Create the ACS bulk install pipeline. |
+| [Step 17](/Getting-started/Bulk-pipelines) | Create the ACS bulk update pipeline. |
+| [Step 18](/Getting-started/Bulk-pipelines) | Create the ACS bulk delete pipeline. |
+| [Step 19](/Getting-started/Repair) | Allow the agent on the search head REST API. |
+| [Step 20](/Getting-started/Repair) | Add the REST URL for search head groups. |
+| [Step 21](/Getting-started/Repair) | Create the app object repair pipeline. |
 
 ## Before you start
 

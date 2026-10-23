@@ -33,7 +33,9 @@ Create the `splunk-appinspect` group:
 `SPLUNK_USERNAME` is sourced from the account used to sign in at splunk.com
 and Splunkbase. `appinspect`, `nonprod`, and the manual deploy pipeline use
 its AppInspect token as proof of validation. `SPLUNK_PASSWORD` is used by the
-same steps as `SPLUNK_USERNAME`.
+same steps as `SPLUNK_USERNAME`. Bulk Splunkbase commands use these same
+credentials and map them to `SPLUNK_USERNAME` and `SPLUNK_PASSWORD` in the ACS
+step environment.
 
 Create the `splunk-nonprod` group:
 

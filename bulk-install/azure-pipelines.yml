@@ -1,0 +1,29 @@
+trigger: none
+pr: none
+
+parameters:
+  - name: environment
+    displayName: Environment
+    type: string
+    default: nonprod
+    values: [nonprod, prod]
+  - name: type
+    displayName: Type
+    type: string
+    values: [indexes, hec-tokens, private-apps, splunkbase-apps]
+  - name: file
+    displayName: Input file or package directory relative to Build.SourcesDirectory
+    type: string
+  - name: restart
+    displayName: Restart both search heads at the end if required
+    type: boolean
+    default: false
+
+stages:
+  - template: ../templates/acs-bulk-stage.yml
+    parameters:
+      action: install
+      environment: ${{ parameters.environment }}
+      type: ${{ parameters.type }}
+      file: ${{ parameters.file }}
+      restart: ${{ parameters.restart }}
