@@ -15,6 +15,7 @@ release.py local-diff <target> <source> <out> [--reverse] [--skip-lookups] compa
 release.py diff <target> <source> <out> [--reverse] [--skip-lookups] merge local into default on both sides, compare, write artifacts
 release.py data-models <target> <source> <out> [--reverse] [--skip-lookups] compare data model JSON after merging local
 release.py install-acs                  download and verify the ACS CLI, add it to PATH, add the stack, log in
+release.py acs <args...>                 run an ACS CLI command
 release.py appinspect-link              print the link to this build's published artifacts
 release.py plan                         print which stages this run executes and why
 release.py feed-check <app-id>          fail when the splunk-apps feed holds no version of the app
@@ -34,8 +35,10 @@ SPLUNK_SEARCH_HEAD selects a target search head for compare and smoke tests.
 import subprocess
 import sys
 
-from splunk_release.acs import (delete_local, deploy, export, install_acs, repair_check, repair_packages, restart,
-                                status, uninstall, wait_version)
+from splunk_release.acs import (
+    acs, acs_env, delete_local, deploy, export, install_acs, repair_check,
+    repair_packages, restart, status, uninstall, wait_version,
+)
 from splunk_release.appinspect import appinspect
 from splunk_release.azure import appinspect_link, plan, report_command_error, report_system_exit
 from splunk_release.compare import data_models, diff, local_diff, tree
@@ -43,9 +46,15 @@ from splunk_release.import_app import import_app
 from splunk_release.package import package
 from splunk_release.version import bump, feed_check, tag
 
+
+def acs_command(*args):
+    acs(acs_env(), *args, main=True)
+
+
 commands = {
     "bump": bump,
     "package": package,
+    "acs": acs_command,
     "appinspect": appinspect,
     "deploy": deploy,
     "uninstall": uninstall,
