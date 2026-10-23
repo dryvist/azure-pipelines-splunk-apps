@@ -123,14 +123,16 @@ def status():
         log("warning", f"Restart required on {os.environ['SPLUNK_STACK']}")
 
 def package_identity(directory):
-    packages = list(Path(directory).glob("*.tar.gz"))
-    if len(packages) != 1:
-        sys.exit(f"Expected one .tar.gz package in {directory}, found {len(packages)}")
-    package = packages[0]
-    app, _, version = package.name.removesuffix(".tar.gz").rpartition("-")
-    if not app or not version:
-        sys.exit(f"Expected <app-id>-<version>.tar.gz package name, found {package.name}")
-    return package, app, version
+    packages = sorted(Path(directory).glob("*.tar.gz"))
+    if not packages:
+        sys.exit(f"Expected at least one .tar.gz package in {directory}, found none")
+    identities = []
+    for package in packages:
+        app, _, version = package.name.removesuffix(".tar.gz").rpartition("-")
+        if not app or not version:
+            sys.exit(f"Expected <app-id>-<version>.tar.gz package name, found {package.name}")
+        identities.append((package, app, version))
+    return identities
 
 def stack_ready(env):
     """Return (ready, state): ready when acs status current-stack reports infrastructure status Ready."""
@@ -173,16 +175,20 @@ def wait_done(env, done, what, minutes=15):
     raise SystemExit(1)
 
 def wait_version(directory):
-    _, app, version = package_identity(directory)
+    packages = package_identity(directory)
     env = acs_env()
 
     def matches():
-        installed = installed_version(env, app)
-        if installed != version:
-            print(f"acs apps describe reports {app} version {installed or 'not installed'}, expected {version}")
-        return installed == version
+        results = []
+        for _, app, version in packages:
+            installed = installed_version(env, app)
+            if installed != version:
+                print(f"acs apps describe reports {app} version {installed or 'not installed'}, expected {version}")
+            results.append(installed == version)
+        return all(results)
 
-    wait_done(env, matches, f"{app} version {version} installed")
+    expected = ", ".join(f"{app} version {version}" for _, app, version in packages)
+    wait_done(env, matches, f"{expected} installed")
 
 def restart():
     env, stack = acs_env(), os.environ["SPLUNK_STACK"]
@@ -193,28 +199,32 @@ def restart():
     wait_done(env, lambda: not restart_required(stack_status(env)), f"restart of {stack}", 30)
 
 def deploy(directory):
-    package, app, version = package_identity(directory)
-    log("section", f"Installing {app} {version} as a private app")
+    packages = package_identity(directory)
+    for _, app, version in packages:
+        log("section", f"Installing {app} {version} as a private app")
     env = acs_env()
-    acs(env, "apps", "install", "private", "--acs-legal-ack", "Y", "--app-package", str(package), main=True)
+    acs(env, "apps", "bulk-install", "private", "--package-src-dir", str(directory), "--acs-legal-ack=Y", main=True)
 
 def uninstall(directory):
-    """Uninstall the app from all search heads, repeating until ACS returns 404, which confirms it is gone."""
-    _, app, _ = package_identity(directory)
+    """Uninstall the apps from all search heads, then wait until they are gone."""
+    packages = package_identity(directory)
+    all_apps = [app for _, app, _ in packages]
     env, stack = acs_env(), os.environ["SPLUNK_STACK"]
-    log("warning", f"DANGER: uninstalling {app} from {stack} PERMANENTLY DELETES ALL of its lookups (CSV files)"
-                   " and local settings")
+    apps = [app for app in all_apps if installed_version(env, app) is not None]
+    if not apps:
+        log("section", f"{', '.join(all_apps)} not installed on {stack}, skipping uninstall")
+        return
+    for app in apps:
+        log("warning", f"DANGER: uninstalling {app} from {stack} PERMANENTLY DELETES ALL of its lookups (CSV files)"
+                       " and local settings")
+    with tempfile.TemporaryDirectory() as tmp:
+        apps_file = Path(tmp, "apps.json")
+        apps_file.write_text(json.dumps({"apps": apps}), encoding="utf-8")
+        acs(env, "apps", "bulk-uninstall", "--file", str(apps_file), main=True)
 
-    def gone():
-        try:
-            acs(env, "apps", "uninstall", app, main=True)
-            return False
-        except subprocess.CalledProcessError as error:
-            if not missing(error):
-                raise
-            return True
-
-    wait_done(env, gone, f"{app} gone from {stack}")
+        def gone():
+            return all(installed_version(env, app) is None for app in apps)
+        wait_done(env, gone, f"{', '.join(apps)} gone from {stack}")
 
 def listed_apps(env, splunkbase=False):
     apps, offset = [], 0
@@ -237,7 +247,7 @@ def export(out_dir, *app_ids):
     custom = app_ids == ("--custom",)
     out, apps = Path(out_dir), app_ids or [APP]
     if package_dir:
-        _, app, _ = package_identity(app_ids[0])
+        _, app, _ = package_identity(app_ids[0])[0]
         apps = [app]
         out /= app
         print(f"##vso[task.setvariable variable=APP_ID]{app}")
@@ -310,7 +320,7 @@ def repackage(package, out_dir, app, version, conf=None, stanzas=()):
 
 def repair_packages(package_dir, out_dir, conf, stanzas):
     """Check each stanza on the stack, then write temp/ (next version, stanzas removed) and real/ (the version after)."""
-    package, app, _ = package_identity(package_dir)
+    package, app, _ = package_identity(package_dir)[0]
     names = stanza_names(stanzas)
     for name in names:
         if rest(app, conf, name) is None:
@@ -327,7 +337,7 @@ def repair_packages(package_dir, out_dir, conf, stanzas):
 
 def delete_local(package_dir, conf, stanzas):
     """Delete each stanza's local copy over REST; the temporary package has no default copy."""
-    _, app, _ = package_identity(package_dir)
+    _, app, _ = package_identity(package_dir)[0]
     for name in stanza_names(stanzas):
         if rest(app, conf, name, "DELETE") is None:
             print(f"[{name}] has no local copy in {app}, nothing to delete")
@@ -338,7 +348,7 @@ def repair_check(package_dir, conf, stanzas):
     """Fail when any stanza is missing on the stack or still has a local copy in the exported app."""
     from splunk_release.compare import extract, parse
 
-    _, app, _ = package_identity(package_dir)
+    _, app, _ = package_identity(package_dir)[0]
     names = stanza_names(stanzas)
     with tempfile.TemporaryDirectory() as tmp:
         export(tmp, package_dir)

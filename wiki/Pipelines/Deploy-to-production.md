@@ -4,8 +4,8 @@
 
 [[_TOC_]]
 
-Deploy a set of apps to prod, reviewing each app's compare with prod before
-you approve its install. Nothing installs until you approve that app.
+Deploy a set of apps to prod, reviewing every app's compare before you approve
+the shared install stage. One approval gates the install of the selected set.
 
 ## Before you start
 
@@ -25,7 +25,7 @@ you approve its install. Nothing installs until you approve that app.
 **Verify:**
 
 1. `splunk-prod` has an approval check.
-2. `splunk-prod` has an exclusive lock check, so one app installs at a time.
+2. `splunk-prod` has an exclusive lock check, so one deployment job runs at a time.
 3. The **Approvals** check has a **Timeout** of `12 hours`.
 
 ## Release each app
@@ -70,9 +70,10 @@ Repeat for every app you plan to deploy.
 
 **Verify:**
 
-1. The run shows **Compare**, **Uninstall**, and **Install** stages according
-   to the selected options.
-2. Each **Install `<app-id>` on prod** stage shows **Waiting** for review.
+1. The run shows one **Compare** stage per app, plus the shared **Uninstall
+   apps** and **Install apps** stages when selected.
+2. The single **Install apps on prod** stage shows **Waiting** for review after
+   its dependencies succeed.
 3. The **Restart prod if required after the uninstalls** stage appears when
    the DANGER uninstall option is checked and app IDs are given.
 4. The **Restart prod if required after the installs** stage appears only when
@@ -98,9 +99,11 @@ Timeout, Azure marks the stage skipped.
 1. **Deploy to prod** completes after approval, stops after a rejection, or
    shows **Skipped** after Timeout.
 
-## Review and approve each app
+## Review compares and approve the app set
 
-Repeat for every app, one at a time.
+Review every app's compare stage, then approve the shared install stage.
+If uninstall is selected, approve its shared stage and restart stage before the
+install stage becomes available.
 
 **Do:**
 
@@ -120,17 +123,18 @@ Repeat for every app, one at a time.
 10. Open the job **Compare with itsi-prod**.
 11. Repeat steps 3 to 9 for the prod ITSI search head. Its local settings are
     what was built by hand there.
-12. Return to the run summary.
-13. On the **Install `<app-id>` on prod** stage, select **Review**.
-14. Select **Approve** if the compare matches what you expect.
-15. Select **Reject** if it does not.
-16. Wait for the stage to finish before reviewing the next app.
+12. Repeat steps 1 to 11 for each app's **Compare** stage.
+13. Return to the run summary and wait for every compare stage to succeed.
+14. On **Install apps on prod**, select **Review**.
+15. Select **Approve** to install the selected app set, or **Reject** to stop
+    the install.
+16. Wait for the stage to finish.
 
 **Verify:**
 
 1. The job **Install on prod** shows each step green: **Install on prod**,
    **Check the installed version**, and **Check stack status after install**.
-2. A failed step names the app in its stage and job title.
+2. The install log lists each app and package version.
 
 ## Restart stages
 
@@ -160,8 +164,10 @@ install** still reports any pending restart.
    the restart.
 2. **Check stack status after restart** shows no restart requirement.
 
-A rejected or failed app stage skips the restart stage after the installs. To
-deploy a rejected app later, start a new run with only that app id.
+A failed compare skips its dependent stages. A rejected or failed uninstall or
+install stage skips the stages that depend on it, including the restart after
+installs. To deploy a rejected app later, start a new run with only that app
+id.
 
 ## Related
 

@@ -18,8 +18,11 @@ group, deployment environment, or its approval checks.
 3. Permit the selected `splunk-<environment>` group and environment.
 4. Complete any approval check on the selected environment.
 
-Each app has its own compare and deploy stage. When **Restart** is checked,
-the restart stage runs once, only after every deploy stage succeeds.
+Each app has its own compare stage. The shared uninstall and install stages
+download every selected package into one directory and use ACS bulk commands.
+The install stage waits for every compare stage and, when uninstall is
+selected, the uninstall restart stage. When **Restart** is checked, the final
+restart stage runs after the shared install stage succeeds.
 
 ### ACS is busy
 
@@ -53,17 +56,21 @@ until it finishes.
 6. Wait for the **Release** stage to finish.
 7. Start a new deploy run with the app id.
 
-### Two apps install at the same time
+### A deploy run waits for the environment lock
 
-**Symptom:** Two **Deploy** stages run at once.
+**Symptom:** An uninstall, install, or restart stage waits while another run
+uses the same environment.
 
-**Cause:** The `splunk-<environment>` environment has no **Exclusive Lock**
-check.
+**Cause:** The `splunk-<environment>` environment's **Exclusive Lock** allows
+one deployment job at a time.
 
 **Fix:**
 
-1. Add the check with [Step 3](/Getting-started/Environments-and-ACS).
-2. Rerun the pipeline.
+1. Wait for the active deployment job to finish.
+2. If it does not finish, inspect that run and resolve the failed or pending
+   step.
+3. Confirm the **Exclusive Lock** check is configured with
+   [Step 3](/Getting-started/Environments-and-ACS).
 
 **Docs:** [Deploy pipeline](/Pipelines/Deploy-pipeline),
 [variable groups](/Reference/Variable-groups),

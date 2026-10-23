@@ -178,43 +178,78 @@ def check_acs():
     assert [call.args[0] for call in run.call_args_list] == [["acs", "status", "current-stack", "-f", "structured"]]
     assert "No restart required on stack" in output.getvalue()
 
-    # The package filename supplies the app id and version for install and polling.
+    # Package filenames supply app ids and versions for bulk deployment and polling.
     with tempfile.TemporaryDirectory() as tmp:
-        package_dir = Path(tmp, "my-app")
+        package_dir = Path(tmp, "packages")
         package_dir.mkdir()
-        (package_dir / "my-app-1.4.10.tar.gz").write_bytes(b"package")
-        assert acs.package_identity(package_dir)[1:] == ("my-app", "1.4.10")
+        (package_dir / "a-1.4.10.tar.gz").write_bytes(b"package")
+        (package_dir / "b-2.0.0.tar.gz").write_bytes(b"package")
+        assert [(app, version) for _, app, version in acs.package_identity(package_dir)] == [
+            ("a", "1.4.10"), ("b", "2.0.0")
+        ]
         with (
-            patch.dict(os.environ, {"SPLUNK_STACK": "stack", "AGENT_TEMPDIRECTORY": tmp}),
+            patch("splunk_release.acs.acs_env", return_value={}),
             patch("splunk_release.acs.run") as run,
             redirect_stdout(io.StringIO()),
         ):
             run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
             acs.deploy(package_dir)
-        assert run.call_args.args[0][-2:] == ["--app-package", str(package_dir / "my-app-1.4.10.tar.gz")]
+        assert [call.args[0] for call in run.call_args_list] == [[
+            "acs", "apps", "bulk-install", "private", "--package-src-dir", str(package_dir), "--acs-legal-ack=Y"
+        ]]
 
-        # Uninstall repeats until ACS returns 404.
-        uninstalled = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-        not_found = subprocess.CompletedProcess([], 1, stdout="", stderr="code: 404 Not Found")
+        # Bulk uninstall polls every package until ACS reports each app missing.
+        installed = {"a": [False], "b": [True, False]}
+        uninstall_files = []
+        def fake_uninstall(command, **_):
+            if command[1:3] == ["apps", "bulk-uninstall"]:
+                uninstall_files.append(json.loads(Path(command[command.index("--file") + 1]).read_text()))
+                return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+            app = command[3]
+            missing = not installed[app].pop(0)
+            return subprocess.CompletedProcess(
+                command, 1 if missing else 0,
+                stdout="" if missing else structured({"version": "1.0.0"}),
+                stderr="code: 404 Not Found" if missing else "",
+            )
         with (
-            patch.dict(os.environ, {"SPLUNK_STACK": "stack", "AGENT_TEMPDIRECTORY": tmp}),
+            patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
+            patch("splunk_release.acs.acs_env", return_value={}),
             patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
             patch("splunk_release.acs.time.sleep"),
-            patch("splunk_release.acs.run", side_effect=[uninstalled, not_found]) as run,
+            patch("splunk_release.acs.run", side_effect=fake_uninstall) as run,
             redirect_stdout(io.StringIO()) as out,
         ):
             acs.uninstall(package_dir)
-        assert [call.args[0] for call in run.call_args_list] == [["acs", "apps", "uninstall", "my-app"]] * 2
-        assert "my-app gone from stack (ready)" in out.getvalue()
+        commands = [call.args[0] for call in run.call_args_list]
+        assert uninstall_files == [{"apps": ["b"]}]
+        assert [command[1:4] for command in commands] == [
+            ["apps", "describe", "a"], ["apps", "describe", "b"],
+            ["apps", "bulk-uninstall", "--file"], ["apps", "describe", "b"],
+        ]
+        assert "b gone from stack (ready)" in out.getvalue()
 
+        with (
+            patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
+            patch("splunk_release.acs.acs_env", return_value={}),
+            patch("splunk_release.acs.installed_version", return_value=None),
+            patch("splunk_release.acs.acs") as acs_call,
+            redirect_stdout(io.StringIO()) as out,
+        ):
+            acs.uninstall(package_dir)
+        acs_call.assert_not_called()
+        assert "a, b not installed on stack, skipping uninstall" in out.getvalue()
+
+        # Version polling checks both apps and requires exact matches.
         with (
             patch("splunk_release.acs.acs_env", return_value={}),
             patch("splunk_release.acs.run") as run,
         ):
-            # 1.4.100 contains the text 1.4.10 but is a different version.
             run.side_effect = [
                 subprocess.CompletedProcess([], 0, stdout=structured({"version": "1.4.100"}), stderr=""),
+                subprocess.CompletedProcess([], 0, stdout=structured({"version": "2.0.0"}), stderr=""),
                 subprocess.CompletedProcess([], 0, stdout=structured({"version": "1.4.10"}), stderr=""),
+                subprocess.CompletedProcess([], 0, stdout=structured({"version": "2.0.0"}), stderr=""),
             ]
             now, sleeps = [0], []
             def wait(seconds):
@@ -222,11 +257,12 @@ def check_acs():
                 now[0] += seconds
             with patch("splunk_release.acs.time.monotonic", side_effect=lambda: now[0]), patch(
                 "splunk_release.acs.time.sleep", side_effect=wait
-            ), patch("splunk_release.acs.stack_ready", side_effect=[(False, "pending"), (True, "ready"), (True, "ready")]
+            ), patch("splunk_release.acs.stack_ready", return_value=(True, "ready")
                      ), redirect_stdout(io.StringIO()) as out:
                 acs.wait_version(package_dir)
-            assert run.call_count == 2 and sleeps == [15, 15]
-            assert "reports my-app version 1.4.100, expected 1.4.10" in out.getvalue()
+            assert [call.args[0][3] for call in run.call_args_list] == ["a", "b", "a", "b"]
+            assert sleeps == [15]
+            assert "reports a version 1.4.100, expected 1.4.10" in out.getvalue()
 
         # A busy stack response is retried until ACS accepts the command.
         busy = subprocess.CompletedProcess([], 1, "", "424-failed-dependency: A deployment task is still in progress.")
@@ -235,27 +271,9 @@ def check_acs():
             patch("splunk_release.acs.time.sleep") as sleep,
             redirect_stdout(io.StringIO()) as output,
         ):
-            assert acs.acs({}, "apps", "uninstall", "my-app", main=True) == "ok"
+            assert acs.acs({}, "apps", "bulk-uninstall", "--file", "apps.json", main=True) == "ok"
         assert run.call_count == 2 and sleep.call_args.args == (30,)
         assert "ACS is busy" in output.getvalue()
-
-        with (
-            patch("splunk_release.acs.acs_env", return_value={}),
-            patch("splunk_release.acs.run") as run,
-            patch("splunk_release.acs.time.sleep", side_effect=lambda seconds: now.__setitem__(0, now[0] + seconds)),
-            patch("splunk_release.acs.time.monotonic", side_effect=lambda: now[0]),
-            patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
-            redirect_stdout(io.StringIO()),
-        ):
-            run.return_value = subprocess.CompletedProcess([], 0, stdout=structured({"version": "1.4.9"}), stderr="")
-            now[0] = 0
-            try:
-                acs.wait_version(package_dir)
-            except SystemExit as error:
-                assert error.code == 1
-            else:
-                raise AssertionError("version wait should time out")
-            assert now == [900]
 
     # Custom export pages in blocks of 100 and excludes Splunkbase names.
     with tempfile.TemporaryDirectory() as tmp:

@@ -2,6 +2,9 @@
 parameters:
   - name: app
     type: string
+  - name: packageDirectory
+    type: string
+    default: ''
 
 steps:
   - checkout: self
@@ -19,4 +22,4 @@ steps:
       vstsFeed: $(System.TeamProject)/splunk-apps
       vstsFeedPackage: ${{ lower(parameters.app) }}
       vstsPackageVersion: '*'
-      downloadDirectory: $(Pipeline.Workspace)/packages/${{ lower(parameters.app) }}
+      downloadDirectory: ${{ iif(eq(parameters.packageDirectory, ''), format('$(Pipeline.Workspace)/packages/{0}', lower(parameters.app)), parameters.packageDirectory) }}
