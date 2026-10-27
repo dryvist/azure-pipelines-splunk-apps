@@ -34,13 +34,12 @@ error names `acs status current-stack`, `acs apps list`, or `acs apps describe s
 
 ## Search head REST read fails
 
-**Symptom:** The search head REST check returns HTTP 401 or 403. Or it prints
-`SPLUNK_SEARCH_HEAD is set, so set SPLUNK_REST_URL`.
+**Symptom:** The search head REST check returns HTTP 401 or 403, or cannot connect.
 
 **Fix:**
 
-1. For `splunk-itsi`, set `SPLUNK_REST_URL` in the `splunk-itsi-<environment>` group to
-   `https://<search-head>:8089`.
+1. Check that `SPLUNK_SEARCH_HEAD` and `SPLUNK_STACK` in the job's group are correct. They set the REST URL. See
+   [Reference: Variable groups](/Reference/Variable-groups).
 2. Check that the agent can reach that URL on port 8089.
 3. Check that the ACS token is accepted by that search head.
 4. Rerun the failed job.

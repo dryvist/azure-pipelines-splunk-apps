@@ -46,7 +46,6 @@ jobs:
                 env:
                   SPLUNK_STACK: $(SPLUNK_STACK)
                   SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
-                  SPLUNK_REST_URL: $(SPLUNK_REST_URL)
                   ACS_TOKEN: $(ACS_TOKEN)
 
   - job: azuredevops

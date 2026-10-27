@@ -18,6 +18,5 @@ steps:
     env:
       SPLUNK_STACK: $(SPLUNK_STACK)
       SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
-      SPLUNK_REST_URL: $(SPLUNK_REST_URL)
       STACK_TOKEN: $(ACS_TOKEN)
       ${{ insert }}: ${{ parameters.additionalEnv }}

@@ -284,10 +284,8 @@ def stanza_names(stanzas):
 
 def rest(app, conf, stanza, method="GET"):
     """Call the search head REST API for one stanza in the app; return the body, or None when it does not exist."""
-    base = configured_value("SPLUNK_REST_URL")
-    if not base and configured_value("SPLUNK_SEARCH_HEAD"):
-        sys.exit("SPLUNK_SEARCH_HEAD is set, so set SPLUNK_REST_URL to that search head's https://<host>:8089 URL")
-    base = base or f"https://{os.environ['SPLUNK_STACK']}.splunkcloud.com:8089"
+    host = ".".join(filter(None, (configured_value("SPLUNK_SEARCH_HEAD"), os.environ["SPLUNK_STACK"])))
+    base = f"https://{host}.splunkcloud.com:8089"
     app, conf, stanza = (urllib.parse.quote(value, safe="") for value in (app, conf, stanza))
     return http(f"{base.rstrip('/')}/servicesNS/nobody/{app}/configs/conf-{conf}/{stanza}?output_mode=json",
                 {"Authorization": f"Bearer {os.environ['STACK_TOKEN']}"}, timeout=60, method=method, missing_ok=True)

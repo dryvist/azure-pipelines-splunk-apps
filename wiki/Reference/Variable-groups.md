@@ -10,8 +10,8 @@ the only page that lists the variables. To create the groups, follow [Variable g
 | `splunk-appinspect` | Splunk.com account for AppInspect validation and ACS installs | `SPLUNK_USERNAME`, `SPLUNK_PASSWORD` |
 | `splunk-nonprod` | Nonprod Splunk Cloud stack for pull request and main installs | `SPLUNK_STACK`, `ACS_TOKEN` |
 | `splunk-prod` | Production Splunk Cloud stack for compare and manual deploy | `SPLUNK_STACK`, `ACS_TOKEN` |
-| `splunk-itsi-nonprod` | Nonprod ITSI search head on the Splunk Cloud stack | `SPLUNK_STACK`, `SPLUNK_SEARCH_HEAD`, `SPLUNK_REST_URL`, `ACS_TOKEN` |
-| `splunk-itsi-prod` | Production ITSI search head on the Splunk Cloud stack | `SPLUNK_STACK`, `SPLUNK_SEARCH_HEAD`, `SPLUNK_REST_URL`, `ACS_TOKEN` |
+| `splunk-itsi-nonprod` | Nonprod ITSI search head on the Splunk Cloud stack | `SPLUNK_STACK`, `SPLUNK_SEARCH_HEAD`, `ACS_TOKEN` |
+| `splunk-itsi-prod` | Production ITSI search head on the Splunk Cloud stack | `SPLUNK_STACK`, `SPLUNK_SEARCH_HEAD`, `ACS_TOKEN` |
 
 ## Variables
 
@@ -25,15 +25,13 @@ the only page that lists the variables. To create the groups, follow [Variable g
 | `splunk-prod` | `ACS_TOKEN` | ACS token for the stack. Empty until the token is created | On |
 | `splunk-itsi-nonprod` | `SPLUNK_STACK` | Same value as `splunk-nonprod` | Off |
 | `splunk-itsi-nonprod` | `SPLUNK_SEARCH_HEAD` | Nonprod ITSI search head name from provisioning information | Off |
-| `splunk-itsi-nonprod` | `SPLUNK_REST_URL` | REST URL of the search head, such as `https://<host>.splunkcloud.com:8089` | Off |
 | `splunk-itsi-nonprod` | `ACS_TOKEN` | ACS token for the ITSI search head. Empty until created | On |
 | `splunk-itsi-prod` | `SPLUNK_STACK` | Same value as `splunk-prod` | Off |
 | `splunk-itsi-prod` | `SPLUNK_SEARCH_HEAD` | Prod ITSI search head name from provisioning information | Off |
-| `splunk-itsi-prod` | `SPLUNK_REST_URL` | REST URL of the search head, such as `https://<host>.splunkcloud.com:8089` | Off |
 | `splunk-itsi-prod` | `ACS_TOKEN` | ACS token for the ITSI search head. Empty until created | On |
 
-- `SPLUNK_REST_URL` is required in each group that sets `SPLUNK_SEARCH_HEAD`.
-- When no search head is set, the REST URL is `https://<SPLUNK_STACK>.splunkcloud.com:8089`.
+- The REST URL is built, not entered: `https://<SPLUNK_SEARCH_HEAD>.<SPLUNK_STACK>.splunkcloud.com:8089`, or
+  `https://<SPLUNK_STACK>.splunkcloud.com:8089` when no search head is set.
 - Scripts read the unlocked variables directly. Locked variables are mapped in the pipeline YAML.
 
 ## Pipelines and groups

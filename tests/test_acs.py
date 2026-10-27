@@ -389,7 +389,7 @@ def check_stack_ready():
             pass
 
 
-@patch.dict(os.environ, {"SPLUNK_STACK": "stack", "SPLUNK_SEARCH_HEAD": "", "SPLUNK_REST_URL": "",
+@patch.dict(os.environ, {"SPLUNK_STACK": "stack", "SPLUNK_SEARCH_HEAD": "",
                          "STACK_TOKEN": "token"})
 def check_repair():
     assert json.loads(acs.readable(structured({"apps": [{"name": "a"}]}))) == [{"response": {"apps": [{"name": "a"}]}}]
@@ -401,12 +401,9 @@ def check_repair():
     assert url == ("https://stack.splunkcloud.com:8089/servicesNS/nobody/my_ta/configs/conf-savedsearches/"
                    "Fix%20me%2Fnow?output_mode=json")
     assert headers == {"Authorization": "Bearer token"} and http.call_args.kwargs["method"] == "DELETE"
-    with patch.dict(os.environ, {"SPLUNK_SEARCH_HEAD": "sh1"}):
-        try:
-            acs.rest("my_ta", "savedsearches", "x")
-            raise AssertionError("expected SystemExit")
-        except SystemExit as error:
-            assert "SPLUNK_REST_URL" in str(error)
+    with patch.dict(os.environ, {"SPLUNK_SEARCH_HEAD": "sh1"}), patch("splunk_release.acs.http") as http:
+        acs.rest("my_ta", "savedsearches", "x")
+    assert http.call_args.args[0].startswith("https://sh1.stack.splunkcloud.com:8089/servicesNS/")
 
     with tempfile.TemporaryDirectory() as tmp:
         package_dir, out = Path(tmp, "dist"), Path(tmp, "repair")
