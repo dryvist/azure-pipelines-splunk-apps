@@ -1,39 +1,80 @@
 # Edit files in VS Code
 
-Use VS Code to clone the repository, edit folders, and commit from a local copy. The browser steps are in
-[Edit files in the browser](/Editing/Browser).
+Use VS Code to clone a repository, change folders, and commit from a local copy. For a single file, use
+[Edit files in the browser](/Editing/Browser) instead.
 
-## One time
+## One time per workstation
 
-One time, per workstation. Do these steps once.
+### Install Git
 
-1. Install **Git for Windows** from git-scm.com. In the installer, set the default branch name to `main`.
-   Use the bundled OpenSSH. Include **Git Credential Manager**. Keep the other defaults. Without Git Credential
-   Manager, clone asks for a password every time.
-2. Install **VS Code**. Open **Extensions** (the four-blocks icon on the left). Search for `Azure`, install
-   **Azure Resources**, and keep auto update on.
-3. Restart VS Code. Press Ctrl+Shift+P, type `Azure`, pick the sign-in command, and accept in the browser. The
-   sign-in lasts. You rarely sign in again.
-4. Create `C:\git`. Never put repositories in OneDrive or in a path with spaces. If VS Code or Git reports
-   access denied there, do this: open File Explorer, right-click `C:\git`, select **Properties**, then
-   **Security**, then **Edit**. Select **Users**, check **Full control**, and select **OK**.
-5. In Azure Repos, open the repository, select **Clone**, then **Clone in VS Code**. Pick `C:\git`. If it asks
-   for a password, Git Credential Manager is missing. Rerun the Git installer and add it.
-6. In the VS Code terminal (**Terminal > New Terminal**), set your identity. Run
-   `git config --global user.name "Your Name"` and `git config --global user.email "you@example.com"`, using
-   your work email. Check the result with `git config --global -l`. Press q to leave the list.
+1. Open git-scm.com.
+2. Download **Git for Windows**.
+3. Run the installer.
+4. On the default branch page, select **Override** and enter `main`.
+5. On the SSH page, select **Use bundled OpenSSH**.
+6. On the credential helper page, select **Git Credential Manager**.
+7. Keep every other default and finish the installer.
 
-## Daily loop
+### Install VS Code and sign in to Azure
 
-1. Edit files. A white dot on a tab means unsaved changes. Press Ctrl+S to save.
-2. Open the **Source Control** view (the branch icon on the left). It shows the count of changed files. Click
-   each changed file to check its diff.
-3. Type a commit message and select **Commit**. When asked, choose **Always** to stage all changes.
-4. Prefer a branch and a pull request. Select **Sync Changes** to push. A push to `main` starts the app
-   pipeline. See [App](/Pipelines/App).
+1. Install **VS Code**.
+2. Open VS Code.
+3. Select **Extensions** (the four-blocks icon on the left).
+4. Search for `Azure Resources`.
+5. Select **Install**.
+6. Close VS Code.
+7. Open VS Code.
+8. Press Ctrl+Shift+P.
+9. Type `Azure: Sign In`.
+10. Press Enter.
+11. Accept the sign-in in the browser.
 
-## Unpack and pack an exported app
+### Create the repository folder
 
-1. Drag the `.tgz` file into the package folder.
-2. Right-click the file and select **Open in Integrated Terminal**.
-3. To unpack, run `tar xf <file>.tgz`. To pack a folder, run `tar czf <file>.tgz <folder>`.
+1. Create the folder `C:\git`. Do not use OneDrive or a path with spaces.
+2. If Git later reports access denied in `C:\git`: right-click `C:\git` in File Explorer.
+3. Select **Properties**.
+4. Select **Security**.
+5. Select **Edit**.
+6. Select **Users**.
+7. Check **Full control**.
+8. Select **OK**.
+
+### Set your name and email
+
+1. In VS Code, select **Terminal > New Terminal**.
+2. Run `git config --global user.name "Your Name"`.
+3. Run `git config --global user.email "you@example.com"` with your work email.
+4. Run `git config --global -l` to check both values.
+5. Press q to leave the list.
+
+## Clone a repository
+
+1. In Azure Repos, open the repository.
+2. Select **Clone**.
+3. Select **Clone in VS Code**.
+4. Select `C:\git`.
+5. If it asks for a password, Git Credential Manager is missing. Rerun the Git installer and select it.
+
+## Change files
+
+1. Select the branch name at the bottom left of VS Code.
+2. Select **Create new branch**.
+3. Type a branch name and press Enter.
+4. Edit files. A white dot on a tab means unsaved changes.
+5. Press Ctrl+S.
+6. Select **Source Control** (the branch icon on the left).
+7. Select each changed file and check its diff.
+8. Type a commit message.
+9. Select **Commit**. If asked, select **Always** to stage all changes.
+10. Select **Publish Branch** (or **Sync Changes** on later commits).
+11. In Azure Repos, open the pull request it offers and select **Create**.
+
+Merging the pull request into `main` starts the app pipeline. See [App](/Pipelines/App).
+
+## Unpack or pack an exported app
+
+1. Drag the `.tgz` file into the `package` folder.
+2. Right-click the file.
+3. Select **Open in Integrated Terminal**.
+4. Run `tar xf <file>.tgz` to unpack, or `tar czf <file>.tgz <folder>` to pack.

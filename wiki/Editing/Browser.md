@@ -10,7 +10,10 @@ through VS Code.
 2. Select the file.
 3. Select **Edit**.
 4. Change the file.
-5. Select **Commit**. Choose the option to commit to a new branch, and start a pull request.
-6. Open the pull request. Select **Complete** to merge it into `main`.
+5. Select **Commit**.
+6. Select **Create a new branch** and keep **Create a pull request** checked.
+7. Select **Commit** again.
+8. Select **Create** on the pull request.
+9. When checks pass, select **Complete**.
 
 Merging to `main` in an app repository starts the app pipeline. See [App](/Pipelines/App).
