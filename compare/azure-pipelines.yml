@@ -26,7 +26,7 @@ parameters:
       - splunk-itsi
   - name: apps
     type: string
-    displayName: App IDs separated by spaces, or all (empty also means all)
+    displayName: App IDs separated by ;, or all (empty also means all)
     default: all
 
 jobs:
@@ -44,7 +44,7 @@ jobs:
               releaseScript: $(Build.SourcesDirectory)/release.py
           - template: ../templates/acs-step.yml
             parameters:
-              command: release.py export $(Pipeline.Workspace)/${{ parameters[side] }}-export ${{ iif(in(lower(trim(parameters.apps)), '', 'all'), '--custom', parameters.apps) }}
+              command: release.py export $(Pipeline.Workspace)/${{ parameters[side] }}-export ${{ iif(in(lower(trim(parameters.apps)), '', 'all'), '--custom', replace(parameters.apps, ';', ' ')) }}
               displayName: Export apps from ${{ parameters[side] }}
           - publish: $(Pipeline.Workspace)/${{ parameters[side] }}-export
             displayName: Publish the ${{ parameters[side] }} export artifact
