@@ -136,12 +136,12 @@ def import_app(environment, export_dir, *flags):
     open_pull_request(branch, version, environment)
 
 
-def permission_request(url, headers, body=None):
+def permission_request(url, headers, body=None, method=None):
     try:
-        return http(url, headers, body)
+        return http(url, headers, body, method=method)
     except SystemExit as error:
         if str(error.code).startswith(("HTTP 401 ", "HTTP 403 ")):
-            log("warning", "Grant Build Service repository permissions manually; see Getting-started/App-repository")
+            log("warning", "Build Service permissions are required; grant them manually")
             return None
         raise
 
@@ -166,6 +166,14 @@ def grant_repo_permissions(collection, project, project_id, repo_id, headers):
         "accessControlEntries": [{"descriptor": descriptor, "allow": 4 + 32 + 16384, "deny": 0}],
     }
     permission_request(permission_url, headers, json.dumps(body).encode("utf-8"))
+
+
+# Variable groups and environments the app pipeline uses; onboard also authorizes the tools repository.
+ONBOARD_RESOURCES = [
+    *(("variablegroup", f"variablegroups?groupName={name}") for name in
+      ("splunk-appinspect", "splunk-nonprod", "splunk-itsi-nonprod", "splunk-prod", "splunk-itsi-prod")),
+    *(("environment", f"environments?name={name}") for name in ("splunk-nonprod", "splunk-prod")),
+]
 
 
 def onboard(app, repository, *flags):
@@ -211,6 +219,19 @@ def onboard(app, repository, *flags):
     }
     pipeline = json.loads(http(f"{collection}{project_id}/_apis/pipelines?api-version=7.1", headers,
                                json.dumps(pipeline_body).encode("utf-8")))
+    resources = []
+    for resource_type, query in ONBOARD_RESOURCES:
+        found = permission_request(f"{collection}{project_id}/_apis/distributedtask/{query}&api-version=7.1", headers)
+        matches = json.loads(found)["value"] if found else []
+        if matches:
+            resources.append((resource_type, matches[0]["id"]))
+        elif found:
+            log("warning", f"{query} not found; select Permit on the first run")
+    resources.append(("repository", f"{project_id}.{os.environ['BUILD_REPOSITORY_ID']}"))
+    body = json.dumps({"pipelines": [{"id": pipeline["id"], "authorized": True}]}).encode("utf-8")
+    for resource_type, resource_id in resources:
+        permission_request(f"{collection}{project_id}/_apis/pipelines/pipelinePermissions/{resource_type}/"
+                           f"{resource_id}?api-version=7.1-preview.1", headers, body, method="PATCH")
     if "--permissions" in flags:
         grant_repo_permissions(collection, project, project_id, repo["id"], headers)
     log("section", f"Repository: {repo.get('webUrl', repo['remoteUrl'])}")
