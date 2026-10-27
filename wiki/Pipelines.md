@@ -1,31 +1,20 @@
-# Pipelines
+# Which pipeline?
 
-[Home](/Home) > Pipelines
+Find your task in the first column. Set the parameters in the third column. Then open the page in the last column.
 
-[[_TOC_]]
-
-Choose a pipeline for its inputs, run path, and outputs.
-
-| Page | What it answers |
-| --- | --- |
-| [App pipeline](/Pipelines/App-pipeline) | Pull request and main run paths. |
-| [Import from nonprod or prod](/Pipelines/App-import) | Import an installed app into a new pull request. |
-| [Deploy pipeline](/Pipelines/Deploy-pipeline) | Compare each app, then install the selected packages together. |
-| [Deploy to production](/Pipelines/Deploy-to-production) | Review each app's compare with prod, then approve the shared install. |
-| [Compare pipeline](/Pipelines/Compare-pipeline) | Compare selected environments. |
-| [Restart pipeline](/Pipelines/Restart-pipeline) | Restart a selected target. |
-| [Splunk ACS Bulk Install](/Getting-started/Bulk-pipelines) | Install indexes, HEC tokens, or apps. |
-| [Splunk ACS Bulk Update](/Getting-started/Bulk-pipelines) | Update indexes, HEC tokens, apps, or app permissions. |
-| [Splunk ACS Bulk Delete](/Getting-started/Bulk-pipelines) | Delete indexes, HEC tokens, or apps. |
-| [Repair pipeline](/Pipelines/Repair-pipeline) | Replace local copies of app objects with the app's default. |
-| [Smoke-test pipeline](/Pipelines/Smoke-test-pipeline) | Check read-only access. |
-| [Onboard an installed app](/Getting-started/Onboard-app) | Create a repository and pipeline from an installed app. |
-
-## Related
-
-- [Home](/Home)
-
----
-
-[< Previous: Getting started](/Getting-started) |
-[Next: Stages >](/Stages)
+| Task | Pipeline | Parameters to set | Page |
+| --- | --- | --- | --- |
+| Release a change to one app | App | Open a pull request to `main`, merge it, then approve the prod install | [App](/Pipelines/App) |
+| Deploy one app to nonprod or prod | Deploy | `environment`, `apps` (one ID), `compare`, `install`, `restart` | [Deploy](/Pipelines/Deploy) |
+| Deploy several apps | Deploy | `apps` as IDs separated by `;`, such as `app_one;app_two`, plus the options above | [Deploy](/Pipelines/Deploy) |
+| Deploy to prod with compare review | Deploy | `environment` = `prod`; approve each compare, then the install | [Deploy](/Pipelines/Deploy#deploy-to-prod) |
+| Replace apps (DANGER: deletes lookups) | Deploy | `uninstall` on; read the DANGER note first | [Deploy](/Pipelines/Deploy#danger-uninstall) |
+| Create a repository for an installed app | Onboard | `environment`, `app`, `repository`, `permissions` | [Onboard](/Pipelines/Onboard) |
+| Pull installed changes into a repo | App | `importFromNonprod`, `importFromProd`, `skipLookups`, `skipLookupBackups` | [App](/Pipelines/App#import) |
+| Compare two environments | Compare | `source`, `target`, `groupPrefix`, `apps` | [Compare](/Pipelines/Compare) |
+| Restore app objects to the app's defaults | Repair | `environment`, `target`, `app`, `conf`, `stanzas` | [Repair](/Pipelines/Repair) |
+| Restart a stack that needs it | Restart | `environment`, `target` | [Restart](/Pipelines/Restart) |
+| Bulk install indexes, HEC tokens, or apps | Bulk install | `environment`, `type`, `file`, `restart` | [Bulk install](/Pipelines/Bulk-Install) |
+| Bulk update indexes, HEC, apps, or permissions | Bulk update | `environment`, `type`, `file`, `restart` | [Bulk update](/Pipelines/Bulk-Update) |
+| Bulk delete indexes, HEC tokens, or apps | Bulk delete | `environment`, `type`, `file`, `restart` | [Bulk delete](/Pipelines/Bulk-Delete) |
+| Check access without changing a stack | Smoke test | `target`: `splunk` or `splunk-itsi` | [Smoke test](/Pipelines/Smoke-test) |
