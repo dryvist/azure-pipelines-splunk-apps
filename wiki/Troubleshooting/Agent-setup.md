@@ -1,6 +1,6 @@
 # Agent setup and network access
 
-Use this page to fix missing tools, certificate errors, and service access failures on agents.
+Use this page to fix missing tools, certificate errors, and blocked services on agents.
 
 ## Python 3.13 is not available on a self-hosted agent
 
@@ -22,8 +22,7 @@ Use this page to fix missing tools, certificate errors, and service access failu
 
 1. Confirm the run uses the expected branch and shared templates.
 2. Check the expanded job for an explicit Bash task from another template.
-3. Use a configured agent shell and keep this repository's steps as one
-   Python command or a built-in task.
+3. Use a configured agent shell. Keep this repository's steps as one Python command or a built-in task.
 
 **Docs:** [Agents](https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/agents),
 [runtime parameters](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/runtime-parameters).
@@ -41,17 +40,12 @@ Use this page to fix missing tools, certificate errors, and service access failu
 
 ## Agent cannot reach a required service
 
-**Symptom:** A download, package install, login, or API request times out or
-cannot resolve its service.
+**Symptom:** A download, package install, login, or API request times out, or cannot resolve its service.
 
 **Fix:**
 
-1. Allow agent outbound HTTPS to `github.com` for the ACS CLI download.
-2. Allow agent outbound HTTPS to `pypi.org` for Python packages.
-3. Allow agent outbound HTTPS to `api.splunk.com` for AppInspect login.
-4. Allow agent outbound HTTPS to `appinspect.splunk.com` for validation.
-5. Allow agent outbound HTTPS to `admin.splunk.com` for ACS requests.
-6. Rerun the failed job.
+1. Allow the outbound HTTPS hosts listed in [Agent](/Setup/Agent#outbound-https).
+2. Rerun the failed job.
 
 **Docs:** [Agents](https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/agents),
 [AppInspect](https://dev.splunk.com/enterprise/docs/developapps/testvalidate/appinspect/),

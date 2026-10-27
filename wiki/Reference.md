@@ -1,11 +1,11 @@
 # Reference
 
-Look up command behavior, code, configuration, artifacts, and logs.
+Look up command behavior, the code layout, variable groups, artifacts, and stages.
 
 | Page | What it answers |
 | --- | --- |
 | [release.py commands](/Reference/Release.py-commands) | Command arguments and behavior. |
-| [Code layout](/Reference/Code-layout) | Files and module responsibilities. |
-| [Variable groups](/Reference/Variable-groups) | Groups selected by each pipeline. |
+| [Code layout](/Reference/Code-layout) | Files, modules, and templates. |
+| [Variable groups](/Reference/Variable-groups) | Each group, its variables, values, and lock states. |
 | [Artifacts](/Reference/Artifacts) | Packages, reports, and diff contents. |
-| [Reading logs](/Reference/Reading-logs) | Finding commands, warnings, and reports. |
+| [Stages](/Reference/Stages) | Each app pipeline stage, and the steps that other pipelines share. |

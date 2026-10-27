@@ -8,18 +8,17 @@ Use this page to fix AppInspect login, package, and validation failures.
 
 **Fix:**
 
-1. Add `SPLUNK_USERNAME` to `splunk-appinspect` using [Variable groups](/Getting-started/Variable-groups).
-2. Set its lock state using [Reference: Variable groups](/Reference/Variable-groups).
+1. Add `SPLUNK_USERNAME` to `splunk-appinspect`. See [Variable groups](/Setup/Variable-groups).
+2. Set its lock state as listed in [Reference: Variable groups](/Reference/Variable-groups).
 3. Rerun the `appinspect` job.
 
 ## `Expected one .tar.gz package`
 
-**Symptom:** `Run AppInspect` or a deploy step prints
-`Expected one .tar.gz package in <dir>, found <count>`.
+**Symptom:** `Run AppInspect` or a deploy step prints `Expected one .tar.gz package in <dir>, found <count>`.
 
 **Fix:**
 
-1. Open the `dist` artifact or selected feed package directory.
+1. Open the `dist` artifact, or the selected feed package directory.
 2. Confirm it contains exactly one `.tar.gz` package.
 3. Rerun the build or deployment after correcting the package contents.
 
@@ -28,14 +27,13 @@ Use this page to fix AppInspect login, package, and validation failures.
 
 ## AppInspect login returns 401 or 403
 
-**Symptom:** The log shows `HTTP 401` or `HTTP 403` from the AppInspect login
-request to `api.splunk.com`.
+**Symptom:** The log shows `HTTP 401` or `HTTP 403` from the AppInspect login request to `api.splunk.com`.
 
 **Fix:**
 
 1. Set `SPLUNK_USERNAME` to the account username in `splunk-appinspect`.
 2. Set `SPLUNK_PASSWORD` to that account's password.
-3. Set variable lock states using [Reference: Variable groups](/Reference/Variable-groups).
+3. Set the variable lock states as listed in [Reference: Variable groups](/Reference/Variable-groups).
 4. Rerun the `appinspect` job.
 
 **Docs:** [AppInspect](https://dev.splunk.com/enterprise/docs/developapps/testvalidate/appinspect/),
@@ -43,8 +41,8 @@ request to `api.splunk.com`.
 
 ## AppInspect does not pass
 
-**Symptom:** The log prints `AppInspect did not pass`. The **Blocks
-deployment** section shows a status other than `SUCCESS` or a count above 0.
+**Symptom:** The log prints `AppInspect did not pass`. The **Blocks deployment** section shows a status other
+than `SUCCESS`, or a count above 0.
 
 **Fix:**
 
@@ -54,4 +52,5 @@ deployment** section shows a status other than `SUCCESS` or a count above 0.
 4. Fix each reported finding in the app.
 5. Rerun validation after fixing the findings.
 
-For AppInspect pass criteria, see [AppInspect stage](/Stages/AppInspect). For report names, see [Artifacts](/Reference/Artifacts).
+For the pass criteria, see [Reference: Stages](/Reference/Stages#appinspect). For report names, see
+[Artifacts](/Reference/Artifacts).

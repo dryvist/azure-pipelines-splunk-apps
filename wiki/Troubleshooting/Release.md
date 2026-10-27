@@ -2,14 +2,11 @@
 
 Use this page to fix release tags and package publication failures.
 
-## Release stage
-
 ![Release tagging, package publishing, and tag failure point.](../diagrams/release-stage.png)
 
-### Tag push is rejected
+## Tag push is rejected
 
-**Symptom:** The tag step cannot push `v<version>` because the tag exists on
-another commit.
+**Symptom:** The tag step cannot push `v<version>`, because the tag exists on another commit.
 
 **Fix:**
 
@@ -20,10 +17,9 @@ another commit.
 **Docs:** [Git commands](https://learn.microsoft.com/en-us/azure/devops/pipelines/scripts/git-commands),
 [packaging toolkit](https://dev.splunk.com/enterprise/docs/releaseapps/packagingtoolkit/).
 
-### Feed publish fails because the version exists
+## Feed publish fails because the version exists
 
-**Symptom:** Universal Package publish reports that the package version
-already exists.
+**Symptom:** Universal Package publish reports that the package version already exists.
 
 **Fix:**
 
@@ -31,4 +27,4 @@ already exists.
 2. Merge the version change to `main`.
 3. Rerun the release pipeline.
 
-For release job steps, see [Release stage](/Stages/Release).
+For the release job steps, see [Reference: Stages](/Reference/Stages#release).
