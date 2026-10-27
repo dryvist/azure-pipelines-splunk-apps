@@ -9,10 +9,14 @@ parameters:
   - name: additionalEnv
     type: object
     default: {}
+  - name: continueOnError
+    type: boolean
+    default: false
 
 steps:
   - script: python ${{ parameters.command }}
     displayName: ${{ parameters.displayName }}
+    continueOnError: ${{ parameters.continueOnError }}
     ${{ if ne(parameters.workingDirectory, '') }}:
       workingDirectory: ${{ parameters.workingDirectory }}
     env:

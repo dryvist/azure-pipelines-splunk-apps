@@ -294,15 +294,22 @@ def splunkd(path, method="GET"):
                 {"Authorization": f"Bearer {os.environ['STACK_TOKEN']}"}, timeout=60, method=method, missing_ok=True)
 
 def require_private(app):
-    """Exit unless the app is installed, not from Splunkbase, and not shipped with Splunk (core)."""
-    if app.casefold() in {name.casefold() for name in listed_apps(acs_env(), True)}:
+    """Exit unless ACS lists the app as installed and not from Splunkbase."""
+    env = acs_env()
+    if app.casefold() in {name.casefold() for name in listed_apps(env, True)}:
         sys.exit(f"{app} is a Splunkbase app. Onboard takes private apps only")
+    if app not in listed_apps(env):
+        sys.exit(f"{app} is not installed on this search head. App IDs are case-sensitive")
+    print(f"{app} is installed and not from Splunkbase")
+
+def core_check(app):
+    """Read the app's core flag over the search head REST API on port 8089; fail when it ships with Splunk."""
     found = splunkd(f"services/apps/local/{urllib.parse.quote(app, safe='')}")
     if found is None:
-        sys.exit(f"{app} is not installed")
+        sys.exit(f"Port 8089 reached, but the REST API has no app {app}")
     if json.loads(found)["entry"][0]["content"]["core"]:
-        sys.exit(f"{app} ships with Splunk. Onboard takes private apps only")
-    print(f"{app} is a private app")
+        sys.exit(f"{app} ships with Splunk. Delete its new repository and pipeline")
+    print(f"Port 8089 reached: {app} is not a core Splunk app")
 
 def repackage(package, out_dir, app, version, conf=None, stanzas=()):
     """Write <out_dir>/<app>-<version>.tar.gz from package with a new version and without the given stanzas."""

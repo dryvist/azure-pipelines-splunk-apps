@@ -34,17 +34,18 @@ error names `acs status current-stack`, `acs apps list`, or `acs apps describe s
 
 ## Search head REST read fails
 
-**Symptom:** The search head REST check returns HTTP 401 or 403, or cannot connect.
+**Symptom:** The **Test port 8089** step returns HTTP 401 or 403, or cannot connect.
 
 **Fix:**
 
 1. Check that `SPLUNK_SEARCH_HEAD` and `SPLUNK_STACK` in the job's group are correct. They set the REST URL. See
    [Reference: Variable groups](/Reference/Variable-groups).
-2. Check that the agent can reach that URL on port 8089.
+2. Check that the agents' public IP addresses are in the `search-api` IP allow list. Splunk Cloud blocks port
+   8089 from any other address.
 3. Check that the ACS token is accepted by that search head.
 4. Rerun the failed job.
 
-**Verify:** The job prints `PASS ... search head REST: token accepted`. The line also says whether the `launcher`
+**Verify:** The step prints `PASS ... port 8089 search head REST: token accepted`. The line also says whether the `launcher`
 stanza was found. `not found` still means the token was accepted.
 
 ## Azure DevOps rights fail

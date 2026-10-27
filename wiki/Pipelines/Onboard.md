@@ -3,8 +3,11 @@
 The Onboard pipeline creates a repository and an app pipeline for each app that is installed on a stack but
 has no repository. Both are named exactly the app ID.
 
-Onboard takes private apps only. It stops when ACS lists the app as a Splunkbase app, or when the search head
-REST API marks it `core`, which means it ships with Splunk.
+Onboard takes private apps only. Through ACS, it stops when the app is not installed on the search head or
+is a Splunkbase app. Its last step, **Test port 8089**, reads the app's `core` flag from the search head REST
+API. That step fails when the app ships with Splunk, or when the agent cannot reach port 8089. A failure there
+shows as a warning and does not undo the onboarding. To allow port 8089, add the agents' public IP addresses
+to the `search-api` IP allow list.
 
 Before the first run, grant the one-time permissions in [Build Service](/Setup/Build-service). Create the
 pipeline from [Manual pipelines](/Setup/Manual-pipelines), with YAML path `/onboard/azure-pipelines.yml`.

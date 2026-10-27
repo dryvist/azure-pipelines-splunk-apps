@@ -52,7 +52,7 @@ def stack(group):
 
 
 def stack_reads(group, env):
-    """Read stack status, app listings, the search app version and the search head REST API."""
+    """Read stack status, app listings and the search app version."""
     _, state = stack_ready(env)
     restart = "yes" if restart_required(stack_status(env)) else "no"
     print_colored_patch(f"PASS {group} {state}, restart required: {restart}")
@@ -63,9 +63,14 @@ def stack_reads(group, env):
     if version is None:
         sys.exit(f"FAIL {group}: search app is not installed")
     print_colored_patch(f"PASS {group} apps describe search: version {version}")
+
+
+def search_head_rest(group):
+    """Read the search app's launcher stanza over the search head REST API on port 8089."""
+    os.environ["STACK_TOKEN"] = os.environ["ACS_TOKEN"]
     launcher = rest("search", "app", "launcher")
     found = "found" if launcher is not None else "not found"
-    print_colored_patch(f"PASS {group} search head REST: token accepted, launcher stanza {found}")
+    print_colored_patch(f"PASS {group} port 8089 search head REST: token accepted, launcher stanza {found}")
 
 
 def azure_devops():
@@ -113,6 +118,8 @@ def dispatch(name, *args):
         appinspect()
     elif name == "azuredevops":
         azure_devops()
+    elif name == "rest":
+        search_head_rest(*args)
     else:
         stack(name)
 

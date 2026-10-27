@@ -49,3 +49,8 @@ jobs:
                   displayName: Export ${{ app }} from ${{ parameters.target }}-${{ parameters.environment }} and create its repository and pipeline
                   additionalEnv:
                     SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+              - template: ../templates/acs-step.yml
+                parameters:
+                  command: release.py core-check ${{ app }}
+                  displayName: Test port 8089 - read the ${{ app }} core flag from the search head REST API
+                  continueOnError: true

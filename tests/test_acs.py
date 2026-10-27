@@ -465,27 +465,30 @@ def check_repair():
 
 @patch.dict(os.environ, {"SPLUNK_STACK": "stack", "SPLUNK_SEARCH_HEAD": "", "STACK_TOKEN": "token"})
 def check_require_private():
+    def lists(env, splunkbase=False):
+        return ["splunk_ta_nix"] if splunkbase else ["my_ta", "Splunk_TA_nix", "search"]
+
+    for app, message in (("my_ta", None), ("Splunk_TA_nix", "Splunkbase app"), ("My_TA", "not installed")):
+        with patch("splunk_release.acs.acs_env", return_value={}), patch(
+            "splunk_release.acs.listed_apps", side_effect=lists
+        ), redirect_stdout(io.StringIO()):
+            try:
+                acs.require_private(app)
+                assert message is None
+            except SystemExit as error:
+                assert message and message in str(error)
+
     def app(core):
         return json.dumps({"entry": [{"content": {"core": core}}]}).encode()
 
-    for found, message in ((app(False), None), (app(True), "ships with Splunk"), (None, "not installed")):
-        with patch("splunk_release.acs.acs_env", return_value={}), patch(
-            "splunk_release.acs.listed_apps", return_value=["Splunk_TA_nix"]
-        ), patch("splunk_release.acs.splunkd", return_value=found) as splunkd, redirect_stdout(io.StringIO()):
+    for found, message in ((app(False), None), (app(True), "ships with Splunk"), (None, "has no app")):
+        with patch("splunk_release.acs.splunkd", return_value=found) as splunkd, redirect_stdout(io.StringIO()):
             try:
-                acs.require_private("my_ta")
+                acs.core_check("my_ta")
                 assert message is None
             except SystemExit as error:
                 assert message and message in str(error)
         splunkd.assert_called_once_with("services/apps/local/my_ta")
-    with patch("splunk_release.acs.acs_env", return_value={}), patch(
-        "splunk_release.acs.listed_apps", return_value=["splunk_ta_nix"]
-    ):
-        try:
-            acs.require_private("Splunk_TA_nix")
-            raise AssertionError("expected SystemExit")
-        except SystemExit as error:
-            assert "Splunkbase app" in str(error)
 
 
 class AcsTests(TestCase):
