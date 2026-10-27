@@ -9,7 +9,7 @@ Find your task in the first column. Set the parameters in the third column. Then
 | Deploy several apps | Deploy | `apps` as IDs separated by `;`, such as `app_one;app_two`, plus the options above | [Deploy](/Pipelines/Deploy) |
 | Deploy to prod with compare review | Deploy | `environment` = `prod`; approve each compare, then the install | [Deploy](/Pipelines/Deploy#deploy-to-prod) |
 | Replace apps (DANGER: deletes lookups) | Deploy | `uninstall` on; read the DANGER note first | [Deploy](/Pipelines/Deploy#danger-uninstall) |
-| Create a repository for installed apps | Onboard | `environment`, `apps`, `permissions` | [Onboard](/Pipelines/Onboard) |
+| Create a repository for installed apps | Onboard | `environment`, `target`, `apps`, `permissions` | [Onboard](/Pipelines/Onboard) |
 | Pull installed changes into a repo | App | `importFromNonprod`, `importFromProd`, `skipLookups`, `skipLookupBackups` | [App](/Pipelines/App#import) |
 | Compare two environments | Compare | `source`, `target`, `groupPrefix`, `apps` | [Compare](/Pipelines/Compare) |
 | Restore app objects to the app's defaults | Repair | `environment`, `target`, `app`, `conf`, `stanzas` | [Repair](/Pipelines/Repair) |
