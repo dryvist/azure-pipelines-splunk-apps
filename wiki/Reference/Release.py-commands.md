@@ -95,9 +95,9 @@ Every ACS command retries every 30 seconds for up to 15 minutes while ACS return
   `SYSTEM_TEAMPROJECT`, and `SYSTEM_TEAMPROJECTID`. `--skip-lookups` keeps the `lookups/` folder on `main`.
   `--skip-lookup-backups` leaves out `lookups/lookup_file_backups/`. The compare commands take the same two options
   and remove those folders on both sides.
-- `onboard <app> <repo> [--permissions]` creates a repository. It writes the sanitized export to `package/`,
-  copies `example/azure-pipelines.yml`, pushes the initial `main` commit, and creates the app pipeline. An empty
-  repository name uses the app ID. `--permissions` grants the project Build Service Contribute, Contribute to pull
+- `onboard <app> [--permissions]` creates a repository named after the app. It writes the sanitized export to
+  `package/`, copies `example/azure-pipelines.yml`, pushes the initial `main` commit, and creates the app pipeline
+  with the same name. `--permissions` grants the project Build Service Contribute, Contribute to pull
   requests, and Create tag.
 
 ## Repair

@@ -176,11 +176,10 @@ ONBOARD_RESOURCES = [
 ]
 
 
-def onboard(app, repository, *flags):
-    """Create a repository and pipeline from an exported app."""
+def onboard(app, *flags):
+    """Create a repository and pipeline, both named after the app, from an exported app."""
     if set(flags) - {"--permissions"}:
         sys.exit(f"Unknown option: {' '.join(flags)}")
-    repository = repository or app
     token = os.environ["SYSTEM_ACCESSTOKEN"]
     collection = os.environ["SYSTEM_COLLECTIONURI"].rstrip("/") + "/"
     project = os.environ["SYSTEM_TEAMPROJECT"]
@@ -196,10 +195,10 @@ def onboard(app, repository, *flags):
         shutil.copyfile(example, root / "azure-pipelines.yml")
         try:
             repo = json.loads(http(f"{collection}{project_id}/_apis/git/repositories?api-version=7.1", headers,
-                                   json.dumps({"name": repository}).encode("utf-8")))
+                                   json.dumps({"name": app}).encode("utf-8")))
         except SystemExit as error:
             if "already exists" in str(error.code):
-                sys.exit(f"Repository {repository} already exists")
+                sys.exit(f"Repository {app} already exists")
             raise
         git_in = ["git", "-C", str(root), "-c", "user.name=Azure Pipelines", "-c", "user.email=azure-pipelines@localhost"]
         run([*git_in, "init", "--initial-branch=main"], check=True)
@@ -209,7 +208,7 @@ def onboard(app, repository, *flags):
         run([*git_in, "-c", f"http.extraheader=AUTHORIZATION: bearer {token}", "push", "origin", "main"], check=True)
 
     pipeline_body = {
-        "name": repository,
+        "name": app,
         "folder": "\\",
         "configuration": {
             "type": "yaml",

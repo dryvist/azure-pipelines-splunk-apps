@@ -154,8 +154,8 @@ class ImportAppTests(TestCase):
                 "SYSTEM_TEAMPROJECT": "<project>",
                 "SYSTEM_TEAMPROJECTID": "<project-id>",
             }
-            repo = {"id": "repo-id", "remoteUrl": "https://dev.azure.com/<org>/<project>/_git/my_repo",
-                    "webUrl": "https://dev.azure.com/<org>/<project>/_git/my_repo"}
+            repo = {"id": "repo-id", "remoteUrl": "https://dev.azure.com/<org>/<project>/_git/my_ta",
+                    "webUrl": "https://dev.azure.com/<org>/<project>/_git/my_ta"}
             pipeline = {"id": 42}
             lookups = {
                 "groupName=splunk-appinspect": 101,
@@ -200,16 +200,16 @@ class ImportAppTests(TestCase):
                 patch("splunk_release.import_app.APP", "my_ta"),
                 redirect_stdout(io.StringIO()),
             ):
-                import_app.onboard("my_ta", "my_repo")
+                import_app.onboard("my_ta")
 
             self.assertEqual(len(package_roots), 1)
             self.assertEqual([call.args[0] for call in http.call_args_list[:2]], [
                 "https://dev.azure.com/<org>/<project-id>/_apis/git/repositories?api-version=7.1",
                 "https://dev.azure.com/<org>/<project-id>/_apis/pipelines?api-version=7.1",
             ])
-            self.assertEqual(json.loads(http.call_args_list[0].args[2]), {"name": "my_repo"})
+            self.assertEqual(json.loads(http.call_args_list[0].args[2]), {"name": "my_ta"})
             self.assertEqual(json.loads(http.call_args_list[1].args[2]), {
-                "name": "my_repo",
+                "name": "my_ta",
                 "folder": "\\",
                 "configuration": {
                     "type": "yaml",
