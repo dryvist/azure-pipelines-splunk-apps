@@ -97,16 +97,11 @@ def azure_devops():
         print_colored_patch(f"PASS azure-devops: {resource_type} {name} found")
     feed_versions("smoke-test")
     print_colored_patch("PASS azure-devops: splunk-apps feed read")
-    git_repositories = "2e9eb7ed-3c0a-47d4-87c1-0ffdd275fd87"
-    rights = (
-        ("Create repository", 256, f"repoV2/{project_id}"),
-        ("Contribute to pull requests", 16384, f"repoV2/{project_id}/{os.environ['BUILD_REPOSITORY_ID']}"),
-    )
-    for label, bit, token in rights:
-        url = f"{collection}_apis/permissions/{git_repositories}/{bit}?tokens={token}&api-version=7.1"
-        if json.loads(http(url, headers))["value"] != [True]:
-            sys.exit(f"FAIL azure-devops: Build Service lacks {label}")
-        print_colored_patch(f"PASS azure-devops: Build Service has {label}")
+    token = f"repoV2/{project_id}/{os.environ['BUILD_REPOSITORY_ID']}"
+    url = f"{collection}_apis/permissions/2e9eb7ed-3c0a-47d4-87c1-0ffdd275fd87/16384?tokens={token}&api-version=7.1"
+    if json.loads(http(url, headers))["value"] != [True]:
+        sys.exit("FAIL azure-devops: Build Service lacks Contribute to pull requests")
+    print_colored_patch("PASS azure-devops: Build Service has Contribute to pull requests")
 
 
 def result():

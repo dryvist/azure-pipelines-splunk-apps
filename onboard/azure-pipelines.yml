@@ -1,4 +1,4 @@
-# Create an app repository and pipeline from an app installed on the stack.
+# Export apps installed on the stack into their empty repositories and create their pipelines.
 trigger: none
 pr: none
 
@@ -18,15 +18,20 @@ parameters:
       - splunk-itsi
       - splunk
   - name: apps
-    displayName: App IDs separated by ;. Each app gets a repository and pipeline named after it
+    displayName: App IDs separated by ;. Create an empty repository named after each app first
     type: string
-  - name: permissions
-    displayName: Grant app repository permissions
-    type: boolean
-    default: true
 
 variables:
   appIds: ${{ replace(replace(trim(parameters.apps), '; ', ';'), ' ', ';') }}
+
+# One repository resource per app, named after the app.
+resources:
+  repositories:
+    - ${{ each app in split(variables.appIds, ';') }}:
+        - ${{ if ne(app, '') }}:
+            - repository: app_${{ replace(replace(app, '-', '_'), '.', '_') }}
+              type: git
+              name: ${{ app }}
 
 jobs:
   - ${{ each app in split(variables.appIds, ';') }}:
@@ -35,6 +40,9 @@ jobs:
             displayName: Onboard ${{ app }}
             workspace:
               clean: all
+            uses:
+              repositories:
+                - app_${{ replace(replace(app, '-', '_'), '.', '_') }}
             variables:
               - group: ${{ parameters.target }}-${{ parameters.environment }}
             steps:
@@ -45,7 +53,7 @@ jobs:
                   releaseScript: $(Build.SourcesDirectory)/release.py
               - template: ../templates/acs-step.yml
                 parameters:
-                  command: release.py onboard ${{ app }} ${{ iif(parameters.permissions, '--permissions', '') }}
-                  displayName: Export ${{ app }} from ${{ parameters.target }}-${{ parameters.environment }} and create its repository and pipeline
+                  command: release.py onboard ${{ app }}
+                  displayName: Export ${{ app }} from ${{ parameters.target }}-${{ parameters.environment }} into its repository and create its pipeline
                   additionalEnv:
                     SYSTEM_ACCESSTOKEN: $(System.AccessToken)

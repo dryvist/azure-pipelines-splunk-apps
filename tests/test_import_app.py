@@ -170,7 +170,7 @@ class ImportAppTests(TestCase):
 
             def request(url, headers, body=None, **kwargs):
                 events.append(("http", url))
-                if "/_apis/git/repositories?" in url:
+                if "/_apis/git/repositories/my_ta?" in url:
                     return json.dumps(repo).encode()
                 if "/_apis/pipelines?" in url:
                     return json.dumps(pipeline).encode()
@@ -196,7 +196,7 @@ class ImportAppTests(TestCase):
                 chdir(root),
                 patch.dict(os.environ, environment),
                 patch("splunk_release.import_app.http", side_effect=request) as http,
-                patch("splunk_release.import_app.run", side_effect=command) as run,
+                patch("splunk_release.import_app.run", side_effect=command),
                 patch("splunk_release.import_app.APP", "my_ta"),
                 patch("splunk_release.import_app.require_private") as require_private,
                 patch("splunk_release.import_app.export") as export,
@@ -208,10 +208,9 @@ class ImportAppTests(TestCase):
 
             self.assertEqual(len(package_roots), 1)
             self.assertEqual([call.args[0] for call in http.call_args_list[:2]], [
-                "https://dev.azure.com/<org>/<project-id>/_apis/git/repositories?api-version=7.1",
+                "https://dev.azure.com/<org>/<project-id>/_apis/git/repositories/my_ta?api-version=7.1",
                 "https://dev.azure.com/<org>/<project-id>/_apis/pipelines?api-version=7.1",
             ])
-            self.assertEqual(json.loads(http.call_args_list[0].args[2]), {"name": "my_ta"})
             self.assertEqual(json.loads(http.call_args_list[1].args[2]), {
                 "name": "my_ta",
                 "folder": "\\",
@@ -250,6 +249,18 @@ class ImportAppTests(TestCase):
             pushes = [event[1] for event in events if event[0] == "run" and "push" in event[1]]
             self.assertEqual(len(pushes), 1)
             self.assertIn("http.extraheader=AUTHORIZATION: bearer test-token", pushes[0])
+
+    def test_onboard_stops_when_repository_has_commits(self):
+        environment = {"SYSTEM_ACCESSTOKEN": "t", "SYSTEM_COLLECTIONURI": "https://dev.azure.com/<org>/",
+                       "SYSTEM_TEAMPROJECTID": "<project-id>"}
+        with (
+            patch.dict(os.environ, environment),
+            patch("splunk_release.import_app.http", return_value=b'{"defaultBranch": "refs/heads/main"}'),
+            patch("splunk_release.import_app.export") as export,
+            self.assertRaisesRegex(SystemExit, "already has commits"),
+        ):
+            import_app.onboard("my_ta")
+        export.assert_not_called()
 
     def test_import_app_uses_exported_version_without_package(self):
         with tempfile.TemporaryDirectory() as temp_dir:

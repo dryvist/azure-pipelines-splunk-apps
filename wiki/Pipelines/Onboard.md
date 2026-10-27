@@ -1,7 +1,7 @@
 # Onboard pipeline
 
-The Onboard pipeline creates a repository and an app pipeline for each app that is installed on a stack but
-has no repository. Both are named exactly the app ID.
+The Onboard pipeline fills a new, empty repository from an app installed on a stack. It then creates the app
+pipeline. The repository and the pipeline are named exactly the app ID.
 
 Onboard takes private apps only. Through ACS, it stops when the app is not installed on the search head or
 is a Splunkbase app.
@@ -16,7 +16,18 @@ pipeline from [Manual pipelines](/Setup/Manual-pipelines), with YAML path `/onbo
 | `environment` | `nonprod`, `prod` | `nonprod` | Stack to export the app from. |
 | `target` | `splunk-itsi`, `splunk` | `splunk-itsi` | Search head to export from. Uses `<target>-<environment>`. |
 | `apps` | App IDs separated by `;` | none | Apps to export and onboard. Each app runs in its own job. |
-| `permissions` | on, off | on | Grants the project Build Service Contribute, Contribute to pull requests, and Create tag. |
+
+## Create each repository
+
+Do these steps for each app before you run Onboard.
+
+1. Open **Repos**.
+2. Open the repository list at the top and select **New repository**.
+3. Keep **Repository type** as **Git**.
+4. Enter the app ID as **Repository name**. Match its case exactly.
+5. Clear **Add a README**. Keep **Add a .gitignore** as **None**. The repository must be empty.
+6. Select **Create**.
+7. Grant the rights in [Build Service: App repository](/Setup/Build-service#app-repository).
 
 ## Run it
 
@@ -24,13 +35,11 @@ pipeline from [Manual pipelines](/Setup/Manual-pipelines), with YAML path `/onbo
 2. Select `nonprod` or `prod` for **environment**.
 3. Keep `splunk-itsi` for **target**, or select `splunk` for the main search head.
 4. Enter the app IDs for **App IDs**, such as `my_app;other_app`.
-5. Keep **Grant app repository permissions** on. To grant them by hand, turn it off and follow
-   [Build Service: App repository](/Setup/Build-service#app-repository).
-6. Select **Run**.
-7. Permit each requested resource. See [Permissions](/Troubleshooting/Permissions).
+5. Select **Run**.
+6. Permit each requested resource, including each new repository. See [Permissions](/Troubleshooting/Permissions).
 
-Each job exports its app, creates the repository, and writes the export to `package/`. It copies the app's
-`azure-pipelines.yml`, pushes the initial commit to `main`, and creates the app pipeline.
+Each job exports its app and writes the export to `package/`. It copies the app's `azure-pipelines.yml`, pushes
+the initial commit to `main`, and creates the app pipeline.
 
 ## After onboarding
 
@@ -45,6 +54,3 @@ Do these steps once for each new app repository.
 5. Add the Build validation policy on `main`. Onboard does not add it. Open **Repos → Branches**, select
    `main`, and open **Branch policies**. Add a **Build validation** policy, select the app pipeline, set the
    policy to **Automatic** and **Required**, and save.
-
-If you turned off permissions, grant them first. See
-[Build Service: App repository](/Setup/Build-service#app-repository).
