@@ -1,8 +1,6 @@
 # Deploy pipeline
 
-[Home](/Home) > [Pipelines](/Pipelines) > Deploy pipeline
-
-[[_TOC_]]
+Use this page to see manual deployment parameters, stage order, and restart behavior.
 
 ## Run path
 
@@ -121,13 +119,3 @@ For the full production walkthrough, see
 ![Manual deploy pipeline flow.](../diagrams/deploy-pipeline.png)
 
 ![Compare and deployment job steps.](../diagrams/deployment-job.png)
-
-## Related
-
-- [Restart pipeline](/Pipelines/Restart-pipeline)
-- [Artifacts](/Reference/Artifacts)
-
----
-
-[< Previous: Import from nonprod or prod](/Pipelines/App-import) |
-[Next: Deploy to production >](/Pipelines/Deploy-to-production)

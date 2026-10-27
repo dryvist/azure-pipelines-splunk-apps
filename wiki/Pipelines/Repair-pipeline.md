@@ -1,8 +1,6 @@
 # Repair pipeline
 
-[Home](/Home) > [Pipelines](/Pipelines) > Repair pipeline
-
-[[_TOC_]]
+Use this page to see the repair pipeline inputs and job order.
 
 ## Behavior
 
@@ -69,13 +67,3 @@ group's `ACS_TOKEN`. The agent's IP address must be on the stack's
 `https://<SPLUNK_STACK>.splunkcloud.com:8089`. A group with
 `SPLUNK_SEARCH_HEAD` needs `SPLUNK_REST_URL` set to that search head's URL. See
 [Repair pipeline setup](/Getting-started/Repair).
-
-## Related
-
-- [Deploy pipeline](/Pipelines/Deploy-pipeline)
-- [release.py commands](/Reference/Release.py-commands)
-
----
-
-[< Previous: Restart pipeline](/Pipelines/Restart-pipeline) |
-[Next: Smoke-test pipeline >](/Pipelines/Smoke-test-pipeline)

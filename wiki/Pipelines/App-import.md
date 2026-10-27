@@ -1,9 +1,5 @@
 # Import from nonprod or prod
 
-[Home](/Home) > [Pipelines](/Pipelines) > Import from nonprod or prod
-
-[[_TOC_]]
-
 The import options export the installed app from the nonprod or prod ITSI
 search head, compare it with the app package from `main`, and open a pull
 request in the app repository. Each uses its `splunk-itsi-<env>` variable
@@ -82,14 +78,3 @@ skips the automatic version bump because the imported version differs from
 
 Review the diff artifact before changing the pull request. Edit the pull
 request to choose what to keep, or close it to discard the import.
-
-## Related
-
-- [App pipeline](/Pipelines/App-pipeline)
-- [Nonprod stage](/Stages/Nonprod)
-- [release.py commands](/Reference/Release.py-commands)
-
----
-
-[< Previous: App pipeline](/Pipelines/App-pipeline) |
-[Next: Deploy pipeline >](/Pipelines/Deploy-pipeline)
