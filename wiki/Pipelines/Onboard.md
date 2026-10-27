@@ -13,7 +13,8 @@ pipeline from [Manual pipelines](/Setup/Manual-pipelines), with YAML path `/onbo
 
 | Parameter | Values | Default | Effect |
 | --- | --- | --- | --- |
-| `environment` | `nonprod`, `prod` | `nonprod` | Stack to export the app from. Uses `splunk-<environment>`. |
+| `environment` | `nonprod`, `prod` | `nonprod` | Stack to export the app from. |
+| `target` | `splunk-itsi`, `splunk` | `splunk-itsi` | Search head to export from. Uses `<target>-<environment>`. |
 | `apps` | App IDs separated by `;` | none | Apps to export and onboard. Each app runs in its own job. |
 | `permissions` | on, off | on | Grants the project Build Service Contribute, Contribute to pull requests, and Create tag. |
 
@@ -21,11 +22,12 @@ pipeline from [Manual pipelines](/Setup/Manual-pipelines), with YAML path `/onbo
 
 1. Open the Onboard pipeline and select **Run pipeline**.
 2. Select `nonprod` or `prod` for **environment**.
-3. Enter the app IDs for **App IDs**, such as `my_app;other_app`.
-4. Keep **Grant app repository permissions** on. To grant them by hand, turn it off and follow
+3. Keep `splunk-itsi` for **target**, or select `splunk` for the main search head.
+4. Enter the app IDs for **App IDs**, such as `my_app;other_app`.
+5. Keep **Grant app repository permissions** on. To grant them by hand, turn it off and follow
    [Build Service: App repository](/Setup/Build-service#app-repository).
-5. Select **Run**.
-6. Permit each requested resource. See [Permissions](/Troubleshooting/Permissions).
+6. Select **Run**.
+7. Permit each requested resource. See [Permissions](/Troubleshooting/Permissions).
 
 Each job exports its app, creates the repository, and writes the export to `package/`. It copies the app's
 `azure-pipelines.yml`, pushes the initial commit to `main`, and creates the app pipeline.

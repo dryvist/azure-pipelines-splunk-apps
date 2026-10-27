@@ -199,10 +199,12 @@ class ImportAppTests(TestCase):
                 patch("splunk_release.import_app.run", side_effect=command) as run,
                 patch("splunk_release.import_app.APP", "my_ta"),
                 patch("splunk_release.import_app.require_private") as require_private,
+                patch("splunk_release.import_app.export") as export,
                 redirect_stdout(io.StringIO()),
             ):
                 import_app.onboard("my_ta")
             require_private.assert_called_once_with("my_ta")
+            export.assert_called_once_with("export", "my_ta")
 
             self.assertEqual(len(package_roots), 1)
             self.assertEqual([call.args[0] for call in http.call_args_list[:2]], [

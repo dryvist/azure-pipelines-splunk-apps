@@ -9,7 +9,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 from splunk_release import compare
-from splunk_release.acs import require_private
+from splunk_release.acs import export, require_private
 from splunk_release.azure import http, log, run
 from splunk_release.package import sort_confs
 from splunk_release.version import (
@@ -178,10 +178,11 @@ ONBOARD_RESOURCES = [
 
 
 def onboard(app, *flags):
-    """Create a repository and pipeline, both named after the app, from an exported app."""
+    """Export a private app and create a repository and pipeline, both named after it."""
     if set(flags) - {"--permissions"}:
         sys.exit(f"Unknown option: {' '.join(flags)}")
     require_private(app)
+    export("export", app)
     token = os.environ["SYSTEM_ACCESSTOKEN"]
     collection = os.environ["SYSTEM_COLLECTIONURI"].rstrip("/") + "/"
     project = os.environ["SYSTEM_TEAMPROJECT"]

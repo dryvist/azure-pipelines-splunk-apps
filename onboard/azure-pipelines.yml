@@ -10,6 +10,13 @@ parameters:
     values:
       - nonprod
       - prod
+  - name: target
+    displayName: Variable groups - splunk-itsi uses splunk-itsi-<env>, splunk uses splunk-<env>
+    type: string
+    default: splunk-itsi
+    values:
+      - splunk-itsi
+      - splunk
   - name: apps
     displayName: App IDs separated by ;. Each app gets a repository and pipeline named after it
     type: string
@@ -29,7 +36,7 @@ jobs:
             workspace:
               clean: all
             variables:
-              - group: splunk-${{ parameters.environment }}
+              - group: ${{ parameters.target }}-${{ parameters.environment }}
             steps:
               - template: ../templates/python.yml
               - template: ../templates/diff-tools.yml
@@ -38,11 +45,7 @@ jobs:
                   releaseScript: $(Build.SourcesDirectory)/release.py
               - template: ../templates/acs-step.yml
                 parameters:
-                  command: release.py export export ${{ app }}
-                  displayName: Export ${{ app }} from ${{ parameters.environment }}
-              - template: ../templates/acs-step.yml
-                parameters:
                   command: release.py onboard ${{ app }} ${{ iif(parameters.permissions, '--permissions', '') }}
-                  displayName: Create the ${{ app }} repository and pipeline
+                  displayName: Export ${{ app }} from ${{ parameters.target }}-${{ parameters.environment }} and create its repository and pipeline
                   additionalEnv:
                     SYSTEM_ACCESSTOKEN: $(System.AccessToken)

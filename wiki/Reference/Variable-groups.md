@@ -44,7 +44,7 @@ the only page that lists the variables. To create the groups, follow [Variable g
 | Repair | `splunk-appinspect` and the selected `splunk-<env>` or `splunk-itsi-<env>` |
 | Compare | Source and target groups selected by the `splunk` or `splunk-itsi` prefix |
 | Smoke test | `splunk-appinspect` and the selected target groups |
-| Onboard | The selected `splunk-<environment>` |
+| Onboard | The selected `splunk-itsi-<environment>` or `splunk-<environment>` |
 | Import | `splunk-itsi-<environment>` |
 
 Bulk Splunkbase commands read `SPLUNK_USERNAME` and `SPLUNK_PASSWORD` from `splunk-appinspect`. The pipeline
