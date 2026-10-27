@@ -42,7 +42,13 @@ jobs:
                 parameters:
                   releaseScript: $(Build.SourcesDirectory)/release.py
               - script: python smoke-test/smoke_test.py ${{ target }}-${{ env }}
-                displayName: Check ${{ target }}-${{ env }} ACS access and export
+                displayName: Check ${{ target }}-${{ env }} ACS access and export (no port 8089)
+                env:
+                  SPLUNK_STACK: $(SPLUNK_STACK)
+                  SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
+                  ACS_TOKEN: $(ACS_TOKEN)
+              - script: python smoke-test/smoke_test.py rest ${{ target }}-${{ env }}
+                displayName: Test port 8089 - read the search head REST API
                 env:
                   SPLUNK_STACK: $(SPLUNK_STACK)
                   SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)

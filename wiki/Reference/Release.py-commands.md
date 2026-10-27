@@ -95,8 +95,8 @@ Every ACS command retries every 30 seconds for up to 15 minutes while ACS return
   `SYSTEM_TEAMPROJECT`, and `SYSTEM_TEAMPROJECTID`. `--skip-lookups` keeps the `lookups/` folder on `main`.
   `--skip-lookup-backups` leaves out `lookups/lookup_file_backups/`. The compare commands take the same two options
   and remove those folders on both sides.
-- `onboard <app> [--permissions]` stops unless the app is private: not in the ACS Splunkbase list and not `core`
-  in the search head `apps/local` REST API. It then creates a repository named after the app. It writes the sanitized export to
+- `onboard <app> [--permissions]` stops unless ACS lists the app as installed and not from Splunkbase. It then
+  exports the app and creates a repository named after the app. It writes the sanitized export to
   `package/`, copies `example/azure-pipelines.yml`, pushes the initial `main` commit, and creates the app pipeline
   with the same name. `--permissions` grants the project Build Service Contribute, Contribute to pull
   requests, and Create tag.
@@ -107,6 +107,8 @@ Every ACS command retries every 30 seconds for up to 15 minutes while ACS return
   package's `default/<conf>.conf`. It writes `<out-dir>/temp` one patch above the highest feed or installed version,
   without those stanzas. It writes `<out-dir>/real` one patch above that, with the package content unchanged. It
   sets `REPAIR_VERSION`. Stanza names are separated by `;`. It reads `SYSTEM_ACCESSTOKEN`.
+- `core-check <app>` reads the app's `core` flag over the search head REST API on port 8089. It fails when the
+  app ships with Splunk.
 - `delete-local <dir> <conf> <stanzas>` deletes each stanza's local copy through the search head REST API. A stanza
   with no local copy prints `has no local copy`.
 - `repair-check <dir> <conf> <stanzas>` exports the app and fails when a stanza still has a local copy, or is missing.
