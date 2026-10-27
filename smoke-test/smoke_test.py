@@ -8,7 +8,9 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from splunk_release.acs import acs_env, configured_value
+from splunk_release.acs import (
+    acs_env, configured_value, installed_version, listed_apps, restart_required, stack_ready, stack_status,
+)
 from splunk_release.appinspect import appinspect_token
 from splunk_release.azure import print_colored_patch, run, run_cli
 
@@ -44,6 +46,21 @@ def stack(group):
         print("Exporting the search app local and user configuration files only.")
         run(cmd, check=True, env=env)
         print_colored_patch(f"PASS {group} export_apps: {Path(out, 'search.tar.gz').stat().st_size} bytes")
+    stack_reads(group, env)
+
+
+def stack_reads(group, env):
+    """Read stack status, app listings and the search app version with the ACS calls the pipelines use."""
+    _, state = stack_ready(env)
+    restart = "yes" if restart_required(stack_status(env)) else "no"
+    print_colored_patch(f"PASS {group} {state}, restart required: {restart}")
+    installed = listed_apps(env)
+    splunkbase = listed_apps(env, True)
+    print_colored_patch(f"PASS {group} app listings: {len(installed)} apps, {len(splunkbase)} from Splunkbase")
+    version = installed_version(env, "search")
+    if version is None:
+        sys.exit(f"FAIL {group}: search app is not installed")
+    print_colored_patch(f"PASS {group} apps describe search: version {version}")
 
 
 def result(*results):
