@@ -284,11 +284,25 @@ def stanza_names(stanzas):
 
 def rest(app, conf, stanza, method="GET"):
     """Call the search head REST API for one stanza in the app; return the body, or None when it does not exist."""
-    host = ".".join(filter(None, (configured_value("SPLUNK_SEARCH_HEAD"), os.environ["SPLUNK_STACK"])))
-    base = f"https://{host}.splunkcloud.com:8089"
     app, conf, stanza = (urllib.parse.quote(value, safe="") for value in (app, conf, stanza))
-    return http(f"{base.rstrip('/')}/servicesNS/nobody/{app}/configs/conf-{conf}/{stanza}?output_mode=json",
+    return splunkd(f"servicesNS/nobody/{app}/configs/conf-{conf}/{stanza}", method)
+
+def splunkd(path, method="GET"):
+    """Call the search head REST API path; return the body, or None when it does not exist."""
+    host = ".".join(filter(None, (configured_value("SPLUNK_SEARCH_HEAD"), os.environ["SPLUNK_STACK"])))
+    return http(f"https://{host}.splunkcloud.com:8089/{path}?output_mode=json",
                 {"Authorization": f"Bearer {os.environ['STACK_TOKEN']}"}, timeout=60, method=method, missing_ok=True)
+
+def require_private(app):
+    """Exit unless the app is installed, not from Splunkbase, and not shipped with Splunk (core)."""
+    if app.casefold() in {name.casefold() for name in listed_apps(acs_env(), True)}:
+        sys.exit(f"{app} is a Splunkbase app. Onboard takes private apps only")
+    found = splunkd(f"services/apps/local/{urllib.parse.quote(app, safe='')}")
+    if found is None:
+        sys.exit(f"{app} is not installed")
+    if json.loads(found)["entry"][0]["content"]["core"]:
+        sys.exit(f"{app} ships with Splunk. Onboard takes private apps only")
+    print(f"{app} is a private app")
 
 def repackage(package, out_dir, app, version, conf=None, stanzas=()):
     """Write <out_dir>/<app>-<version>.tar.gz from package with a new version and without the given stanzas."""
