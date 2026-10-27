@@ -68,7 +68,15 @@ def stack_reads(group, env):
 def search_head_rest(group):
     """Read the search app's launcher stanza over the search head REST API on port 8089."""
     os.environ["STACK_TOKEN"] = os.environ["ACS_TOKEN"]
-    launcher = rest("search", "app", "launcher")
+    try:
+        launcher = rest("search", "app", "launcher")
+    except SystemExit:
+        try:
+            ip = http("https://api.ipify.org", {}, timeout=10).decode().strip()
+        except SystemExit:
+            ip = "unknown: https://api.ipify.org is not reachable"
+        print(f"Agent public IP: {ip}. Add it as <ip>/32 to the search-api IP allow list")
+        raise
     found = "found" if launcher is not None else "not found"
     print_colored_patch(f"PASS {group} port 8089 search head REST: token accepted, launcher stanza {found}")
 
