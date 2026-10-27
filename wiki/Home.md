@@ -5,7 +5,8 @@ Use this table to find the setup, pipeline, troubleshooting, or reference page f
 | Task | Page |
 | --- | --- |
 | Set up the project | [Getting started](/Getting-started) |
-| Create an app repository | [App repository](/Getting-started/App-repository) |
+| Onboard a new app from a stack | [Onboard an app](/Getting-started/Onboard-app) |
+| Create an app repository by hand | [App repository](/Getting-started/App-repository) |
 | Set up an app pipeline | [App pipeline setup](/Getting-started/App-pipeline) |
 | Create variable groups | [Variable groups](/Getting-started/Variable-groups) |
 | Create ACS tokens | [Environments and ACS access](/Getting-started/Environments-and-ACS) |
