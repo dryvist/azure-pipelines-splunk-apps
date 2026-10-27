@@ -1,45 +1,26 @@
 # Restart pipeline setup
 
-[Home](/Home) > [Getting started](/Getting-started) > Restart pipeline setup
-
-[[_TOC_]]
-
-Step 15 creates the restart pipeline.
+Create and run the stack restart pipeline.
 
 ## Step 15: Create the restart pipeline
 
-**Where:** **Pipelines → New pipeline → Azure Repos Git**
+| Pipeline name | YAML path |
+| --- | --- |
+| `restart-stack` | `/restart/azure-pipelines.yml` |
 
-**Do:**
+Create it with [Manual pipeline setup](/Getting-started/Manual-pipeline).
 
-1. Select repository `azure-pipelines-splunk-apps`.
-2. Choose **Existing Azure Pipelines YAML file**.
-3. Select `/restart/azure-pipelines.yml`.
-4. Enter `restart-stack` as the pipeline name.
-5. Save the pipeline.
-6. Select **Edit**.
-7. Select **⋮** (More actions) at the top right.
-8. Select **Triggers**.
-9. Select the **YAML** tab.
-10. In **Default agent pool for YAML**, select an agent pool.
-11. Select the arrow next to **Save & queue**.
-12. Select **Save**.
-13. Select **Run pipeline**.
-14. Select `nonprod` or `prod` for `environment`.
-15. Select `splunk` or `splunk-itsi` for `target`.
-16. Select **Run**.
-17. When asked, permit the selected variable group.
+1. Select **Run pipeline**.
+2. Select `nonprod` or `prod` for `environment`.
+3. Select `splunk` or `splunk-itsi` for `target`.
+4. Select **Run**.
+5. Permit the requested variable group using [Permissions troubleshooting](/Troubleshooting/Permissions).
 
 **Verify:**
 
 1. Confirm the restart job completes.
 2. Confirm the final stack status does not report a required restart.
 
-## Related
+For job behavior, see [Restart pipeline](/Pipelines/Restart-pipeline).
 
-- [Restart pipeline](/Pipelines/Restart-pipeline)
-
----
-
-[< Previous: Compare pipeline setup](/Getting-started/Compare) |
-[Next: Bulk pipelines >](/Getting-started/Bulk-pipelines)
+If the run fails, use [Nonprod troubleshooting](/Troubleshooting/Nonprod).

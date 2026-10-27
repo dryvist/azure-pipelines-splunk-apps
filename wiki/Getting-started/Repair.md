@@ -1,10 +1,6 @@
 # Repair pipeline setup
 
-[Home](/Home) > [Getting started](/Getting-started) > Repair pipeline setup
-
-[[_TOC_]]
-
-Steps 19 to 21 give the repair pipeline REST API access and create it.
+Configure the REST API access and create the repair pipeline.
 
 ## Step 19: Allow the agent on the REST API
 
@@ -42,29 +38,14 @@ access**.
 
 ## Step 21: Create the repair pipeline
 
-**Where:** **Pipelines → New pipeline → Azure Repos Git**
+| Pipeline name | YAML path |
+| --- | --- |
+| `repair-app-objects` | `/repair/azure-pipelines.yml` |
 
-**Do:**
-
-1. Select repository `azure-pipelines-splunk-apps`.
-2. Choose **Existing Azure Pipelines YAML file**.
-3. Select `/repair/azure-pipelines.yml`.
-4. Enter `repair-app-objects` as the pipeline name.
-5. Save the pipeline.
-6. Select **Edit**.
-7. Select **⋮** (More actions) at the top right.
-8. Select **Triggers**.
-9. Select the **YAML** tab.
-10. In **Default agent pool for YAML**, select an agent pool.
-11. Select the arrow next to **Save & queue**.
-12. Select **Save**.
+Create it with [Manual pipeline setup](/Getting-started/Manual-pipeline).
 
 **Verify:** The pipeline appears under **Pipelines** with no runs.
 
-## Related
+For run inputs and order, see [Repair pipeline](/Pipelines/Repair-pipeline).
 
-- [Repair pipeline](/Pipelines/Repair-pipeline)
-
----
-
-[< Previous: Bulk pipelines](/Getting-started/Bulk-pipelines)
+If a REST request fails, follow [Troubleshooting permissions](/Troubleshooting/Permissions).
