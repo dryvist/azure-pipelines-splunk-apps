@@ -148,6 +148,7 @@ class ImportAppTests(TestCase):
                 "my_ta/local/props.conf": "[changed]\nvalue = local\n",
             })
             environment = {
+                "BUILD_REPOSITORY_ID": "tools-repo-id",
                 "SYSTEM_ACCESSTOKEN": "test-token",
                 "SYSTEM_COLLECTIONURI": "https://dev.azure.com/<org>/",
                 "SYSTEM_TEAMPROJECT": "<project>",
@@ -156,11 +157,27 @@ class ImportAppTests(TestCase):
             repo = {"id": "repo-id", "remoteUrl": "https://dev.azure.com/<org>/<project>/_git/my_repo",
                     "webUrl": "https://dev.azure.com/<org>/<project>/_git/my_repo"}
             pipeline = {"id": 42}
+            lookups = {
+                "groupName=splunk-appinspect": 101,
+                "groupName=splunk-nonprod": 102,
+                "groupName=splunk-itsi-nonprod": 103,
+                "groupName=splunk-prod": 104,
+                "groupName=splunk-itsi-prod": 105,
+                "name=splunk-nonprod": 201,
+                "name=splunk-prod": 202,
+            }
             events, package_roots = [], []
 
             def request(url, headers, body=None, **kwargs):
                 events.append(("http", url))
-                return json.dumps(repo if "repositories?" in url else pipeline).encode()
+                if "/_apis/git/repositories?" in url:
+                    return json.dumps(repo).encode()
+                if "/_apis/pipelines?" in url:
+                    return json.dumps(pipeline).encode()
+                for query, resource_id in lookups.items():
+                    if query in url:
+                        return json.dumps({"value": [{"id": resource_id}]}).encode()
+                return b"{}"
 
             def command(cmd, **kwargs):
                 events.append(("run", cmd))
@@ -186,7 +203,7 @@ class ImportAppTests(TestCase):
                 import_app.onboard("my_ta", "my_repo")
 
             self.assertEqual(len(package_roots), 1)
-            self.assertEqual([call.args[0] for call in http.call_args_list], [
+            self.assertEqual([call.args[0] for call in http.call_args_list[:2]], [
                 "https://dev.azure.com/<org>/<project-id>/_apis/git/repositories?api-version=7.1",
                 "https://dev.azure.com/<org>/<project-id>/_apis/pipelines?api-version=7.1",
             ])
@@ -200,6 +217,30 @@ class ImportAppTests(TestCase):
                     "repository": {"id": "repo-id", "type": "azureReposGit"},
                 },
             })
+            expected_resources = [
+                ("variablegroup", 101),
+                ("variablegroup", 102),
+                ("variablegroup", 103),
+                ("variablegroup", 104),
+                ("variablegroup", 105),
+                ("environment", 201),
+                ("environment", 202),
+                ("repository", "<project-id>.tools-repo-id"),
+            ]
+            expected_patches = [
+                (
+                    "https://dev.azure.com/<org>/<project-id>/_apis/pipelines/pipelinePermissions/"
+                    f"{resource_type}/{resource_id}?api-version=7.1-preview.1",
+                    {"pipelines": [{"id": 42, "authorized": True}]},
+                )
+                for resource_type, resource_id in expected_resources
+            ]
+            actual_patches = [
+                (call.args[0], json.loads(call.args[2]))
+                for call in http.call_args_list
+                if call.kwargs.get("method") == "PATCH"
+            ]
+            self.assertEqual(actual_patches, expected_patches)
             self.assertEqual(events[0][0], "http")
             self.assertEqual(events[-1][0], "http")
             pushes = [event[1] for event in events if event[0] == "run" and "push" in event[1]]
