@@ -29,6 +29,7 @@ Use this checklist to open each setup procedure.
 | [Step 19](/Getting-started/Repair) | Allow the agent on the search head REST API. |
 | [Step 20](/Getting-started/Repair) | Add the REST URL for search head groups. |
 | [Step 21](/Getting-started/Repair) | Create the app object repair pipeline. |
+| [Step 22](/Getting-started/Onboard-app) | Create a repository and pipeline for an installed app. |
 
 ## Before you start
 

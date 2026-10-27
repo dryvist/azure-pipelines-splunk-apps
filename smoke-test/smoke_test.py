@@ -3,7 +3,6 @@
 
 import json
 import os
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -11,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from splunk_release.acs import acs_env, configured_value
 from splunk_release.appinspect import appinspect_token
-from splunk_release.azure import print_colored_patch, report_command_error, report_system_exit, run
+from splunk_release.azure import print_colored_patch, run, run_cli
 
 
 def require(group, *names):
@@ -58,18 +57,15 @@ def result(*results):
         sys.exit(1)
 
 
+def dispatch(name, *args):
+    if name == "result":
+        result(*args)
+    elif name == "appinspect":
+        appinspect()
+    else:
+        stack(name)
+
+
 if __name__ == "__main__":
-    command, *args = sys.argv[1:] or ["help"]
-    try:
-        if command == "result":
-            result(*args)
-        elif command == "appinspect":
-            appinspect()
-        else:
-            stack(command)
-    except subprocess.CalledProcessError as error:
-        report_command_error(error)
-        sys.exit(error.returncode)
-    except SystemExit as error:
-        report_system_exit(error)
-        raise
+    name, *args = sys.argv[1:] or ["help"]
+    run_cli(dispatch, name, *args)

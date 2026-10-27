@@ -114,6 +114,11 @@ returns `424-failed-dependency` or `503-service-unavailable`. Each retry prints
   `main`. `--skip-lookup-backups` leaves out `lookups/lookup_file_backups/`.
   The compare commands take the same two options and remove those folders on
   both sides.
+- `onboard <app> <repo> [--permissions]` creates a repository, writes the
+  sanitized export to `package/`, copies `example/azure-pipelines.yml`, pushes
+  the initial `main` commit, and creates the app pipeline. An empty repository
+  name uses the app id. `--permissions` grants the project Build Service
+  Contribute, Contribute to pull requests, and Create tag.
 - `repair-packages <dir> <out-dir> <conf> <stanzas>` checks that each stanza
   is on the search head and in the package's `default/<conf>.conf`. It writes
   `<out-dir>/temp` one patch above the highest feed or installed version

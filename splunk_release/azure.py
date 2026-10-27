@@ -44,6 +44,18 @@ def report_system_exit(error):
         raise SystemExit(1)
 
 
+def run_cli(command, *args):
+    """Run a CLI command and report its process or message failure once."""
+    try:
+        return command(*args)
+    except subprocess.CalledProcessError as error:
+        report_command_error(error)
+        sys.exit(error.returncode)
+    except SystemExit as error:
+        report_system_exit(error)
+        raise
+
+
 def http(url, headers, data=None, timeout=900, method=None, missing_ok=False):
     """Return the response body, or None for HTTP 404 when missing_ok is set."""
     req = urllib.request.Request(
