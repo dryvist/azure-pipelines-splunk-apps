@@ -1,8 +1,6 @@
 # Compare pipeline
 
-[Home](/Home) > [Pipelines](/Pipelines) > Compare pipeline
-
-[[_TOC_]]
+Use this page to see the compare pipeline parameters, jobs, and reports.
 
 ## Inputs and jobs
 
@@ -63,13 +61,3 @@ The `release.py diff` step adds each Markdown summary to the run summary tab.
   **Outputs:** `compare` artifact.
 
 ![Compare any two environments.](../diagrams/compare-any-environments.png)
-
-## Related
-
-- [Variable groups](/Reference/Variable-groups)
-- [Artifacts](/Reference/Artifacts)
-
----
-
-[< Previous: Deploy to production](/Pipelines/Deploy-to-production) |
-[Next: Restart pipeline >](/Pipelines/Restart-pipeline)

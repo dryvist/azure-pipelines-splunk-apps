@@ -1,8 +1,6 @@
 # Artifacts and diff reports
 
-[Home](/Home) > [Reference](/Reference) > Artifacts and diff reports
-
-[[_TOC_]]
+Use this page to identify package, comparison, and release artifacts.
 
 The `dist` artifact carries the package between app stages. AppInspect and
 compare artifacts include the job attempt. Each app pipeline compare job
@@ -26,9 +24,7 @@ Each artifact contains these reports:
 - `<app-id>-merged.tar.gz`: merged app without `local/`,
   `metadata/local.meta`, or `users/`.
 
-The nonprod compare adds the summary to the run summary tab. The compare
-artifacts contain the raw file tree, HTML report, summary, patch,
-local-versus-default report, and merged archive for each app. The separate
+The nonprod compare adds the summary to the run summary tab. The separate
 compare pipeline can select two environments and export all custom apps when
 the app list is `all` or empty.
 
@@ -44,14 +40,3 @@ Open **Repos → Files → Compare** and select the two Git tags.
 Open **Artifacts → splunk-apps**, then select the app id and version.
 
 ![Package and installed target comparison.](../diagrams/diff-build.png)
-
-## Related
-
-- [Proddiff stage](/Stages/Proddiff)
-- [Compare pipeline](/Pipelines/Compare-pipeline)
-- [Import from nonprod or prod](/Pipelines/App-import)
-
----
-
-[< Previous: Variable groups](/Reference/Variable-groups) |
-[Next: Reading logs >](/Reference/Reading-logs)

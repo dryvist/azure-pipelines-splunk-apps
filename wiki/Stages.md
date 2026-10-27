@@ -1,10 +1,6 @@
 # Stages
 
-[Home](/Home) > Stages
-
-[[_TOC_]]
-
-These pages follow the app pipeline stages in execution order.
+Use this table to find the app pipeline stage reference in execution order.
 
 - [Build](/Stages/Build): `build`, **Build**.
 - [AppInspect](/Stages/AppInspect): `appinspect`, **AppInspect**.
@@ -13,12 +9,3 @@ These pages follow the app pipeline stages in execution order.
 - [Proddiff](/Stages/Proddiff): `proddiff`, **Compare with prod**.
 - [Release](/Stages/Release): `release`, **Release**.
 - [Prod](/Stages/Prod): `prod`, **Deploy to prod**.
-
-## Related
-
-- [Home](/Home)
-
----
-
-[< Previous: Pipelines](/Pipelines) |
-[Next: Troubleshooting >](/Troubleshooting)

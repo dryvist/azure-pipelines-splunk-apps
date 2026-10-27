@@ -1,8 +1,6 @@
 # Prod stage
 
-[Home](/Home) > [Stages](/Stages) > Prod stage
-
-[[_TOC_]]
+This page lists the production deployment stage inputs and approval checks.
 
 ## Stage `prod`
 
@@ -26,13 +24,3 @@
 - **Inputs:** `dist`, `splunk-prod`, Python setup, `SPLUNK_STACK`, and
   `ACS_TOKEN`.
 - **Outputs:** Installed app.
-
-## Related
-
-- [Release stage](/Stages/Release)
-- [Nonprod stage](/Stages/Nonprod)
-- [Deploy to production](/Pipelines/Deploy-to-production)
-
----
-
-[< Previous: Release stage](/Stages/Release)

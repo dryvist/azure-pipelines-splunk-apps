@@ -1,78 +1,49 @@
 # Permissions and first run
 
-[Home](/Home) > [Troubleshooting](/Troubleshooting) > Permissions and first run
+Use this page when a run asks for permission, or cannot find a repository, variable group, or deployment environment.
 
-[[_TOC_]]
+## Variable group is not found or not authorized
 
-## Before the first stage
+**Symptom:** The run reports `Variable group <name> was not found`, or it says **This pipeline needs permission**.
 
-### Variable group not found or not authorized
-
-**Symptom:** `Variable group  was not found`, a named group was not found, or
-the run says **This pipeline needs permission**.
-
-**Cause:** Group names must match the pipeline reference exactly. These
-pipelines use hyphens, such as `splunk-appinspect`, not underscores. The
-pipeline may also lack permission to use a group or environment.
+**Cause:** Group names must match the pipeline reference exactly. These pipelines use hyphens, such as `splunk-appinspect`, not underscores.
 
 **Fix:**
 
-1. Compare each requested group name with the names in
-   **Pipelines → Library**.
-2. Rename any group that uses underscores to the exact hyphenated name.
+1. Compare each requested group name with the names in **Pipelines → Library**.
+2. Rename any group that uses underscores to the exact hyphenated name. The mapping is in [Variable groups](/Reference/Variable-groups).
 3. Select **View** in the permission banner.
-4. Select **Permit** for each requested variable group.
-5. Select **Permit** for each requested deployment environment.
-6. If no banner appears, add the pipeline under each group's **Pipeline
-   permissions**.
-7. If no banner appears, add the pipeline under each environment's
-   **Security → Pipeline permissions**.
+4. Select **Permit** for each requested repository, variable group, and deployment environment.
+5. Rerun the pipeline if authorization stopped the run.
 
-**Docs:** [Variable groups](https://learn.microsoft.com/en-us/azure/devops/pipelines/library/variable-groups),
-[environments](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/environments),
-[approvals](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals).
+If no banner appears, authorize the pipeline on each group and environment:
 
-### `A template expression is not allowed in this context` for `pool`
+1. Open **Pipelines → Library** and open the group.
+2. Open **Pipeline permissions**.
+3. Select **+**.
+4. Select the pipeline.
+5. For an environment, open **Pipelines → Environments** and open the environment.
+6. Select **⋮**.
+7. Select **Security**.
+8. Select **Pipeline permissions**.
+9. Select **+**.
+10. Select the pipeline.
+
+## `A template expression is not allowed in this context` for `pool`
 
 **Symptom:** Pipeline validation rejects the `pool` template expression.
-
-**Cause:** The shared template sets `pool` from its `pool` parameter. A pool
-must also be selected in the pipeline settings for pipelines that do not
-extend that template.
 
 **Fix:**
 
 1. Open the pipeline and select **Edit**.
-2. Select **… → Triggers → YAML**.
-3. Set **Default agent pool for YAML**.
-4. In an app repo, set the `pool` value under the template's `parameters`.
-
-**Docs:** [Runtime parameters](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/runtime-parameters),
-[expressions](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/expressions),
-[agents](https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/agents).
+2. Select **⋮**, then select **Triggers**.
+3. Select the **YAML** tab.
+4. Select the configured pool in **Default agent pool for YAML**. See [Manual pipeline setup](/Getting-started/Manual-pipeline).
+5. In an app repository, set `pool` under the template's `parameters`. See [App repository](/Getting-started/App-repository).
 
 ## Import pull request receives HTTP 403
 
 **Symptom:** `Open a pull request with the <env> app` fails with HTTP 403.
 
-**Cause:** The app repository Build Service identity cannot create pull
-requests.
-
-**Fix:**
-
-1. Open **Project settings → Repositories → `<app-repo>` → Security**.
-2. Find `<project> Build Service (<org>)`.
-3. Allow **Contribute to pull requests**.
-4. Rerun the import pipeline.
-
-**Docs:** [App repository permissions](/Getting-started/App-repository),
-[Import from nonprod or prod](/Pipelines/App-import).
-
-## Related
-
-- [Agent setup](/Troubleshooting/Agent-setup)
-- [Import from nonprod or prod](/Pipelines/App-import)
-
----
-
-[Next: Agent setup and network access >](/Troubleshooting/Agent-setup)
+**Fix:** Follow Step 6 in [App repository](/Getting-started/App-repository). It allows the Build Service
+**Contribute to pull requests** permission. Then rerun the import pipeline.

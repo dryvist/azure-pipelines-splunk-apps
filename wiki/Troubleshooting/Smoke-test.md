@@ -1,8 +1,6 @@
 # Smoke-test troubleshooting
 
-[Home](/Home) > [Troubleshooting](/Troubleshooting) > Smoke-test troubleshooting
-
-[[_TOC_]]
+Use this page to fix smoke-test credential, export, and result failures.
 
 ## Smoke-test pipeline
 
@@ -34,10 +32,6 @@ and export.
 `WITH SEARCH APPS ONLY LOCAL AND USERS CONFIGS ALLOWED` while exporting the
 built-in `search` app.
 
-**Cause:** The built-in search app allows local and user configuration files
-only. The smoke-test export is limited to those files. The compare pipeline
-exports full app content, so do not include the built-in `search` app there.
-
 **Fix:**
 
 1. Keep the smoke-test export at `--default=false`.
@@ -55,9 +49,6 @@ exports full app content, so do not include the built-in `search` app there.
 
 **Symptom:** The `result` job prints `RESULT: FAILED`.
 
-**Cause:** At least one of `appinspect`, `nonprod`, or `prod` did not finish
-with `Succeeded`.
-
 **Fix:**
 
 1. Open each failed job named in the `Result` step output.
@@ -65,14 +56,4 @@ with `Succeeded`.
 3. Fix that job's credential, network, or export issue.
 4. Rerun the smoke-test pipeline.
 
-**Docs:** [Conditions](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/conditions),
-[logging commands](https://learn.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands).
-
-## Related
-
-- [Smoke-test pipeline](/Pipelines/Smoke-test-pipeline)
-
----
-
-[< Previous: Compare troubleshooting](/Troubleshooting/Compare) |
-[Next: Reading the run log >](/Troubleshooting/Reading-logs)
+For pipeline inputs, see [Smoke-test pipeline](/Pipelines/Smoke-test-pipeline).

@@ -1,143 +1,48 @@
 # Variable groups
 
-[Home](/Home) > [Getting started](/Getting-started) > Variable groups
+Create the five variable groups with the names, descriptions, and variables in the tables below.
 
-[[_TOC_]]
+| Group | Description |
+| --- | --- |
+| `splunk-appinspect` | `Splunk.com account for AppInspect validation and ACS installs` |
+| `splunk-nonprod` | `Nonprod Splunk Cloud stack for pull request and main installs` |
+| `splunk-prod` | `Production Splunk Cloud stack for compare and manual deploy` |
+| `splunk-itsi-nonprod` | `Nonprod ITSI search head on the Splunk Cloud stack` |
+| `splunk-itsi-prod` | `Production ITSI search head on the Splunk Cloud stack` |
 
-Step 2 creates the variable groups. The
-[reference matrix](/Reference/Variable-groups) shows which pipelines use
-each group.
+| Group | Variable | Value |
+| --- | --- | --- |
+| `splunk-appinspect` | `SPLUNK_USERNAME` | Username of a splunk.com account |
+| `splunk-appinspect` | `SPLUNK_PASSWORD` | Password of the same account |
+| `splunk-nonprod` | `SPLUNK_STACK` | `<stack>` from `https://<stack>.splunkcloud.com` |
+| `splunk-nonprod` | `ACS_TOKEN` | Leave empty for now |
+| `splunk-prod` | `SPLUNK_STACK` | `<stack>` from `https://<stack>.splunkcloud.com` |
+| `splunk-prod` | `ACS_TOKEN` | Leave empty for now |
+| `splunk-itsi-nonprod` | `SPLUNK_STACK` | Same value as `splunk-nonprod` |
+| `splunk-itsi-nonprod` | `SPLUNK_SEARCH_HEAD` | Nonprod ITSI search head name from provisioning information |
+| `splunk-itsi-nonprod` | `ACS_TOKEN` | Leave empty for now |
+| `splunk-itsi-prod` | `SPLUNK_STACK` | Same value as `splunk-prod` |
+| `splunk-itsi-prod` | `SPLUNK_SEARCH_HEAD` | Prod ITSI search head name from provisioning information |
+| `splunk-itsi-prod` | `ACS_TOKEN` | Leave empty for now |
 
-## Step 2: Create the variable groups
+## Create each group
 
-**Where:** **Pipelines → Library → + Variable group**
+1. Select **Pipelines → Library → + Variable group**.
+2. Enter the group name from the first table.
+3. Enter the description from the first table.
+4. Select **Add**.
+5. Enter the variable name and value from the second table.
+6. Set the lock icon as listed in [Reference: Variable groups](/Reference/Variable-groups).
+7. Repeat steps 4 to 6 for each other variable in the group.
+8. Select **Save**.
+9. Repeat steps 1 to 8 for each group.
 
-**Do:**
+After you create the ACS tokens, enter each `ACS_TOKEN` value. See [Environments and ACS access](/Getting-started/Environments-and-ACS).
 
-Create the `splunk-appinspect` group:
+## Verify
 
-1. Select **+ Variable group**.
-2. Type `splunk-appinspect` as the group name.
-3. Type `Splunk.com account for AppInspect validation and ACS installs` as
-   the description.
-4. Add a variable.
-5. Type `SPLUNK_USERNAME` as the variable name.
-6. Type the username of a splunk.com account as its value.
-7. Set its lock icon off. Do not lock `SPLUNK_USERNAME`; locked variables
-   are not passed to scripts unless mapped.
-8. Add a variable.
-9. Type `SPLUNK_PASSWORD` as the variable name.
-10. Type the password of the same splunk.com account as its value.
-11. Set its lock icon on.
+1. Confirm each group name matches the table exactly.
+2. Confirm all five groups appear in **Pipelines → Library**.
+3. Confirm secret values are masked after saving.
 
-`SPLUNK_USERNAME` is sourced from the account used to sign in at splunk.com
-and Splunkbase. `appinspect`, `nonprod`, and the manual deploy pipeline use
-its AppInspect token as proof of validation. `SPLUNK_PASSWORD` is used by the
-same steps as `SPLUNK_USERNAME`. Bulk Splunkbase commands use these same
-credentials and map them to `SPLUNK_USERNAME` and `SPLUNK_PASSWORD` in the ACS
-step environment.
-
-Create the `splunk-nonprod` group:
-
-1. Select **+ Variable group**.
-2. Type `splunk-nonprod` as the group name.
-3. Type `Nonprod Splunk Cloud stack for pull request and main installs` as the
-description.
-4. Add a variable.
-5. Type `SPLUNK_STACK` as the variable name.
-6. Type the nonprod stack name as its value. It is the `<stack>` part of
-    `https://<stack>.splunkcloud.com`.
-7. Set its lock icon off. Do not lock `SPLUNK_STACK`; locked variables are
-    not passed to scripts unless mapped.
-8. Add a variable.
-9. Type `ACS_TOKEN` as the variable name.
-10. Leave its value empty until [Step 4](/Getting-started/Environments-and-ACS).
-11. Set its lock icon on.
-
-`SPLUNK_STACK` is used by `nonprod`. The `ACS_TOKEN` value is a Splunk Cloud
-authentication token with audience `acs`, sourced from Splunk Web on the
-nonprod stack in [Step 4](/Getting-started/Environments-and-ACS) and used by
-`nonprod`.
-
-Create the `splunk-prod` group:
-
-1. Select **+ Variable group**.
-2. Type `splunk-prod` as the group name.
-3. Type `Production Splunk Cloud stack for compare and manual deploy` as the
-description.
-4. Add a variable.
-5. Type `SPLUNK_STACK` as the variable name.
-6. Type the production stack name as its value. It is the `<stack>` part of
-    `https://<stack>.splunkcloud.com`.
-7. Set its lock icon off. Do not lock `SPLUNK_STACK`; locked variables are
-    not passed to scripts unless mapped.
-8. Add a variable.
-9. Type `ACS_TOKEN` as the variable name.
-10. Leave its value empty until [Step 4](/Getting-started/Environments-and-ACS).
-11. Set its lock icon on.
-
-The prod `SPLUNK_STACK` is used by `proddiff` and the manual deploy pipeline.
-The prod `ACS_TOKEN` value is a Splunk Cloud authentication token with
-audience `acs`; its account needs `export_apps`, `install_apps` and
-`edit_local_apps`. The token is sourced from Splunk Web on the production
-stack in [Step 4](/Getting-started/Environments-and-ACS).
-
-Create the `splunk-itsi-nonprod` group:
-
-1. Select **+ Variable group**.
-2. Type `splunk-itsi-nonprod` as the group name.
-3. Type `Nonprod ITSI search head on the Splunk Cloud stack` as the
-   description.
-4. Add a variable.
-5. Type `SPLUNK_STACK` as the variable name.
-6. Type the nonprod stack name as its value.
-7. Set its lock icon off.
-8. Add a variable.
-9. Type `ACS_TOKEN` as the variable name.
-10. Leave its value empty until [Step 4](/Getting-started/Environments-and-ACS).
-11. Set its lock icon on.
-12. Add a variable.
-13. Type `SPLUNK_SEARCH_HEAD` as the variable name.
-14. Type the nonprod ITSI search head name from provisioning information.
-15. Set its lock icon off.
-
-Create the `splunk-itsi-prod` group:
-
-1. Select **+ Variable group**.
-2. Type `splunk-itsi-prod` as the group name.
-3. Type `Production ITSI search head on the Splunk Cloud stack` as the
-   description.
-4. Add a variable.
-5. Type `SPLUNK_STACK` as the variable name.
-6. Type the production stack name as its value.
-7. Set its lock icon off.
-8. Add a variable.
-9. Type `ACS_TOKEN` as the variable name.
-10. Leave its value empty until [Step 4](/Getting-started/Environments-and-ACS).
-11. Set its lock icon on.
-12. Add a variable.
-13. Type `SPLUNK_SEARCH_HEAD` as the variable name.
-14. Type the prod ITSI search head name from provisioning information.
-15. Set its lock icon off.
-
-The ITSI groups use the same `SPLUNK_STACK` value as the matching standard
-group. Their `SPLUNK_SEARCH_HEAD` value selects the target search head. The
-compare and smoke-test pipelines, the app import, and the app pipeline's prod
-compare use the ITSI groups. App
-deployments use `splunk-nonprod` or `splunk-prod`.
-
-**Verify:**
-
-1. Confirm the group names are exactly `splunk-appinspect`, `splunk-nonprod`,
-   `splunk-prod`, `splunk-itsi-nonprod`, and `splunk-itsi-prod`.
-2. Confirm all five groups appear in Library.
-3. Confirm secret values are masked after they are saved.
-
-## Related
-
-- [Variable groups](/Reference/Variable-groups)
-
----
-
-[< Previous: Package feed](/Getting-started/Feed) |
-[Next: Environments and ACS access >](/Getting-started/Environments-and-ACS)
+If a group is missing or denied, use [Permissions troubleshooting](/Troubleshooting/Permissions).

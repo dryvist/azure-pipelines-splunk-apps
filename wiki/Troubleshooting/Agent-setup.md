@@ -1,15 +1,10 @@
 # Agent setup and network access
 
-[Home](/Home) > [Troubleshooting](/Troubleshooting) > Agent setup and network access
-
-[[_TOC_]]
+Use this page to fix missing tools, certificate errors, and service access failures on agents.
 
 ## Python 3.13 is not available on a self-hosted agent
 
 **Symptom:** `UsePythonVersion@0` cannot find Python 3.13.
-
-**Cause:** The task finds Python versions in the agent tool cache. The required
-version is not in `_work/_tool/Python/3.13.x/x64`.
 
 **Fix:**
 
@@ -22,10 +17,6 @@ version is not in `_work/_tool/Python/3.13.x/x64`.
 ## `Unable to locate executable file: 'bash'`
 
 **Symptom:** A job step reports `Unable to locate executable file: 'bash'`.
-
-**Cause:** The run uses a Bash task, or its Linux script task cannot find Bash.
-The current repository YAML has no explicit Bash task or multiline script;
-its script steps each contain one Python command.
 
 **Fix:**
 
@@ -41,9 +32,6 @@ its script steps each contain one Python command.
 
 **Symptom:** The ACS CLI download fails certificate verification in `curl`.
 
-**Cause:** HTTPS inspection presents a certificate issuer the agent does not
-trust. `curl` uses the operating system certificate store.
-
 **Fix:**
 
 1. Add the HTTPS inspection root certificate to the agent OS trust store.
@@ -55,8 +43,6 @@ trust. `curl` uses the operating system certificate store.
 
 **Symptom:** A download, package install, login, or API request times out or
 cannot resolve its service.
-
-**Cause:** The agent cannot make outbound HTTPS requests to a required host.
 
 **Fix:**
 
@@ -70,12 +56,3 @@ cannot resolve its service.
 **Docs:** [Agents](https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/agents),
 [AppInspect](https://dev.splunk.com/enterprise/docs/developapps/testvalidate/appinspect/),
 [ACS CLI](https://github.com/splunk/acs-cli).
-
-## Related
-
-- [Permissions](/Troubleshooting/Permissions)
-
----
-
-[< Previous: Permissions and first run](/Troubleshooting/Permissions) |
-[Next: Build troubleshooting >](/Troubleshooting/Build)

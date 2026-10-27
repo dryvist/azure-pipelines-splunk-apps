@@ -1,8 +1,6 @@
 # AppInspect stage
 
-[Home](/Home) > [Stages](/Stages) > AppInspect stage
-
-[[_TOC_]]
+This page lists the AppInspect stage inputs, outputs, and steps.
 
 ## Stage `appinspect`
 
@@ -48,13 +46,3 @@ Steps, in order:
 - **Show AppInspect HTML report link:** Prints the run's published-artifact
   link even when the job failed. **Inputs:** Collection URI, project id, and
   build id. **Outputs:** Link in the log.
-
-## Related
-
-- [Build stage](/Stages/Build)
-- [Artifacts](/Reference/Artifacts)
-
----
-
-[< Previous: Build stage](/Stages/Build) |
-[Next: Nonproddiff stage >](/Stages/Nonproddiff)

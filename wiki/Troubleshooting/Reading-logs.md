@@ -1,14 +1,10 @@
 # Reading the run log
 
-[Home](/Home) > [Troubleshooting](/Troubleshooting) > Reading the run log
-
-[[_TOC_]]
+Use this page to fix run logs with diagnostics or missing failure details.
 
 ## System diagnostics add too much output
 
 **Symptom:** The run log contains large amounts of system diagnostic output.
-
-**Cause:** **Enable system diagnostics** was selected on the Run panel.
 
 **Fix:** Clear **Enable system diagnostics** before the next run.
 
@@ -18,16 +14,6 @@
 
 **Symptom:** The job log is hard to scan.
 
-**Cause:** Commands and messages are mixed into the action log.
-
 **Fix:** Follow the command, heading, and warning guide in the reference page.
 
-**Docs:** [Reading logs](/Reference/Reading-logs).
-
-## Related
-
-- [Reading logs](/Reference/Reading-logs)
-
----
-
-[< Previous: Smoke-test troubleshooting](/Troubleshooting/Smoke-test)
+For log details, see [Reading logs](/Reference/Reading-logs).

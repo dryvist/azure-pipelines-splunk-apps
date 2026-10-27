@@ -1,8 +1,6 @@
 # Restart pipeline
 
-[Home](/Home) > [Pipelines](/Pipelines) > Restart pipeline
-
-[[_TOC_]]
+Use this page to see restart pipeline inputs and status checks.
 
 ## Behavior
 
@@ -21,13 +19,3 @@ The steps are **Check stack status before restart**, **Restart the current
 stack**, and **Check stack status after restart**.
 
 ![Restart pipeline flow.](../diagrams/restart-pipeline.png)
-
-## Related
-
-- [Deploy pipeline](/Pipelines/Deploy-pipeline)
-- [Variable groups](/Reference/Variable-groups)
-
----
-
-[< Previous: Compare pipeline](/Pipelines/Compare-pipeline) |
-[Next: Repair pipeline >](/Pipelines/Repair-pipeline)

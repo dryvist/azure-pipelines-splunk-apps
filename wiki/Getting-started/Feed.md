@@ -1,10 +1,6 @@
 # Package feed
 
-[Home](/Home) > [Getting started](/Getting-started) > Package feed
-
-[[_TOC_]]
-
-Step 1 creates the feed used for versioned packages.
+Create the package feed and grant publish access to the Build Service.
 
 ## Step 1: Create the package feed
 
@@ -24,10 +20,4 @@ Step 1 creates the feed used for versioned packages.
 1. Confirm `splunk-apps` appears in Artifacts.
 2. Confirm the Build Service is listed as a Feed Publisher (Contributor).
 
-## Related
-
-- [Artifacts](/Reference/Artifacts)
-
----
-
-[Next: Variable groups >](/Getting-started/Variable-groups)
+If the release cannot publish, use [Release troubleshooting](/Troubleshooting/Release).

@@ -1,10 +1,6 @@
 # Reading logs
 
-[Home](/Home) > [Reference](/Reference) > Reading logs
-
-[[_TOC_]]
-
-Use the job log to find the first failed action and its report.
+Use this page to identify commands, warnings, and failures in a pipeline log.
 
 - `##[command]` lines show commands run by the script.
 - Each comparison app has one section naming the target and source.
@@ -19,12 +15,3 @@ Use the job log to find the first failed action and its report.
   not needed.
 
 See [Artifacts](/Reference/Artifacts) for artifact names and contents.
-
-## Related
-
-- [Artifacts](/Reference/Artifacts)
-- [Troubleshooting](/Troubleshooting/Reading-logs)
-
----
-
-[< Previous: Artifacts and diff reports](/Reference/Artifacts)

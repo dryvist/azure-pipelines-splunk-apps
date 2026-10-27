@@ -1,40 +1,25 @@
 # Home
 
-[Home](/Home) > Home
-
-[[_TOC_]]
-
-| Section | What it answers |
-| --- | --- |
-| [Getting started](/Getting-started) | Numbered setup areas. |
-| [Pipelines](/Pipelines) | How each pipeline works. |
-| [Stages](/Stages) | What each app stage does. |
-| [Troubleshooting](/Troubleshooting) | Symptoms, causes, fixes, and docs. |
-| [Reference](/Reference) | Commands, code, groups, artifacts, and logs. |
-
-## Find a task
+Use this table to find the setup, pipeline, troubleshooting, or reference page for a task.
 
 | Task | Page |
 | --- | --- |
-| Follow numbered setup steps | [Getting started](/Getting-started) |
-| Follow a pull request or main run | [App pipeline](/Pipelines/App-pipeline) |
-| See stage inputs and outputs | [Stages](/Stages) |
-| Fix a skipped stage | [Build troubleshooting](/Troubleshooting/Build) |
-| Fix a group permission issue | [Permissions troubleshooting](/Troubleshooting/Permissions) |
-| Fix an AppInspect login or finding | [AppInspect troubleshooting](/Troubleshooting/AppInspect) |
-| Fix an ACS token or access issue | [Nonprod troubleshooting](/Troubleshooting/Nonprod) |
-| Review the production diff | [Artifacts](/Reference/Artifacts) |
+| Set up the project | [Getting started](/Getting-started) |
+| Onboard a new app from a stack | [Onboard an app](/Getting-started/Onboard-app) |
+| Create an app repository by hand | [App repository](/Getting-started/App-repository) |
+| Set up an app pipeline | [App pipeline setup](/Getting-started/App-pipeline) |
+| Create variable groups | [Variable groups](/Getting-started/Variable-groups) |
+| Create ACS tokens | [Environments and ACS access](/Getting-started/Environments-and-ACS) |
+| Create a manual pipeline from its YAML path | [Manual pipeline setup](/Getting-started/Manual-pipeline) |
+| Deploy one app from its pipeline | [App pipeline](/Pipelines/App-pipeline) |
+| Deploy several apps | [Deploy to production](/Pipelines/Deploy-to-production) |
 | Compare environments | [Compare pipeline](/Pipelines/Compare-pipeline) |
-| Run the read-only smoke test | [Smoke-test pipeline](/Pipelines/Smoke-test-pipeline) |
-| Read commands, warnings, and reports | [Reading logs](/Reference/Reading-logs) |
-
-The numbered procedures are in [Getting started](/Getting-started).
-
-## Related
-
-- [Getting started](/Getting-started)
-- [Pipelines](/Pipelines)
-
----
-
-[Next: Getting started >](/Getting-started)
+| Restart a stack | [Restart pipeline](/Pipelines/Restart-pipeline) |
+| Install, update, or delete resources in bulk | [Bulk pipeline setup](/Getting-started/Bulk-pipelines) |
+| Repair app objects | [Repair pipeline](/Pipelines/Repair-pipeline) |
+| Check access without changing a stack | [Smoke-test pipeline](/Pipelines/Smoke-test-pipeline) |
+| Resolve permission errors | [Permissions troubleshooting](/Troubleshooting/Permissions) |
+| Fix a build or release | [Troubleshooting](/Troubleshooting) |
+| Read pipeline artifacts | [Artifacts](/Reference/Artifacts) |
+| Find a release command | [release.py commands](/Reference/Release.py-commands) |
+| Read a pipeline log | [Reading logs](/Reference/Reading-logs) |

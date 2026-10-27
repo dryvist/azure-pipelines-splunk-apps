@@ -1,102 +1,71 @@
 # Environments and ACS access
 
-[Home](/Home) > [Getting started](/Getting-started) > Environments and ACS
+Create the two deployment environments. Then create an ACS token for each stack and ITSI search head.
 
-[[_TOC_]]
+## Create the deployment environments
 
-Steps 3 and 4 cover deployment environments, ACS tokens, and export access.
-
-## Step 3: Create deployment environments
-
-**Where:** **Pipelines → Environments**
-
-**Do:**
-
-1. Select **Create environment**.
-2. Enter `splunk-nonprod` as the environment name.
-3. Create the environment.
-4. Select **Create environment**.
-5. Enter `splunk-prod` as the environment name.
-6. Create the environment.
-
-7. Open `splunk-prod`.
-8. Select **Approvals and checks**.
-9. Select **+**.
-10. Select **Approvals**.
-11. Add the approvers.
-12. Set **Timeout** to `12 hours` in the **Approvals** check.
-13. Select **Create**.
-14. Select **+**.
-15. Select **Exclusive Lock**.
-16. Select **Create**.
-17. Repeat steps 7 to 9 and 14 to 16 for `splunk-nonprod`.
+1. Open **Pipelines → Environments**.
+2. Select **Create environment**.
+3. Enter `splunk-nonprod` as the environment name.
+4. Select **Create**.
+5. Select **Create environment**.
+6. Enter `splunk-prod` as the environment name.
+7. Select **Create**.
+8. Open `splunk-prod`.
+9. Select **Approvals and checks**.
+10. Select **+**.
+11. Select **Approvals**.
+12. Add the approvers.
+13. Set **Timeout** to `12 hours`.
+14. Select **Create**.
+15. Select **+**.
+16. Select **Exclusive Lock**.
+17. Select **Create**.
+18. Open `splunk-nonprod`.
+19. Select **Approvals and checks**.
+20. Select **+**.
+21. Select **Exclusive Lock**.
+22. Select **Create**.
 
 **Verify:**
 
-1. Confirm `splunk-nonprod` appears in the environments list.
-2. Confirm `splunk-prod` appears in the environments list.
-3. Confirm `splunk-prod` shows an **Approvals** check and an **Exclusive
-   Lock** check.
-4. Confirm `splunk-nonprod` shows an **Exclusive Lock** check.
-5. Confirm the `splunk-prod` **Approvals** check has a **Timeout** of
-   `12 hours`.
+1. `splunk-prod` shows an **Approvals** check with a **Timeout** of `12 hours`.
+2. `splunk-prod` shows an **Exclusive Lock** check.
+3. `splunk-nonprod` shows an **Exclusive Lock** check.
 
-The approval stops each prod deploy stage until someone approves it. The
-exclusive lock runs one deploy stage at a time on each environment. Azure's
-default approval timeout is 30 days. Set the prod **Approvals** check timeout
-to `12 hours` so a pending approval skips the stage after 12 hours.
+## Create the ACS tokens
 
-## Step 4: Create ACS tokens and grant export access
+Create one token for each row. Enter it in the variable group in the same row.
 
-**Where:** In Splunk Web, use **Settings → Tokens** on each stack and its ITSI
-search head, and **Settings → Roles** for roles. To enter token values, use
-**Pipelines → Library → `<group>`**.
+| Create the token in | Enter it in variable group |
+| --- | --- |
+| Splunk Web for the nonprod stack | `splunk-nonprod` |
+| Splunk Web for the nonprod ITSI search head | `splunk-itsi-nonprod` |
+| Splunk Web for the prod stack | `splunk-prod` |
+| Splunk Web for the prod ITSI search head | `splunk-itsi-prod` |
 
-**Do:**
-
-1. In Splunk Web for the nonprod stack, go to **Settings → Tokens**.
-2. Create an ACS token for the nonprod stack.
+1. In Splunk Web for the row's stack or search head, select **Settings → Tokens**.
+2. Create an ACS token.
 3. Set its audience to `acs`.
-4. In Splunk Web on the nonprod ITSI search head, go to **Settings → Tokens**.
-5. Create an ACS token on the nonprod ITSI search head.
-6. Set its audience to `acs`.
-7. In Splunk Web for the prod stack, go to **Settings → Tokens**.
-8. Create an ACS token for the prod stack.
-9. Set its audience to `acs`.
-10. In Splunk Web on the prod ITSI search head, go to **Settings → Tokens**.
-11. Create an ACS token on the prod ITSI search head.
-12. Set its audience to `acs`.
-13. Go to **Pipelines → Library → `splunk-nonprod`**.
-14. Enter the nonprod token as the `ACS_TOKEN` value.
-15. Go to **Pipelines → Library → `splunk-prod`**.
-16. Enter the prod token as the `ACS_TOKEN` value.
-17. Go to **Pipelines → Library → `splunk-itsi-nonprod`**.
-18. Enter the nonprod ITSI token as the `ACS_TOKEN` value.
-19. Go to **Pipelines → Library → `splunk-itsi-prod`**.
-20. Enter the prod ITSI token as the `ACS_TOKEN` value.
-21. Go to **Settings → Roles**.
-22. Open the role for each ACS token account.
-23. Confirm the nonprod and prod stack accounts have `install_apps`.
-24. Confirm the nonprod and prod stack accounts have `edit_local_apps`.
-25. Grant each account the `export_apps` capability.
+4. Select **Pipelines → Library**.
+5. Open the row's variable group.
+6. Set `ACS_TOKEN` to the token value.
+7. Select **Save**.
+8. Repeat steps 1 to 7 for each row.
+
+## Grant account capabilities
+
+| Token account | Required capabilities |
+| --- | --- |
+| Nonprod and prod stack accounts | `install_apps`, `edit_local_apps`, `export_apps` |
+| Nonprod and prod ITSI search head accounts | `export_apps` |
+
+1. Select **Settings → Roles**.
+2. Open the role for each ACS token account.
+3. Grant the capabilities in the table.
 
 `sc_admin` can grant the `export_apps` capability to itself.
 
-**Verify:**
+For the pipeline-to-group mapping, see [Variable groups](/Reference/Variable-groups).
 
-1. Confirm the nonprod stack token exists.
-2. Confirm the nonprod ITSI search head token exists.
-3. Confirm the prod stack token exists.
-4. Confirm the prod ITSI search head token exists.
-5. Confirm the nonprod and prod stack accounts have `install_apps`.
-6. Confirm the nonprod and prod stack accounts have `edit_local_apps`.
-7. Confirm all four token accounts have `export_apps`.
-
-## Related
-
-- [Variable groups](/Reference/Variable-groups)
-
----
-
-[< Previous: Variable groups](/Getting-started/Variable-groups) |
-[Next: App repository >](/Getting-started/App-repository)
+If a token is rejected, use [Nonprod troubleshooting](/Troubleshooting/Nonprod).
