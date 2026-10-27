@@ -285,12 +285,8 @@ def stanza_names(stanzas):
 def rest(app, conf, stanza, method="GET"):
     """Call the search head REST API for one stanza in the app; return the body, or None when it does not exist."""
     app, conf, stanza = (urllib.parse.quote(value, safe="") for value in (app, conf, stanza))
-    return splunkd(f"servicesNS/nobody/{app}/configs/conf-{conf}/{stanza}", method)
-
-def splunkd(path, method="GET"):
-    """Call the search head REST API path; return the body, or None when it does not exist."""
     host = ".".join(filter(None, (configured_value("SPLUNK_SEARCH_HEAD"), os.environ["SPLUNK_STACK"])))
-    return http(f"https://{host}.splunkcloud.com:8089/{path}?output_mode=json",
+    return http(f"https://{host}.splunkcloud.com:8089/servicesNS/nobody/{app}/configs/conf-{conf}/{stanza}?output_mode=json",
                 {"Authorization": f"Bearer {os.environ['STACK_TOKEN']}"}, timeout=60, method=method, missing_ok=True)
 
 def require_private(app):
@@ -301,15 +297,6 @@ def require_private(app):
     if app not in listed_apps(env):
         sys.exit(f"{app} is not installed on this search head. App IDs are case-sensitive")
     print(f"{app} is installed and not from Splunkbase")
-
-def core_check(app):
-    """Read the app's core flag over the search head REST API on port 8089; fail when it ships with Splunk."""
-    found = splunkd(f"services/apps/local/{urllib.parse.quote(app, safe='')}")
-    if found is None:
-        sys.exit(f"Port 8089 reached, but the REST API has no app {app}")
-    if json.loads(found)["entry"][0]["content"]["core"]:
-        sys.exit(f"{app} ships with Splunk. Delete its new repository and pipeline")
-    print(f"Port 8089 reached: {app} is not a core Splunk app")
 
 def repackage(package, out_dir, app, version, conf=None, stanzas=()):
     """Write <out_dir>/<app>-<version>.tar.gz from package with a new version and without the given stanzas."""
