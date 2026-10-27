@@ -1,37 +1,34 @@
 # Deploy troubleshooting
 
-[Home](/Home) > [Troubleshooting](/Troubleshooting) > Deploy troubleshooting
+Use this page to fix manual deploy failures, waits, and version checks.
 
-[[_TOC_]]
+## An app does not start deploying
 
-## Manual deploy pipeline
-
-**Symptom:** A selected app does not start deploying or the job waits.
-
-**Cause:** The pipeline cannot access the selected feed package, variable
-group, deployment environment, or its approval checks.
+**Symptom:** A selected app does not start deploying, or its job waits.
 
 **Fix:**
 
-1. Confirm `apps` contains feed package ids separated by spaces.
-2. Confirm each package exists in `splunk-apps`.
-3. Permit the selected `splunk-<environment>` group and environment.
+1. Confirm **App IDs** contains the package IDs, separated by spaces.
+2. Confirm each package is published in `splunk-apps`.
+3. Permit the selected variable group and deployment environment. See [Permissions troubleshooting](/Troubleshooting/Permissions).
 4. Complete any approval check on the selected environment.
 
-Each app has its own compare stage. The shared uninstall and install stages
-download every selected package into one directory and use ACS bulk commands.
-The install stage waits for every compare stage and, when uninstall is
-selected, the uninstall restart stage. When **Restart** is checked, the final
-restart stage runs after the shared install stage succeeds.
+## `<app-id> is not in the splunk-apps feed`
 
-### ACS is busy
+**Symptom:** The **Check `<app-id>` is in the splunk-apps feed** step fails. The app pipeline has not finished a **Release** stage on `main`.
 
-**Symptom:** A step prints `ACS is busy with another deployment task, retrying
-in 30 seconds`.
+**Fix:**
 
-**Cause:** Another install, uninstall, or configuration change is running on
-the stack. ACS returns `424-failed-dependency` or `503-service-unavailable`
-until it finishes.
+1. Open the app's pipeline and select **Run pipeline**.
+2. Select the `main` branch and select **Run**.
+3. Wait for the **Release** stage to finish.
+4. Start a new deploy run with the app ID.
+
+## `ACS is busy with another deployment task`
+
+**Symptom:** A step prints `ACS is busy with another deployment task, retrying in 30 seconds`.
+ACS returns `424-failed-dependency` or `503-service-unavailable` until another install, uninstall,
+or configuration change finishes.
 
 **Fix:**
 
@@ -39,90 +36,36 @@ until it finishes.
 2. If the step fails after 15 minutes, check the stack for a stuck task.
 3. Rerun the failed job.
 
-### App is not in the splunk-apps feed
+## A deploy stage waits for the environment lock
 
-**Symptom:** **Check `<app-id>` is in the splunk-apps feed** fails with
-`<app-id> is not in the splunk-apps feed`.
-
-**Cause:** The app pipeline has not finished a **Release** stage on `main`.
-
-**Fix:**
-
-1. Select **Pipelines**.
-2. Open the app's pipeline.
-3. Select **Run pipeline**.
-4. Select the `main` branch.
-5. Select **Run**.
-6. Wait for the **Release** stage to finish.
-7. Start a new deploy run with the app id.
-
-### A deploy run waits for the environment lock
-
-**Symptom:** An uninstall, install, or restart stage waits while another run
-uses the same environment.
-
-**Cause:** The `splunk-<environment>` environment's **Exclusive Lock** allows
-one deployment job at a time.
+**Symptom:** An uninstall, install, or restart stage waits while another run uses the same
+environment. The **Exclusive Lock** check allows one deployment job at a time.
 
 **Fix:**
 
 1. Wait for the active deployment job to finish.
-2. If it does not finish, inspect that run and resolve the failed or pending
-   step.
-3. Confirm the **Exclusive Lock** check is configured with
-   [Step 3](/Getting-started/Environments-and-ACS).
+2. If it does not finish, inspect that run and resolve its failed or pending step.
+3. Confirm the **Exclusive Lock** check is set up in [Environments and ACS access](/Getting-started/Environments-and-ACS).
 
-**Docs:** [Deploy pipeline](/Pipelines/Deploy-pipeline),
-[variable groups](/Reference/Variable-groups),
-[environments](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/environments),
-[approvals](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals).
+## `Restart required on <stack>`
 
-## Deployment status and version wait
-
-### Deployment reports that a restart is required
-
-**Symptom:** A deploy job prints `Restart required on <stack>` in its status
-step.
-
-**Cause:** `acs status current-stack` reports that a restart is required. The
-status step warns and continues; it does not restart the stack.
+**Symptom:** A deploy job prints `Restart required on <stack>` in its status step. The step warns and continues. It does not restart the stack.
 
 **Fix:**
 
-1. Run the restart pipeline.
-2. Select the same environment used by the deploy job.
-3. Select `splunk` for the restart pipeline target.
-4. Confirm the restart job completes and the final status has no restart
-   requirement.
+1. Open the [Restart pipeline](/Pipelines/Restart-pipeline).
+2. Select the same environment as the deploy job.
+3. Select `splunk` for **Target**.
+4. Run the pipeline. Confirm the final status has no restart requirement.
 
-**Docs:** [Restart pipeline](/Pipelines/Restart-pipeline),
-[Deploy pipeline](/Pipelines/Deploy-pipeline),
-[ACS CLI](https://github.com/splunk/acs-cli).
+## The installed version check times out
 
-### Version wait times out
-
-**Symptom:** `Check the installed version` reports a timeout after 300
-seconds.
-
-**Cause:** `acs apps describe` did not report the version in the package name
-before the wait deadline.
+**Symptom:** **Check the installed version** reports a timeout after 300 seconds.
 
 **Fix:**
 
 1. Confirm the deploy step succeeded.
-2. Compare the package filename version with the version ACS reports for the
-   app.
+2. Compare the package filename version with the version ACS reports for the app.
 3. Rerun the deployment after the app reports the expected version.
 
-**Docs:** [Deploy pipeline](/Pipelines/Deploy-pipeline),
-[ACS CLI](https://github.com/splunk/acs-cli).
-
-## Related
-
-- [Deploy pipeline](/Pipelines/Deploy-pipeline)
-- [Restart pipeline](/Pipelines/Restart-pipeline)
-
----
-
-[< Previous: Release troubleshooting](/Troubleshooting/Release) |
-[Next: Compare troubleshooting >](/Troubleshooting/Compare)
+For stage order, see [Deploy pipeline](/Pipelines/Deploy-pipeline). For run-log details, see [Reading logs](/Reference/Reading-logs).

@@ -1,126 +1,43 @@
 # Build troubleshooting
 
-[Home](/Home) > [Troubleshooting](/Troubleshooting) > Build troubleshooting
+Use this page to fix skipped stages, version bumps, package sorting, and artifact errors.
 
-[[_TOC_]]
-
-## Build stage
-
-![Build stage from plan through the dist artifact.](../diagrams/build-stage.png)
-
-### A stage after AppInspect is skipped
-
-**Symptom:** `nonproddiff`, `nonprod`, `proddiff`, `release`, or `prod` is
-marked skipped.
-
-**Cause:** `Show stage plan` prints the run reason, branch, and the condition
-for each stage. `nonproddiff`, `nonprod`, and `proddiff` require a pull request
-or `refs/heads/main`. `nonprod` depends on `nonproddiff`, and `proddiff`
-depends on `nonprod`. `release` depends on `proddiff` and requires
-`refs/heads/main`. `prod` follows `release` on `main`. On a pull request run
-that pushed a version bump, `appinspect` and every later stage skip, and the
-next run validates the bump.
-
-**Fix:**
+## A stage after AppInspect is skipped
 
 1. Open the build job and read **Show stage plan**.
-2. For pull requests, confirm the target branch has a Build Validation policy.
-3. Add a Build Validation branch policy on the pull request target branch.
-4. For `release`, run a build from `main` so the source ref is
-   `refs/heads/main`.
+2. Check the trigger and stage conditions in [App pipeline](/Pipelines/App-pipeline).
+3. For pull request validation, add a Build Validation policy to the target branch in [App pipeline setup](/Getting-started/App-pipeline).
+4. For a skipped `release` stage, run the pipeline from `main`.
 
-**Docs:** [Conditions](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/conditions),
-[expressions](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/expressions),
-[branch policies](https://learn.microsoft.com/en-us/azure/devops/repos/git/branch-policies).
+## The version bump step prints a skip reason
 
-### Bump step prints a skip reason
+**Symptom:** The step prints `target app.conf is missing, skipping bump`, or
+`<branch> already changes the version, skipping bump`.
 
-**Symptom:** The step can print `target app.conf is missing, skipping bump`
-or `<branch> already changes the version, skipping bump`. The line before it
-prints the source and target `app.conf` versions.
+A run that pushes a bump prints `<app> bumped to <version>`. The bump commit starts a second run.
+That run prints the skip and runs every stage. This pair of runs is expected.
 
-**Cause:** The bump skips when the target branch has no app config or the
-source branch version differs from the target. The run that pushes a bump
-prints `<app> bumped to <version>` and skips packaging and every later stage.
-The bump commit starts the next PR run, which prints the skip and runs all
-stages. That pair of runs is expected.
+1. If `package/default/app.conf` is missing, add it using [App repository](/Getting-started/App-repository).
+2. If the source and target versions differ, set the intended version in the source branch.
+3. Confirm the pipeline log shows the expected version before rerunning.
 
-**Fix:**
+## The version bump push is rejected
 
-1. Run pull request validation when a version bump is needed.
-2. Add `package/default/app.conf` to the app repo if it is missing.
-3. If the PR has no `Release <app> <version>` commit, compare the two printed
-   versions and fix `app.conf` on the source branch.
-
-**Docs:** [Conditions](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/conditions),
-[Git commands](https://learn.microsoft.com/en-us/azure/devops/pipelines/scripts/git-commands).
-
-### Bump push is rejected
-
-**Symptom:** `Bump PR version and manifest` fails while pushing to the source
-branch.
-
-**Cause:** The project Build Service identity cannot contribute to the app
-repository.
-
-**Fix:**
-
-1. Allow **Contribute** for the project Build Service identity on the app repo.
+1. Follow the Build Service permissions in [App repository](/Getting-started/App-repository).
 2. Rerun pull request validation.
 
-**Docs:** [Git commands](https://learn.microsoft.com/en-us/azure/devops/pipelines/scripts/git-commands),
-[branch policies](https://learn.microsoft.com/en-us/azure/devops/repos/git/branch-policies).
+## `app.conf` has a version mismatch
 
-### Version mismatch in `app.conf`
-
-**Symptom:** The log says that `[launcher]` and `[id]` need the same
-`version` in `package/default/app.conf`.
-
-**Cause:** The `[launcher]` and `[id]` version values differ or one is missing.
-
-**Fix:**
-
-1. Set the same version in `[launcher]` and `[id]` in
-   `package/default/app.conf`.
+1. Set the same `version` in `[launcher]` and `[id]` in `package/default/app.conf`.
 2. Rerun the build.
 
-**Docs:** [Packaging toolkit](https://dev.splunk.com/enterprise/docs/releaseapps/packagingtoolkit/).
+## `ksconf sort` moves comments
 
-### `ksconf sort` moves comments
+Add `KSCONF-NO-SORT` to the file comment, then rerun the build.
 
-**Symptom:** Comments move when the build sorts `.conf` files.
+## An artifact already exists
 
-**Cause:** `ksconf sort` sorts configuration stanzas and keys.
+1. For fixed-name artifacts, start a new pipeline run.
+2. For attempt-named reports or diffs, open the artifact with the job attempt number. See [Artifacts](/Reference/Artifacts).
 
-**Fix:**
-
-1. Add `KSCONF-NO-SORT` to the file comment to opt that file out of sorting.
-
-**Docs:** [ksconf sort](https://ksconf.readthedocs.io/en/stable/cmd_sort.html).
-
-### `Artifact ... already exists` on a rerun
-
-**Symptom:** Publish reports that an artifact with the same name already
-exists.
-
-**Cause:** Names differ by output. The shared template uses the job attempt
-for `appinspect-report` and the `*-diff` artifacts. The build `dist` artifact
-and the compare pipeline's `nonprod-export`, `prod-export`, and `compare`
-artifacts have fixed names.
-
-**Fix:**
-
-1. For a fixed-name artifact collision, start a new pipeline run.
-2. For an attempt-named report or diff, open the artifact with the matching
-   `System.JobAttempt` suffix.
-
-**Docs:** [Pipeline artifacts](https://learn.microsoft.com/en-us/azure/devops/pipelines/artifacts/pipeline-artifacts).
-
-## Related
-
-- [Artifacts](/Reference/Artifacts)
-
----
-
-[< Previous: Agent setup and network access](/Troubleshooting/Agent-setup) |
-[Next: AppInspect troubleshooting >](/Troubleshooting/AppInspect)
+If these steps do not fix the run, use [Reading logs](/Reference/Reading-logs).

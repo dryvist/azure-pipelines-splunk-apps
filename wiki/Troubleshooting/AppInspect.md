@@ -1,37 +1,21 @@
 # AppInspect troubleshooting
 
-[Home](/Home) > [Troubleshooting](/Troubleshooting) > AppInspect troubleshooting
+Use this page to fix AppInspect login, package, and validation failures.
 
-[[_TOC_]]
-
-## AppInspect stage
-
-![AppInspect inputs, outputs, and login failure point.](../diagrams/package-check-stage.png)
-
-### `KeyError: 'SPLUNK_USERNAME'`
+## `KeyError: 'SPLUNK_USERNAME'`
 
 **Symptom:** `Run AppInspect` exits with `KeyError: 'SPLUNK_USERNAME'`.
 
-**Cause:** Locked variables reach scripts only when mapped. The AppInspect
-step maps the password, but reads the unlocked username variable directly.
-
 **Fix:**
 
-1. Keep `SPLUNK_USERNAME` unlocked in `splunk-appinspect`.
-2. Keep `SPLUNK_STACK` unlocked in each stack group.
-3. Keep `SPLUNK_SEARCH_HEAD` unlocked in each ITSI group.
-4. Keep secret values such as `SPLUNK_PASSWORD` locked and mapped in YAML.
+1. Add `SPLUNK_USERNAME` to `splunk-appinspect` using [Variable groups](/Getting-started/Variable-groups).
+2. Set its lock state using [Reference: Variable groups](/Reference/Variable-groups).
+3. Rerun the `appinspect` job.
 
-**Docs:** [Secret variables](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/set-secret-variables),
-[variable groups](https://learn.microsoft.com/en-us/azure/devops/pipelines/library/variable-groups).
-
-### `Expected one .tar.gz package`
+## `Expected one .tar.gz package`
 
 **Symptom:** `Run AppInspect` or a deploy step prints
 `Expected one .tar.gz package in <dir>, found <count>`.
-
-**Cause:** The selected package directory contains zero or more than one `.tar.gz`
-file. AppInspect and deploy require exactly one package.
 
 **Fix:**
 
@@ -42,50 +26,32 @@ file. AppInspect and deploy require exactly one package.
 **Docs:** [Artifacts](/Reference/Artifacts),
 [Pipeline artifacts](https://learn.microsoft.com/en-us/azure/devops/pipelines/artifacts/pipeline-artifacts).
 
-### AppInspect login returns 401 or 403
+## AppInspect login returns 401 or 403
 
 **Symptom:** The log shows `HTTP 401` or `HTTP 403` from the AppInspect login
 request to `api.splunk.com`.
-
-**Cause:** The AppInspect username or password is incorrect, missing, or not
-available to the script.
 
 **Fix:**
 
 1. Set `SPLUNK_USERNAME` to the account username in `splunk-appinspect`.
 2. Set `SPLUNK_PASSWORD` to that account's password.
-3. Keep the username unlocked and map the locked password to the script.
+3. Set variable lock states using [Reference: Variable groups](/Reference/Variable-groups).
 4. Rerun the `appinspect` job.
 
 **Docs:** [AppInspect](https://dev.splunk.com/enterprise/docs/developapps/testvalidate/appinspect/),
 [secret variables](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/set-secret-variables).
 
-### AppInspect does not pass
+## AppInspect does not pass
 
 **Symptom:** The log prints `AppInspect did not pass`. The **Blocks
 deployment** section shows a status other than `SUCCESS` or a count above 0.
-
-**Cause:** The stage passes only when status is `SUCCESS` and the failure,
-error, and manual check counts are all zero. A `future_failure` count adds a
-warning, but does not fail this check.
 
 **Fix:**
 
 1. Open **Show AppInspect JSON report** in the failed job.
 2. Open the link from **Show AppInspect HTML report link**.
 3. Open `appinspect-report-<attempt>` for the failed job attempt.
-4. Fix each reported failure, error, or manual check in the app.
+4. Fix each reported finding in the app.
 5. Rerun validation after fixing the findings.
 
-**Docs:** [AppInspect](https://dev.splunk.com/enterprise/docs/developapps/testvalidate/appinspect/),
-[pipeline artifacts](https://learn.microsoft.com/en-us/azure/devops/pipelines/artifacts/pipeline-artifacts).
-
-## Related
-
-- [AppInspect stage](/Stages/AppInspect)
-- [Artifacts](/Reference/Artifacts)
-
----
-
-[< Previous: Build troubleshooting](/Troubleshooting/Build) |
-[Next: Nonprod troubleshooting >](/Troubleshooting/Nonprod)
+For AppInspect pass criteria, see [AppInspect stage](/Stages/AppInspect). For report names, see [Artifacts](/Reference/Artifacts).

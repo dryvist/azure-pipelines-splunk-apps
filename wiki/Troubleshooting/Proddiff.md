@@ -1,8 +1,6 @@
 # Proddiff troubleshooting
 
-[Home](/Home) > [Troubleshooting](/Troubleshooting) > Proddiff troubleshooting
-
-[[_TOC_]]
+Use this page to fix missing or unexpected production comparison reports.
 
 ## Proddiff stage
 
@@ -13,12 +11,6 @@
 **Symptom:** A production compare artifact is missing, or the file tree or
 summary shows added, changed, or removed files.
 
-**Cause:** The export or diff command failed, or production differs from the
-package. The tree step compares raw files. Local files are compared with
-matching package defaults in a separate step. The merged-default step merges
-local into default with ksconf, combines repeated stanzas, sorts defaults, and
-compares deployed files.
-
 **Fix:**
 
 1. Open the `proddiff` stage, displayed as **Compare with prod**.
@@ -28,17 +20,4 @@ compares deployed files.
 4. Review the file tree, local-versus-default report, patch, and summary.
 5. Update the app package or resolve the production difference before merge.
 
-**Docs:** [release.py commands](/Reference/Release.py-commands),
-[ksconf filter](https://ksconf.readthedocs.io/en/stable/cmd_filter.html),
-[ksconf diff](https://ksconf.readthedocs.io/en/stable/cmd_diff.html),
-[ksconf sort](https://ksconf.readthedocs.io/en/stable/cmd_sort.html).
-
-## Related
-
-- [Proddiff stage](/Stages/Proddiff)
-- [Artifacts](/Reference/Artifacts)
-
----
-
-[< Previous: Nonprod troubleshooting](/Troubleshooting/Nonprod) |
-[Next: Release troubleshooting >](/Troubleshooting/Release)
+For compare job order, see [Proddiff stage](/Stages/Proddiff). For report contents, see [Artifacts](/Reference/Artifacts).

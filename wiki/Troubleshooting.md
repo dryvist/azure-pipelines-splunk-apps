@@ -1,11 +1,6 @@
 # Troubleshooting
 
-[Home](/Home) > Troubleshooting
-
-[[_TOC_]]
-
-Choose the page that matches the failure area. Each case lists the symptom,
-cause, fix, and relevant documentation.
+Use this table to find a fix for the failing pipeline area.
 
 | Page | What it answers |
 | --- | --- |
@@ -20,13 +15,3 @@ cause, fix, and relevant documentation.
 | [Compare](/Troubleshooting/Compare) | Search head selection and compare setup. |
 | [Smoke test](/Troubleshooting/Smoke-test) | ACS access checks and smoke-test results. |
 | [Reading logs](/Troubleshooting/Reading-logs) | System diagnostics, commands, sections, and warnings. |
-
-## Related
-
-- [Pipelines](/Pipelines)
-- [Stages](/Stages)
-
----
-
-[< Previous: Stages](/Stages) |
-[Next: Reference >](/Reference)

@@ -1,8 +1,6 @@
 # Release troubleshooting
 
-[Home](/Home) > [Troubleshooting](/Troubleshooting) > Release troubleshooting
-
-[[_TOC_]]
+Use this page to fix release tags and package publication failures.
 
 ## Release stage
 
@@ -12,8 +10,6 @@
 
 **Symptom:** The tag step cannot push `v<version>` because the tag exists on
 another commit.
-
-**Cause:** A tag name already points to a different commit in the remote repo.
 
 **Fix:**
 
@@ -29,22 +25,10 @@ another commit.
 **Symptom:** Universal Package publish reports that the package version
 already exists.
 
-**Cause:** The feed already contains that app id and version.
-
 **Fix:**
 
 1. Set a new unused version in both `[launcher]` and `[id]` in `app.conf`.
 2. Merge the version change to `main`.
 3. Rerun the release pipeline.
 
-**Docs:** [Universal Packages](https://learn.microsoft.com/en-us/azure/devops/artifacts/quickstarts/universal-packages),
-[packaging toolkit](https://dev.splunk.com/enterprise/docs/releaseapps/packagingtoolkit/).
-
-## Related
-
-- [Release stage](/Stages/Release)
-
----
-
-[< Previous: Proddiff troubleshooting](/Troubleshooting/Proddiff) |
-[Next: Deploy troubleshooting >](/Troubleshooting/Deploy)
+For release job steps, see [Release stage](/Stages/Release).
