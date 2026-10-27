@@ -21,7 +21,6 @@
   tag
   import <env> <export-dir> [flags]
   onboard <app> [--permissions]
-  core-check <app>
   repair-packages <dir> <out-dir> <conf> <stanzas>
   delete-local <dir> <conf> <stanzas>
   repair-check <dir> <conf> <stanzas>
@@ -30,7 +29,7 @@
 import sys
 
 from splunk_release.acs import (
-    acs, acs_env, core_check, delete_local, deploy, export, install_acs, repair_check,
+    acs, acs_env, delete_local, deploy, export, install_acs, repair_check,
     repair_packages, restart, status, uninstall, wait_version,
 )
 from splunk_release.appinspect import appinspect
@@ -67,7 +66,6 @@ commands = {
     "tag": tag,
     "import": import_app,
     "onboard": onboard,
-    "core-check": core_check,
     "repair-packages": repair_packages,
     "delete-local": delete_local,
     "repair-check": repair_check,

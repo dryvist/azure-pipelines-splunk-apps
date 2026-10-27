@@ -478,18 +478,6 @@ def check_require_private():
             except SystemExit as error:
                 assert message and message in str(error)
 
-    def app(core):
-        return json.dumps({"entry": [{"content": {"core": core}}]}).encode()
-
-    for found, message in ((app(False), None), (app(True), "ships with Splunk"), (None, "has no app")):
-        with patch("splunk_release.acs.splunkd", return_value=found) as splunkd, redirect_stdout(io.StringIO()):
-            try:
-                acs.core_check("my_ta")
-                assert message is None
-            except SystemExit as error:
-                assert message and message in str(error)
-        splunkd.assert_called_once_with("services/apps/local/my_ta")
-
 
 class AcsTests(TestCase):
     def test_acs(self):
