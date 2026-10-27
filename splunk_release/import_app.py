@@ -168,15 +168,11 @@ def grant_repo_permissions(collection, project, project_id, repo_id, headers):
     permission_request(permission_url, headers, json.dumps(body).encode("utf-8"))
 
 
+# Variable groups and environments the app pipeline uses; onboard also authorizes the tools repository.
 ONBOARD_RESOURCES = [
-    ("variablegroup", "splunk-appinspect"),
-    ("variablegroup", "splunk-nonprod"),
-    ("variablegroup", "splunk-itsi-nonprod"),
-    ("variablegroup", "splunk-prod"),
-    ("variablegroup", "splunk-itsi-prod"),
-    ("environment", "splunk-nonprod"),
-    ("environment", "splunk-prod"),
-    ("repository", "tools"),
+    *(("variablegroup", f"variablegroups?groupName={name}") for name in
+      ("splunk-appinspect", "splunk-nonprod", "splunk-itsi-nonprod", "splunk-prod", "splunk-itsi-prod")),
+    *(("environment", f"environments?name={name}") for name in ("splunk-nonprod", "splunk-prod")),
 ]
 
 
@@ -223,34 +219,19 @@ def onboard(app, repository, *flags):
     }
     pipeline = json.loads(http(f"{collection}{project_id}/_apis/pipelines?api-version=7.1", headers,
                                json.dumps(pipeline_body).encode("utf-8")))
-    for resource_type, resource_name in ONBOARD_RESOURCES:
-        if resource_type == "repository":
-            resource_id = f"{project_id}.{os.environ['BUILD_REPOSITORY_ID']}"
-        else:
-            if resource_type == "variablegroup":
-                resource_path = "variablegroups"
-                query = {"groupName": resource_name, "api-version": "7.1"}
-            else:
-                resource_path = "environments"
-                query = {"name": resource_name, "api-version": "7.1"}
-            lookup_url = (
-                f"{collection}{project_id}/_apis/distributedtask/{resource_path}?"
-                f"{urlencode(query)}"
-            )
-            lookup = permission_request(lookup_url, headers)
-            if lookup is None:
-                continue
-            matches = json.loads(lookup)["value"]
-            if not matches:
-                log("warning", f"{resource_type} {resource_name} not found; skipping pipeline authorization")
-                continue
-            resource_id = matches[0]["id"]
-        permission_url = (
-            f"{collection}{project_id}/_apis/pipelines/pipelinePermissions/"
-            f"{resource_type}/{resource_id}?api-version=7.1-preview.1"
-        )
-        permission_body = {"pipelines": [{"id": pipeline["id"], "authorized": True}]}
-        permission_request(permission_url, headers, json.dumps(permission_body).encode("utf-8"), method="PATCH")
+    resources = []
+    for resource_type, query in ONBOARD_RESOURCES:
+        found = permission_request(f"{collection}{project_id}/_apis/distributedtask/{query}&api-version=7.1", headers)
+        matches = json.loads(found)["value"] if found else []
+        if matches:
+            resources.append((resource_type, matches[0]["id"]))
+        elif found:
+            log("warning", f"{query} not found; select Permit on the first run")
+    resources.append(("repository", f"{project_id}.{os.environ['BUILD_REPOSITORY_ID']}"))
+    body = json.dumps({"pipelines": [{"id": pipeline["id"], "authorized": True}]}).encode("utf-8")
+    for resource_type, resource_id in resources:
+        permission_request(f"{collection}{project_id}/_apis/pipelines/pipelinePermissions/{resource_type}/"
+                           f"{resource_id}?api-version=7.1-preview.1", headers, body, method="PATCH")
     if "--permissions" in flags:
         grant_repo_permissions(collection, project, project_id, repo["id"], headers)
     log("section", f"Repository: {repo.get('webUrl', repo['remoteUrl'])}")
