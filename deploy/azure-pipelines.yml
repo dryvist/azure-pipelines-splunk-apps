@@ -12,7 +12,7 @@ parameters:
   - name: apps
     type: string
     default: ''
-    displayName: App IDs, separated by spaces
+    displayName: App IDs separated by ;
   - name: compare
     type: boolean
     default: true
@@ -30,8 +30,11 @@ parameters:
     default: false
     displayName: Restart both search heads at the end if required
 
+variables:
+  appIds: ${{ replace(replace(trim(parameters.apps), '; ', ';'), ' ', ';') }}
+
 stages:
-  - ${{ each app in split(parameters.apps, ' ') }}:
+  - ${{ each app in split(variables.appIds, ';') }}:
       - ${{ if and(ne(app, ''), parameters.compare) }}:
           - template: ../templates/compare-stage.yml
             parameters:
@@ -51,13 +54,13 @@ stages:
         environment: ${{ parameters.environment }}
         dependsOn:
           - ${{ if parameters.compare }}:
-              - ${{ each app in split(parameters.apps, ' ') }}:
+              - ${{ each app in split(variables.appIds, ';') }}:
                   - ${{ if ne(app, '') }}:
                       - compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
         packageDirectory: $(Pipeline.Workspace)/packages
         uninstall: true
         steps:
-          - ${{ each app in split(parameters.apps, ' ') }}:
+          - ${{ each app in split(variables.appIds, ';') }}:
               - ${{ if ne(app, '') }}:
                   - template: ../templates/feed-package.yml
                     parameters:
@@ -80,14 +83,14 @@ stages:
         environment: ${{ parameters.environment }}
         dependsOn:
           - ${{ if parameters.compare }}:
-              - ${{ each app in split(parameters.apps, ' ') }}:
+              - ${{ each app in split(variables.appIds, ';') }}:
                   - ${{ if ne(app, '') }}:
                       - compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
           - ${{ if parameters.uninstall }}:
               - restart_uninstall
         packageDirectory: $(Pipeline.Workspace)/packages
         steps:
-          - ${{ each app in split(parameters.apps, ' ') }}:
+          - ${{ each app in split(variables.appIds, ';') }}:
               - ${{ if ne(app, '') }}:
                   - template: ../templates/feed-package.yml
                     parameters:

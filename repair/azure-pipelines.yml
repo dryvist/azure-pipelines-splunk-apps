@@ -24,7 +24,7 @@ parameters:
     displayName: Configuration file name without .conf, such as savedsearches
     type: string
   - name: stanzas
-    displayName: Stanza names, separated by ;
+    displayName: Stanza names separated by ;
     type: string
 
 stages:

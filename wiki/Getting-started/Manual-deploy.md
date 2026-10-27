@@ -12,7 +12,7 @@ Create it with [Manual pipeline setup](/Getting-started/Manual-pipeline).
 
 1. Select **Run pipeline**.
 2. Select `nonprod` or `prod` for `environment`.
-3. Enter app IDs separated by spaces for `apps`.
+3. Enter app IDs separated by `;` for `apps`.
 4. Select **Run**.
 5. Permit each requested variable group and environment using [Permissions troubleshooting](/Troubleshooting/Permissions).
 6. Rerun the pipeline if resource authorization stopped the run.
