@@ -7,6 +7,10 @@ Start at the [wiki home](wiki/Home.md).
 Pipelines:
 
 - App: `example/azure-pipelines.yml`
+- Onboard: `onboard/azure-pipelines.yml`
 - Deploy: `deploy/azure-pipelines.yml`
-- Compare, restart, repair, and smoke test: `compare/azure-pipelines.yml`, `restart/azure-pipelines.yml`, `repair/azure-pipelines.yml`, `smoke-test/azure-pipelines.yml`
-- Bulk install, update, and delete: `bulk-install/azure-pipelines.yml`, `bulk-update/azure-pipelines.yml`, `bulk-delete/azure-pipelines.yml`
+- Compare: `compare/azure-pipelines.yml`
+- Restart: `restart/azure-pipelines.yml`
+- Repair: `repair/azure-pipelines.yml`
+- Smoke test: `smoke-test/azure-pipelines.yml`
+- Bulk install, update, delete: `bulk-install/`, `bulk-update/`, `bulk-delete/`
