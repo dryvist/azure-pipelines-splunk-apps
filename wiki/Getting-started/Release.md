@@ -1,10 +1,6 @@
 # Release setup
 
-[Home](/Home) > [Getting started](/Getting-started) > Release setup
-
-[[_TOC_]]
-
-Step 11 checks the first release after merge.
+Check the first package publication and version tag after merging an app pull request.
 
 ## Step 11: Check the first release after merging
 
@@ -28,11 +24,4 @@ Step 11 checks the first release after merge.
 1. Confirm the tag points to the release commit.
 2. Confirm the feed contains the matching Universal Package version.
 
-## Related
-
-- [Release stage](/Stages/Release)
-
----
-
-[< Previous: App pipeline setup](/Getting-started/App-pipeline) |
-[Next: Manual deploy setup >](/Getting-started/Manual-deploy)
+If the tag or package is missing, use [Release troubleshooting](/Troubleshooting/Release).
