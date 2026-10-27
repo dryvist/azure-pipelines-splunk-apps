@@ -1,10 +1,8 @@
 # App repository
 
-[Home](/Home) > [Getting started](/Getting-started) > App repository
+New app? Use [Onboard an app](Onboard-app.md). The steps below are the manual fallback.
 
-[[_TOC_]]
-
-Steps 5 and 6 cover app repository files and Build Service permissions.
+Create the app repository, add its pipeline files, and grant Build Service permissions.
 
 ## Step 5: Create an app repository and add its files
 
@@ -25,13 +23,10 @@ Steps 5 and 6 cover app repository files and Build Service permissions.
    version = 1.0.0
    ```
 
-4. Add `azure-pipelines.yml` at the repository root.
+4. Add `azure-pipelines.yml` at the repository root. Keep this file identical across app repos.
 5. Enter this content:
 
    ```yaml
-   # Keep this file identical across Splunk app repos. Shared logic is in
-   # azure-pipelines-splunk-apps. Azure Repos queues PR validation through a
-   # main branch Build validation policy and ignores YAML `pr:` triggers.
    parameters:
      - name: importFromNonprod
        displayName: Import this app from nonprod into a new pull request
@@ -58,8 +53,6 @@ Steps 5 and 6 cover app repository files and Build Service permissions.
      repositories:
        - repository: tools
          type: git
-         # For another project in the org, set the name to
-         # <project>/azure-pipelines-splunk-apps.
          name: azure-pipelines-splunk-apps
 
    extends:
@@ -103,12 +96,3 @@ Steps 5 and 6 cover app repository files and Build Service permissions.
    repository's Build Service identity.
 3. Confirm **Create tag** shows **Allow** for the app repository's Build
    Service identity.
-
-## Related
-
-- [App pipeline](/Pipelines/App-pipeline)
-
----
-
-[< Previous: Environments and ACS](/Getting-started/Environments-and-ACS) |
-[Next: App pipeline setup >](/Getting-started/App-pipeline)

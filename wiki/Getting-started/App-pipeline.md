@@ -1,167 +1,79 @@
 # App pipeline setup
 
-[Home](/Home) > [Getting started](/Getting-started) > App pipeline setup
+New app? Use [Onboard an app](Onboard-app.md). The steps below are the manual fallback.
 
-[[_TOC_]]
+Create the app pipeline, permit its resources, require pull request validation, and check the first run.
 
-Steps 7 through 10 create the pipeline, permit its resources, add the main
-branch validation policy, and check the first pull request run.
-
-## Step 7: Create a pipeline from the YAML file
+## Step 7: Create the app pipeline
 
 **Where:** **Pipelines → New pipeline → Azure Repos Git**
 
-**Do:**
-
-1. Select the app repository, not `azure-pipelines-splunk-apps`.
-2. Choose **Existing Azure Pipelines YAML file**.
+1. Select the app repository. Do not select `azure-pipelines-splunk-apps`.
+2. Select **Existing Azure Pipelines YAML file**.
 3. Select `/azure-pipelines.yml`.
-4. If using a custom name, enter a name that identifies the app.
-5. Save the pipeline.
+4. If you use a custom name, enter a name that identifies the app.
+5. Select **Save**.
 
-**Verify:**
-
-1. Confirm the pipeline page shows the app repository.
-2. Confirm the pipeline page shows its `azure-pipelines.yml` file.
+**Verify:** The pipeline page shows the app repository and `azure-pipelines.yml`.
 
 ## Step 8: Permit the pipeline to use its resources
 
-**Where:** **Repos → Branches** and
-**Pipelines → Pipelines → `<pipeline>`**
+Run from a branch other than `main`. A `main` run also runs the `release` stage, which publishes to the feed and pushes a tag.
 
-**Do:**
-
-Run from a branch other than `main`: a `main` run also runs the `release` stage,
-which publishes to the feed and pushes a tag.
-
-1. Go to **Repos → Branches → repository selector**.
+1. Select **Repos → Branches**.
 2. Select the app repository.
-3. Go to **Repos → Branches → New branch**.
-4. Select `main` as the branch to base the new branch on.
+3. Select **New branch**.
+4. Select `main` as the base branch.
 5. Enter a branch name other than `main`.
 6. Create the branch.
-7. Go to **Pipelines → Pipelines → `<pipeline>`**.
-8. Select **Run pipeline**.
-9. Select the new branch.
-10. Select **Run**.
+7. Select **Pipelines**.
+8. Select the app pipeline.
+9. Select **Run pipeline**.
+10. Select the new branch.
+11. Select **Run**.
+12. Permit each requested resource. See [Permissions troubleshooting](/Troubleshooting/Permissions).
+13. Rerun the pipeline if authorization stopped the run.
 
-When Azure DevOps reports that a resource needs authorization:
+The first run usually requests `azure-pipelines-splunk-apps`, `splunk-appinspect`, `splunk-nonprod`, `splunk-prod`, and the `splunk-nonprod` environment.
 
-1. Select **Permit** for `azure-pipelines-splunk-apps`.
-2. Select **Permit** for `splunk-appinspect`.
-3. Select **Permit** for `splunk-nonprod`.
-4. Select **Permit** for `splunk-prod`.
-5. Select **Permit** for `splunk-nonprod` as an environment.
+## Step 9: Require pull request validation
 
-If no Permit banner appears, authorize each variable group:
+1. Select **Repos → Branches**.
+2. Select `main`.
+3. Open **Branch policies**.
+4. Add a **Build validation** policy.
+5. Select the app pipeline.
+6. Set the policy to **Automatic**.
+7. Set the policy to **Required**.
+8. Save the policy.
 
-1. Open **Pipelines → Library → `splunk-appinspect` → Pipeline
-   permissions**.
-2. Select **+**.
-3. Select the pipeline.
-4. Open **Pipelines → Library → `splunk-nonprod` → Pipeline permissions**.
-5. Select **+**.
-6. Select the pipeline.
-7. Open **Pipelines → Library → `splunk-prod` → Pipeline permissions**.
-8. Select **+**.
-9. Select the pipeline.
-
-If no Permit banner appears, authorize each environment:
-
-1. Open **Pipelines → Environments → `splunk-nonprod`**.
-2. Select **⋮ → Security → Pipeline permissions**.
-3. Select **+**.
-4. Select the pipeline.
-
-**Verify:**
-
-1. Confirm the run proceeds past resource authorization.
-2. Confirm the shared repository is authorized for the pipeline.
-3. Confirm `splunk-appinspect` is authorized for the pipeline.
-4. Confirm `splunk-nonprod` is authorized for the pipeline.
-5. Confirm `splunk-prod` is authorized for the production comparison.
-6. Confirm `splunk-nonprod` is authorized as an environment for the pipeline.
-
-## Step 9: Add the `main` Build validation policy
-
-**Where:** **Repos → Branches → main → Branch policies → Build
-validation → +**
-
-**Do:**
-
-1. Select the app pipeline.
-2. Set the policy to **Automatic**.
-3. Set the policy to **Required**.
-4. Save the policy.
-
-Azure Repos uses this branch policy to queue pull request validation. The YAML
-`trigger` queues runs for commits to `main`; Azure Repos ignores YAML `pr:`.
-
-**Verify:**
-
-1. Confirm the Build validation policy for `main` lists the app pipeline.
-2. Confirm the policy requires the app pipeline to pass.
+**Verify:** The `main` policy lists the app pipeline and requires it to pass. For how pull request runs start, see [App pipeline](/Pipelines/App-pipeline).
 
 ## Step 10: Check the first pull request run
 
-**Where:** **Repos → Pull requests → New pull request**; then open the
-pipeline run and **Artifacts**.
+1. Select **Repos → Pull requests**.
+2. Select **New pull request**.
+3. Select the app branch as the source branch.
+4. Select `main` as the target branch.
+5. Create the pull request.
+6. Open the pipeline run. Check each row in the table below.
+7. In the `appinspect` job, open the **Show AppInspect HTML report link** step and select the link.
+8. Open the `appinspect-report-<attempt>` artifact with the highest attempt number. Download `appinspect-report.html` and open it in a browser.
 
-**Do:**
+| Stage or job | Expected result |
+| --- | --- |
+| `build` | Succeeds and publishes `dist`. |
+| `appinspect` | Succeeds. Failure, error, and manual check counts are 0. |
+| `nonproddiff` | Shows **Compare with nonprod**. Both jobs finish without installing. |
+| `nonprod` | Shows **Deploy to nonprod** and installs the package. |
+| `proddiff` | Shows **Compare with prod**. Both jobs finish without installing. |
 
-1. Select the app branch as the source branch.
-2. Select `main` as the target branch.
-3. Create the pull request.
-4. Confirm `build` packages the app.
-5. Confirm `build` publishes `dist`.
-6. Confirm `appinspect` reads the `private_victoria` results.
-7. Confirm `appinspect` reads the `future` results.
-8. Confirm the failure count is 0.
-9. Confirm the error count is 0.
-10. Confirm the manual checks count is 0.
-11. Confirm `appinspect` passes.
-12. If `future_failure` is above 0, confirm the run shows a warning.
-13. Confirm `nonproddiff` displays **Compare with nonprod**.
-14. Confirm both nonprod compare jobs finish without installing the package.
-15. Confirm `nonprod` displays **Deploy to nonprod**.
-16. Confirm `nonprod` installs the package.
-17. Confirm `proddiff` displays **Compare with prod**.
-18. Confirm both prod compare jobs finish without installing the package.
-19. Open the `appinspect` job's **Show AppInspect JSON report** step.
-20. Confirm that step prints the full JSON report.
-21. Open the **Show AppInspect HTML report link** step.
-22. Select the link.
-23. Open `appinspect-report-<attempt>` with the highest attempt number.
-24. Download `appinspect-report.html`.
-25. Open `appinspect-report.html` in a browser.
-26. Open `prod-diff-<app-id>-<attempt>` with the highest attempt number.
-27. Open `itsi-prod-diff-<app-id>-<attempt>` with the highest attempt number.
-28. Confirm both contain `<app-id>-tree.txt` and `<app-id>.patch`.
-29. Confirm both contain `<app-id>-summary.md`.
+The **Show AppInspect JSON report** step prints the full report. A `future_failure` count above 0 shows a warning.
 
-Each job attempt publishes its own artifact, so a rerun keeps earlier
-reports and adds a new one with the next attempt number.
+If the app is not in prod yet, the export log shows `NOT INSTALLED <app-id>`. Every package file shows as added.
 
-If the app is not installed in production yet, the export log shows
-`NOT INSTALLED <app-id>`. The stage continues, and the summary lists every
-package file as added.
+The `prod-diff-<app-id>-<attempt>` and `itsi-prod-diff-<app-id>-<attempt>` artifacts hold the reports listed in [Artifacts](/Reference/Artifacts).
 
-**Verify:**
+**Verify:** The run has `dist`, `appinspect-report-1`, and `prod-diff-<app-id>-1` artifacts.
 
-1. Confirm `build` succeeds.
-2. Confirm `appinspect` succeeds.
-3. Confirm `nonproddiff` succeeds.
-4. Confirm `nonprod` succeeds.
-5. Confirm `proddiff` succeeds.
-6. Confirm the run has a `dist` artifact.
-7. Confirm the run has an `appinspect-report-1` artifact.
-8. Confirm the run has a `prod-diff-<app-id>-1` artifact.
-
-## Related
-
-- [App pipeline](/Pipelines/App-pipeline)
-
----
-
-[< Previous: App repository](/Getting-started/App-repository) |
-[Next: Release setup >](/Getting-started/Release)
+If a step fails, use [Troubleshooting](/Troubleshooting).
