@@ -34,7 +34,8 @@ error names `acs status current-stack`, `acs apps list`, or `acs apps describe s
 
 ## Search head REST read fails
 
-**Symptom:** The **Test port 8089** step returns HTTP 401 or 403, or cannot connect.
+**Symptom:** The **Test port 8089** step shows a `WARN ... port 8089` warning with HTTP 401 or 403, or no HTTP
+status. The warning includes the agent public IP. Only Repair needs port 8089.
 
 **Fix:**
 

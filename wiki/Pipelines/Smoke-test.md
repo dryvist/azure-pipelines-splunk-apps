@@ -40,7 +40,7 @@ the check jobs, including when a check fails.
 | `<target>_<env>`: stack status | ACS returns the stack status and whether a restart is required. | [ACS][acs] |
 | `<target>_<env>`: app listings | ACS lists installed apps and Splunkbase apps. Compare reads these lists for its custom export. | [ACS][acs] |
 | `<target>_<env>`: search app version | ACS describes the `search` app. The deploy wait reads the same value. | [ACS][acs] |
-| `<target>_<env>`: Test port 8089 step | The stack token reads the `launcher` stanza of the `search` app over REST. Repair reads the same API. | [REST][rest] |
+| `<target>_<env>`: Test port 8089 | The token reads the `search` app `launcher` stanza over REST, as Repair does. Failure only warns. | [REST][rest] |
 | `azuredevops`: onboard resources | Each variable group and environment that Onboard authorizes can be found. | [Azure DevOps][ado] |
 | `azuredevops`: splunk-apps feed | The job token reads the `splunk-apps` feed. | [Azure DevOps][ado] |
 | `azuredevops`: Create repository | The Build Service has Create repository on the project. | [Azure DevOps][ado] |

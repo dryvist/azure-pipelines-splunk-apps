@@ -70,13 +70,15 @@ def search_head_rest(group):
     os.environ["STACK_TOKEN"] = os.environ["ACS_TOKEN"]
     try:
         launcher = rest("search", "app", "launcher")
-    except SystemExit:
+    except SystemExit as error:
         try:
             ip = http("https://api.ipify.org", {}, timeout=10).decode().strip()
         except SystemExit:
             ip = "unknown: https://api.ipify.org is not reachable"
-        print(f"Agent public IP: {ip}. Add it as <ip>/32 to the search-api IP allow list")
-        raise
+        # A warning keeps the job green: only Repair needs port 8089.
+        print(f"##vso[task.logissue type=warning]WARN {group} port 8089: {error.code}. Agent public IP: {ip}. "
+              "Add it as <ip>/32 to the search-api IP allow list. Only Repair needs port 8089")
+        return
     found = "found" if launcher is not None else "not found"
     print_colored_patch(f"PASS {group} port 8089 search head REST: token accepted, launcher stanza {found}")
 
