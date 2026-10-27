@@ -164,7 +164,7 @@ class ImportAppTests(TestCase):
 
             def command(cmd, **kwargs):
                 events.append(("run", cmd))
-                if "add" in cmd:
+                if "package" in cmd:
                     repo_root = Path(cmd[cmd.index("-C") + 1])
                     package_roots.append(repo_root)
                     self.assertEqual(cmd[-3:], ["add", "package", "azure-pipelines.yml"])
