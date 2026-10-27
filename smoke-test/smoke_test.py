@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from splunk_release.acs import (
-    acs_env, configured_value, installed_version, listed_apps, restart_required, stack_ready, stack_status,
+    acs_env, configured_value, installed_version, listed_apps, rest, restart_required, stack_ready, stack_status,
 )
 from splunk_release.appinspect import appinspect_token
 from splunk_release.azure import print_colored_patch, run, run_cli
@@ -50,7 +50,7 @@ def stack(group):
 
 
 def stack_reads(group, env):
-    """Read stack status, app listings and the search app version with the ACS calls the pipelines use."""
+    """Read stack status, app listings, the search app version and the search head REST API."""
     _, state = stack_ready(env)
     restart = "yes" if restart_required(stack_status(env)) else "no"
     print_colored_patch(f"PASS {group} {state}, restart required: {restart}")
@@ -61,6 +61,9 @@ def stack_reads(group, env):
     if version is None:
         sys.exit(f"FAIL {group}: search app is not installed")
     print_colored_patch(f"PASS {group} apps describe search: version {version}")
+    launcher = rest("search", "app", "launcher")
+    found = "found" if launcher is not None else "not found"
+    print_colored_patch(f"PASS {group} search head REST: token accepted, launcher stanza {found}")
 
 
 def result(*results):
