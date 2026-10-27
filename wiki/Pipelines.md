@@ -17,4 +17,4 @@ Find your task in the first column. Set the parameters in the third column. Then
 | Bulk install indexes, HEC tokens, or apps | Bulk install | `environment`, `type`, `file`, `restart` | [Bulk install](/Pipelines/Bulk-Install) |
 | Bulk update indexes, HEC, apps, or permissions | Bulk update | `environment`, `type`, `file`, `restart` | [Bulk update](/Pipelines/Bulk-Update) |
 | Bulk delete indexes, HEC tokens, or apps | Bulk delete | `environment`, `type`, `file`, `restart` | [Bulk delete](/Pipelines/Bulk-Delete) |
-| Check access without changing a stack | Smoke test | `target`: `splunk` or `splunk-itsi` | [Smoke test](/Pipelines/Smoke-test) |
+| Check access without changing a stack | Smoke test | none; `target` checks one stack only | [Smoke test](/Pipelines/Smoke-test) |
