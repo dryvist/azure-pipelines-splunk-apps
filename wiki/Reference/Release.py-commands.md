@@ -117,5 +117,5 @@ Every ACS command retries every 30 seconds for up to 15 minutes while ACS return
   stack, and logs in.
 - ACS setup maps the variable-group `ACS_TOKEN` to `STACK_TOKEN`. It runs once per job. Later steps reuse the CLI
   configuration.
-- `SPLUNK_SEARCH_HEAD` selects a target search head when it is configured. The REST API commands use
-  `SPLUNK_REST_URL`. When no search head is set, they use `https://<SPLUNK_STACK>.splunkcloud.com:8089`.
+- `SPLUNK_SEARCH_HEAD` selects a target search head when it is configured. The REST URL is built from it. See
+  [Reference: Variable groups](/Reference/Variable-groups).
