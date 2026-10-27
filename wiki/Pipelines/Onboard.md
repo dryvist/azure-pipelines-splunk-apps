@@ -3,6 +3,9 @@
 The Onboard pipeline creates a repository and an app pipeline for each app that is installed on a stack but
 has no repository. Both are named exactly the app ID.
 
+Onboard takes private apps only. It stops when ACS lists the app as a Splunkbase app, or when the search head
+REST API marks it `core`, which means it ships with Splunk.
+
 Before the first run, grant the one-time permissions in [Build Service](/Setup/Build-service). Create the
 pipeline from [Manual pipelines](/Setup/Manual-pipelines), with YAML path `/onboard/azure-pipelines.yml`.
 

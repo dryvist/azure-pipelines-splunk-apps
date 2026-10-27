@@ -463,6 +463,31 @@ def check_repair():
                     assert failed and "[Fix me] still has a local copy" in str(error)
 
 
+@patch.dict(os.environ, {"SPLUNK_STACK": "stack", "SPLUNK_SEARCH_HEAD": "", "STACK_TOKEN": "token"})
+def check_require_private():
+    def app(core):
+        return json.dumps({"entry": [{"content": {"core": core}}]}).encode()
+
+    for found, message in ((app(False), None), (app(True), "ships with Splunk"), (None, "not installed")):
+        with patch("splunk_release.acs.acs_env", return_value={}), patch(
+            "splunk_release.acs.listed_apps", return_value=["Splunk_TA_nix"]
+        ), patch("splunk_release.acs.splunkd", return_value=found) as splunkd, redirect_stdout(io.StringIO()):
+            try:
+                acs.require_private("my_ta")
+                assert message is None
+            except SystemExit as error:
+                assert message and message in str(error)
+        splunkd.assert_called_once_with("services/apps/local/my_ta")
+    with patch("splunk_release.acs.acs_env", return_value={}), patch(
+        "splunk_release.acs.listed_apps", return_value=["splunk_ta_nix"]
+    ):
+        try:
+            acs.require_private("Splunk_TA_nix")
+            raise AssertionError("expected SystemExit")
+        except SystemExit as error:
+            assert "Splunkbase app" in str(error)
+
+
 class AcsTests(TestCase):
     def test_acs(self):
         check_acs()
@@ -473,9 +498,13 @@ class AcsTests(TestCase):
     def test_stack_ready(self):
         check_stack_ready()
 
+    def test_require_private(self):
+        check_require_private()
+
 
 if __name__ == "__main__":
     check_acs()
     check_repair()
     check_stack_ready()
+    check_require_private()
     print("ok")

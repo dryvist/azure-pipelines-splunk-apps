@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 from splunk_release import compare
+from splunk_release.acs import require_private
 from splunk_release.azure import http, log, run
 from splunk_release.package import sort_confs
 from splunk_release.version import (
@@ -180,6 +181,7 @@ def onboard(app, *flags):
     """Create a repository and pipeline, both named after the app, from an exported app."""
     if set(flags) - {"--permissions"}:
         sys.exit(f"Unknown option: {' '.join(flags)}")
+    require_private(app)
     token = os.environ["SYSTEM_ACCESSTOKEN"]
     collection = os.environ["SYSTEM_COLLECTIONURI"].rstrip("/") + "/"
     project = os.environ["SYSTEM_TEAMPROJECT"]
