@@ -13,7 +13,7 @@ Use this table to find the main release command and module files.
 | `splunk_release/appinspect.py` | AppInspect requests, polling, and reports. |
 | `splunk_release/acs.py` | ACS CLI install, sessions, deployment, and export. |
 | `splunk_release/compare.py` | Archive comparison and deployment reports. |
-| `smoke-test/smoke_test.py` | AppInspect and read-only ACS checks. |
+| `smoke-test/smoke_test.py` | AppInspect, read-only ACS, and Azure DevOps rights checks. |
 | `templates/acs-cli.yml` | ACS CLI setup for a job. |
 | `templates/acs-step.yml` | Python step with the shared ACS environment. |
 | `templates/diff-tools.yml` | Package and diff dependency installation. |
