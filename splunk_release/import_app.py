@@ -6,7 +6,6 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
-from urllib.parse import urlencode
 
 from splunk_release import compare
 from splunk_release.acs import export, require_private
@@ -147,28 +146,6 @@ def permission_request(url, headers, body=None, method=None):
         raise
 
 
-def grant_repo_permissions(collection, project, project_id, repo_id, headers):
-    """Grant the project Build Service the repository permissions used by app pipelines."""
-    identity_collection = collection.replace("://dev.azure.com/", "://vssps.dev.azure.com/")
-    identity_query = urlencode({
-        "searchFilter": "General",
-        "filterValue": f"{project} Build Service",
-    })
-    identity_url = f"{identity_collection}_apis/identities?{identity_query}&api-version=7.1"
-    identity_body = permission_request(identity_url, headers)
-    if identity_body is None:
-        return
-    descriptor = json.loads(identity_body)["value"][0]["descriptor"]
-    namespace = "2e9eb7ed-3c0a-47d4-87c1-0ffdd275fd87"
-    permission_url = f"{collection}_apis/accesscontrolentries/{namespace}?api-version=7.1"
-    body = {
-        "token": f"repoV2/{project_id}/{repo_id}",
-        "merge": True,
-        "accessControlEntries": [{"descriptor": descriptor, "allow": 4 + 32 + 16384, "deny": 0}],
-    }
-    permission_request(permission_url, headers, json.dumps(body).encode("utf-8"))
-
-
 # Variable groups and environments the app pipeline uses; onboard also authorizes the tools repository.
 ONBOARD_RESOURCES = [
     *(("variablegroup", f"variablegroups?groupName={name}") for name in
@@ -177,32 +154,25 @@ ONBOARD_RESOURCES = [
 ]
 
 
-def onboard(app, *flags):
-    """Export a private app and create a repository and pipeline, both named after it."""
-    if set(flags) - {"--permissions"}:
-        sys.exit(f"Unknown option: {' '.join(flags)}")
-    require_private(app)
-    export("export", app)
+def onboard(app):
+    """Export a private app into its empty repository and create its pipeline, both named after the app."""
     token = os.environ["SYSTEM_ACCESSTOKEN"]
     collection = os.environ["SYSTEM_COLLECTIONURI"].rstrip("/") + "/"
-    project = os.environ["SYSTEM_TEAMPROJECT"]
     project_id = os.environ["SYSTEM_TEAMPROJECTID"]
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
+    repo = json.loads(http(f"{collection}{project_id}/_apis/git/repositories/{app}?api-version=7.1", headers))
+    if repo.get("defaultBranch"):
+        sys.exit(f"Repository {app} already has commits. Onboard needs an empty repository")
+    require_private(app)
+    export("export", app)
     with tempfile.TemporaryDirectory() as temp_dir:
         root = Path(temp_dir)
         clean_export(Path("export"), root / "package", app)
         example = Path(__file__).resolve().parents[1] / "example" / "azure-pipelines.yml"
         shutil.copyfile(example, root / "azure-pipelines.yml")
-        try:
-            repo = json.loads(http(f"{collection}{project_id}/_apis/git/repositories?api-version=7.1", headers,
-                                   json.dumps({"name": app}).encode("utf-8")))
-        except SystemExit as error:
-            if "already exists" in str(error.code):
-                sys.exit(f"Repository {app} already exists")
-            raise
         git_in = ["git", "-C", str(root), "-c", "user.name=Azure Pipelines", "-c", "user.email=azure-pipelines@localhost"]
         run([*git_in, "init", "--initial-branch=main"], check=True)
         run([*git_in, "add", "package", "azure-pipelines.yml"], check=True)
@@ -234,7 +204,5 @@ def onboard(app, *flags):
     for resource_type, resource_id in resources:
         permission_request(f"{collection}{project_id}/_apis/pipelines/pipelinePermissions/{resource_type}/"
                            f"{resource_id}?api-version=7.1-preview.1", headers, body, method="PATCH")
-    if "--permissions" in flags:
-        grant_repo_permissions(collection, project, project_id, repo["id"], headers)
     log("section", f"Repository: {repo.get('webUrl', repo['remoteUrl'])}")
     log("section", f"Pipeline: {collection}{project_id}/_build?definitionId={pipeline['id']}")

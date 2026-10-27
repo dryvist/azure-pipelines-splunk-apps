@@ -60,10 +60,9 @@ Service right. It can also return HTTP 401, 403, or 404.
    environment, create it. See [Environments and ACS](/Setup/Environments-and-ACS).
 2. Authorize the pipeline on the group or environment. See
    [Permissions](/Troubleshooting/Permissions#variable-group-is-not-found-or-not-authorized).
-3. For Create repository, see [Build Service: Project rights](/Setup/Build-service#project-rights-for-onboard).
-4. For Contribute to pull requests, see [Build Service: App repository](/Setup/Build-service#app-repository).
-5. For the splunk-apps feed, see [Package feed](/Setup/Feed).
-6. Rerun the `azuredevops` job.
+3. For Contribute to pull requests, see [Build Service: App repository](/Setup/Build-service#app-repository).
+4. For the splunk-apps feed, see [Package feed](/Setup/Feed).
+5. Rerun the `azuredevops` job.
 
 ## ACS reports `WITH SEARCH APPS ONLY LOCAL AND USERS CONFIGS ALLOWED`
 

@@ -43,7 +43,6 @@ the check jobs, including when a check fails.
 | `<target>_<env>`: Test port 8089 | The token reads the `search` app `launcher` stanza over REST, as Repair does. Failure only warns. | [REST][rest] |
 | `azuredevops`: onboard resources | Each variable group and environment that Onboard authorizes can be found. | [Azure DevOps][ado] |
 | `azuredevops`: splunk-apps feed | The job token reads the `splunk-apps` feed. | [Azure DevOps][ado] |
-| `azuredevops`: Create repository | The Build Service has Create repository on the project. | [Azure DevOps][ado] |
 | `azuredevops`: Contribute to pull requests | The Build Service has Contribute to pull requests on this repository. | [Azure DevOps][ado] |
 | `result`: job results | Each job result, and whether all of them succeeded. | [Result][result] |
 
