@@ -177,7 +177,7 @@ class ImportAppTests(TestCase):
 
             with (
                 chdir(root),
-                patch.dict(os.environ, environment, clear=True),
+                patch.dict(os.environ, environment),
                 patch("splunk_release.import_app.http", side_effect=request) as http,
                 patch("splunk_release.import_app.run", side_effect=command) as run,
                 patch("splunk_release.import_app.APP", "my_ta"),
