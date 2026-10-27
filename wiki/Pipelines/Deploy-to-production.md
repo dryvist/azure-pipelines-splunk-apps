@@ -25,7 +25,7 @@ Deploy a set of apps to prod. Review each app's compare, then approve one shared
 1. Open `deploy-apps` in **Pipelines**.
 2. Select **Run pipeline**.
 3. Select `prod` for **Environment**.
-4. Enter the app IDs, separated by spaces, in **App IDs**.
+4. Enter the app IDs, separated by `;`, in **App IDs**.
 5. Leave the **DANGER - Uninstall each app first** option unchecked. Checking it deletes every lookup
    and local setting of each app on prod, with no undo.
 6. Check **Restart both search heads at the end if required** to restart after installs when ACS requires it.

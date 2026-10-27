@@ -8,7 +8,7 @@ Use this page to fix manual deploy failures, waits, and version checks.
 
 **Fix:**
 
-1. Confirm **App IDs** contains the package IDs, separated by spaces.
+1. Confirm **App IDs** contains the package IDs, separated by `;`.
 2. Confirm each package is published in `splunk-apps`.
 3. Permit the selected variable group and deployment environment. See [Permissions troubleshooting](/Troubleshooting/Permissions).
 4. Complete any approval check on the selected environment.

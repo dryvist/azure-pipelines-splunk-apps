@@ -5,7 +5,7 @@ Use this page to see manual deployment parameters, stage order, and restart beha
 ## Run path
 
 The pipeline in `deploy/azure-pipelines.yml` takes an environment and
-space-separated app ids. The Run form parameter **DANGER - Uninstall each app
+app IDs separated by `;`. The Run form parameter **DANGER - Uninstall each app
 first. PERMANENTLY DELETES ALL of its lookups (CSV files) and local settings**
 defaults off. The Run form parameter
 **Restart both search heads at the end if required** also defaults off. It
