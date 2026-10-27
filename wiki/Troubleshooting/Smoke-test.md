@@ -1,6 +1,7 @@
 # Smoke-test troubleshooting
 
-Use this page to fix smoke-test credential, export, and result failures.
+Use this page to fix smoke-test credential, ACS, REST, Azure DevOps, export,
+and result failures.
 
 ## Smoke-test pipeline
 
@@ -25,6 +26,66 @@ HTTP 401 or 403, or fails before or after listing apps.
 
 **Verify:** Confirm the job prints its `PASS` lines for login, app listing,
 and export.
+
+### ACS status or app listing fails
+
+**Symptom:** A `nonprod` or `prod` job fails at the stack status, app listing,
+or `search` app version check. The error names `acs status current-stack`,
+`acs apps list`, or `acs apps describe search`.
+
+**Fix:**
+
+1. Check that `SPLUNK_STACK` and `ACS_TOKEN` in the job's group belong to the
+   same stack.
+2. Check the ACS token's role in Splunk Cloud ACS. The role must allow reading
+   the stack status and the apps.
+3. Rerun the failed job.
+
+**Verify:** Confirm the job prints `PASS` lines for the stack status, the app
+listings, and the `search` app version.
+
+### Search head REST read fails
+
+**Symptom:** The search head REST check returns HTTP 401 or 403. Or it prints
+`SPLUNK_SEARCH_HEAD is set, so set SPLUNK_REST_URL`.
+
+**Fix:**
+
+1. For `splunk-itsi`, set `SPLUNK_REST_URL` in the `splunk-itsi-<environment>`
+   group to `https://<search-head>:8089`.
+2. Check that the agent can reach that URL on port 8089.
+3. Check that the ACS token is accepted by that search head.
+4. Rerun the failed job.
+
+**Verify:** Confirm the job prints `PASS ... search head REST: token accepted`.
+The line also says whether the `launcher` stanza was found. `not found` still
+means the token was accepted.
+
+### Azure DevOps rights fail
+
+**Symptom:** The `azuredevops` job prints `FAIL azure-devops:` for a variable
+group, an environment, or a Build Service right. It can also return HTTP 401,
+403, or 404.
+
+**Fix:**
+
+1. For a missing variable group, create it. See
+   [Variable groups](/Getting-started/Variable-groups). For a missing
+   environment, create it. See
+   [Environments and ACS access](/Getting-started/Environments-and-ACS).
+2. Authorize the pipeline on the group or environment. See
+   [Variable group is not found or not authorized](/Troubleshooting/Permissions#variable-group-is-not-found-or-not-authorized).
+3. For Create repository, open **Project settings → Repositories → Security**.
+   Select `<project> Build Service (<org>)`. Set **Create repository** to
+   **Allow**.
+4. For Contribute to pull requests, open the **Security** page of this
+   repository. Set **Contribute to pull requests** to **Allow** for
+   `<project> Build Service (<org>)`. Use
+   [App repository step 6](/Getting-started/App-repository#step-6-grant-build-service-permissions-on-the-app-repository)
+   for this repository.
+5. For the splunk-apps feed, follow steps 4 to 6 in
+   [Package feed](/Getting-started/Feed).
+6. Rerun the `azuredevops` job.
 
 ### ACS reports `WITH SEARCH APPS ONLY LOCAL AND USERS CONFIGS ALLOWED`
 
@@ -53,7 +114,7 @@ built-in `search` app.
 
 1. Open each failed job named in the `Result` step output.
 2. Read its first `FAIL` or `Error` line.
-3. Fix that job's credential, network, or export issue.
+3. Fix that job's credential, network, ACS, REST, or rights issue.
 4. Rerun the smoke-test pipeline.
 
 For pipeline inputs, see [Smoke-test pipeline](/Pipelines/Smoke-test-pipeline).
