@@ -10,16 +10,15 @@ The pipeline is named `smoke-test` in [Manual pipelines](/Setup/Manual-pipelines
 
 | Parameter | Values | Default | Effect |
 | --- | --- | --- | --- |
-| `target` | `splunk`, `splunk-itsi` | `splunk` | Groups that the nonprod and prod jobs read: `splunk-<env>` or `splunk-itsi-<env>`. |
+| `target` | `all`, `splunk`, `splunk-itsi` | `all` | Stacks to check. `all` checks both. Each gets a nonprod and a prod job that read `<target>-<env>`. |
 
 ## Run it
 
 1. Open the smoke test pipeline and select **Run pipeline**.
-2. Select `splunk` or `splunk-itsi` for **target**.
-3. Select **Run**.
-4. Permit the requested resources. See [Permissions](/Troubleshooting/Permissions).
+2. Select **Run**. To check one stack only, first select `splunk` or `splunk-itsi` for **target**.
+3. Permit the requested resources. See [Permissions](/Troubleshooting/Permissions).
 
-Verify that the `appinspect`, `nonprod`, `prod`, `azuredevops`, and `result` jobs finish.
+Verify that the `appinspect`, `azuredevops`, `result`, and each `<target>_<env>` job finish, such as `splunk_itsi_prod`.
 
 ## Read the result
 
@@ -31,17 +30,17 @@ Verify that the `appinspect`, `nonprod`, `prod`, `azuredevops`, and `result` job
 ## Checks
 
 Each check prints one `PASS` line. A failed check prints one `FAIL <group>:` line. The `result` job runs after
-the four check jobs, including when a check fails.
+the check jobs, including when a check fails.
 
 | Check | What it proves | Fix |
 | --- | --- | --- |
 | `appinspect`: AppInspect login | The `splunk-appinspect` account logs in to splunk.com. Bulk Splunkbase commands use it too. | [Credentials][cred] |
-| `nonprod`, `prod`: ACS login and app list | `SPLUNK_STACK` and `ACS_TOKEN` reach ACS and list apps. | [Credentials][cred] |
-| `nonprod`, `prod`: export | The token exports the built-in `search` app's local and user files. | [Credentials][cred] |
-| `nonprod`, `prod`: stack status | ACS returns the stack status and whether a restart is required. | [ACS][acs] |
-| `nonprod`, `prod`: app listings | ACS lists installed apps and Splunkbase apps. Compare reads these lists for its custom export. | [ACS][acs] |
-| `nonprod`, `prod`: search app version | ACS describes the `search` app. The deploy wait reads the same value. | [ACS][acs] |
-| `nonprod`, `prod`: search head REST | The stack token reads the `launcher` stanza of the `search` app over REST. Repair reads the same API. | [REST][rest] |
+| `<target>_<env>`: ACS login and app list | `SPLUNK_STACK` and `ACS_TOKEN` reach ACS and list apps. | [Credentials][cred] |
+| `<target>_<env>`: export | The token exports the built-in `search` app's local and user files. | [Credentials][cred] |
+| `<target>_<env>`: stack status | ACS returns the stack status and whether a restart is required. | [ACS][acs] |
+| `<target>_<env>`: app listings | ACS lists installed apps and Splunkbase apps. Compare reads these lists for its custom export. | [ACS][acs] |
+| `<target>_<env>`: search app version | ACS describes the `search` app. The deploy wait reads the same value. | [ACS][acs] |
+| `<target>_<env>`: search head REST | The stack token reads the `launcher` stanza of the `search` app over REST. Repair reads the same API. | [REST][rest] |
 | `azuredevops`: onboard resources | Each variable group and environment that Onboard authorizes can be found. | [Azure DevOps][ado] |
 | `azuredevops`: splunk-apps feed | The job token reads the `splunk-apps` feed. | [Azure DevOps][ado] |
 | `azuredevops`: Create repository | The Build Service has Create repository on the project. | [Azure DevOps][ado] |

@@ -94,11 +94,12 @@ def azure_devops():
         print_colored_patch(f"PASS azure-devops: Build Service has {label}")
 
 
-def result(*results):
-    """Print each job result and fail unless all succeeded."""
-    for name, value in zip(("appinspect", "nonprod", "prod", "azuredevops"), results):
+def result():
+    """Print each RESULT_<job> variable and fail unless all succeeded."""
+    results = {name[7:].lower(): value for name, value in sorted(os.environ.items()) if name.upper().startswith("RESULT_")}
+    for name, value in results.items():
         print(f"{name}: {value}")
-    if set(results) == {"Succeeded"}:
+    if set(results.values()) == {"Succeeded"}:
         print_colored_patch("RESULT: ALL PASS")
     else:
         print_colored_patch("RESULT: FAILED - open each failed job for its FAIL or Error line")
@@ -107,7 +108,7 @@ def result(*results):
 
 def dispatch(name, *args):
     if name == "result":
-        result(*args)
+        result()
     elif name == "appinspect":
         appinspect()
     elif name == "azuredevops":

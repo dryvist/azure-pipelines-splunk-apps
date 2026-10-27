@@ -347,26 +347,22 @@ def check_acs():
         assert "NOT INSTALLED New_App" in output.getvalue()
         assert not any(Path(tmp).glob("*.tgz"))
 
-    # The smoke result command passes only when all three jobs succeeded.
+    # The smoke result command passes only when every RESULT_ job succeeded.
     result_script = Path(__file__).resolve().parents[1] / "smoke-test" / "smoke_test.py"
-    passed = subprocess.run(
-        [sys.executable, str(result_script), "result", "Succeeded", "Succeeded", "Succeeded"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+
+    def smoke_result(second):
+        env = {**os.environ, "RESULT_APPINSPECT": "Succeeded", "RESULT_SPLUNK_ITSI_PROD": second}
+        return subprocess.run([sys.executable, str(result_script), "result"], capture_output=True, text=True,
+                              check=False, env=env)
+
+    passed = smoke_result("Succeeded")
     assert passed.returncode == 0
+    assert "splunk_itsi_prod: Succeeded" in passed.stdout
     assert "RESULT: ALL PASS" in passed.stdout
-    failed = subprocess.run(
-        [sys.executable, str(result_script), "result", "Succeeded", "Failed", "Succeeded"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    failed = smoke_result("Failed")
     assert failed.returncode == 1
     assert "RESULT: ALL PASS" not in failed.stdout
     assert "RESULT: FAILED - open each failed job for its FAIL or Error line" in failed.stdout
-
 
 def check_stack_ready():
     response = {"infrastructure": {"status": "Ready"}}
