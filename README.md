@@ -1,29 +1,12 @@
 # azure-pipelines-splunk-apps
 
-Shared Azure Pipelines templates and Python release tools for packaging,
-validating, comparing, and deploying Splunk Cloud apps.
+Shared Azure Pipelines templates and Python release tools for packaging, validating, and deploying Splunk Cloud apps.
 
-## Repository contents
+Start at the [wiki home](wiki/Home.md).
 
-- `templates/`: reusable app, deploy, compare, restart, smoke-test, and ACS bulk
-  stages.
-- `compare/`, `deploy/`, `restart/`, `smoke-test/`, `bulk-install/`,
-  `bulk-update/`, `bulk-delete/`: manual pipeline definitions.
-- `example/`: app repository pipeline example.
-- `release.py` and `splunk_release/`: packaging, AppInspect, ACS, and compare commands.
-- `tests/`: Python unit tests.
-- `wiki/`: setup, pipeline, stage, troubleshooting, and reference pages.
+Pipelines:
 
-## Quick start
-
-Copy `example/azure-pipelines.yml` into an app repository, then follow the
-[getting-started guide](wiki/Getting-started.md).
-
-## Full documentation
-
-- [Wiki home](wiki/Home.md)
-- [Getting started](wiki/Getting-started.md)
-- [Pipeline guides](wiki/Pipelines.md)
-- [Stage guides](wiki/Stages.md)
-- [Troubleshooting](wiki/Troubleshooting.md)
-- [Reference](wiki/Reference.md)
+- App: `example/azure-pipelines.yml`
+- Deploy: `deploy/azure-pipelines.yml`
+- Compare, restart, repair, and smoke test: `compare/azure-pipelines.yml`, `restart/azure-pipelines.yml`, `repair/azure-pipelines.yml`, `smoke-test/azure-pipelines.yml`
+- Bulk install, update, and delete: `bulk-install/azure-pipelines.yml`, `bulk-update/azure-pipelines.yml`, `bulk-delete/azure-pipelines.yml`
