@@ -6,8 +6,9 @@ import io
 import json
 import os
 import tempfile
-from contextlib import redirect_stdout
+from contextlib import chdir, redirect_stdout
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from _common import CONF, write_tgz
@@ -135,6 +136,120 @@ class ImportAppTests(TestCase):
         check_import_app("nonprod", "--skip-lookups")
         check_import_app("prod", "--skip-lookup-backups")
         check_import_app("nonprod")
+
+    def test_onboard(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            export_dir = root / "export"
+            export_dir.mkdir()
+            write_tgz(export_dir / "my_ta.tgz", {
+                "my_ta/default/app.conf": CONF,
+                "my_ta/default/props.conf": "[changed]\nvalue = default\n",
+                "my_ta/local/props.conf": "[changed]\nvalue = local\n",
+            })
+            environment = {
+                "SYSTEM_ACCESSTOKEN": "test-token",
+                "SYSTEM_COLLECTIONURI": "https://dev.azure.com/<org>/",
+                "SYSTEM_TEAMPROJECT": "<project>",
+                "SYSTEM_TEAMPROJECTID": "<project-id>",
+            }
+            repo = {"id": "repo-id", "remoteUrl": "https://dev.azure.com/<org>/<project>/_git/my_repo",
+                    "webUrl": "https://dev.azure.com/<org>/<project>/_git/my_repo"}
+            pipeline = {"id": 42}
+            events, package_roots = [], []
+
+            def request(url, headers, body=None, **kwargs):
+                events.append(("http", url))
+                return json.dumps(repo if "repositories?" in url else pipeline).encode()
+
+            def command(cmd, **kwargs):
+                events.append(("run", cmd))
+                if "add" in cmd:
+                    repo_root = Path(cmd[cmd.index("-C") + 1])
+                    package_roots.append(repo_root)
+                    self.assertEqual(cmd[-3:], ["add", "package", "azure-pipelines.yml"])
+                    assert (repo_root / "package/default/app.conf").is_file()
+                    assert (repo_root / "package/default/props.conf").read_text() == "[changed]\nvalue = local\n"
+                    assert not (repo_root / "package/app.manifest").exists()
+                    example = Path(import_app.__file__).resolve().parents[1] / "example/azure-pipelines.yml"
+                    assert (repo_root / "azure-pipelines.yml").read_bytes() == example.read_bytes()
+                return SimpleNamespace(returncode=0)
+
+            with (
+                chdir(root),
+                patch.dict(os.environ, environment, clear=True),
+                patch("splunk_release.import_app.http", side_effect=request) as http,
+                patch("splunk_release.import_app.run", side_effect=command) as run,
+                patch("splunk_release.import_app.APP", "my_ta"),
+                redirect_stdout(io.StringIO()),
+            ):
+                import_app.onboard("my_ta", "my_repo")
+
+            self.assertEqual(len(package_roots), 1)
+            self.assertEqual([call.args[0] for call in http.call_args_list], [
+                "https://dev.azure.com/<org>/<project-id>/_apis/git/repositories?api-version=7.1",
+                "https://dev.azure.com/<org>/<project-id>/_apis/pipelines?api-version=7.1",
+            ])
+            self.assertEqual(json.loads(http.call_args_list[0].args[2]), {"name": "my_repo"})
+            self.assertEqual(json.loads(http.call_args_list[1].args[2]), {
+                "name": "my_repo",
+                "folder": "\\",
+                "configuration": {
+                    "type": "yaml",
+                    "path": "/azure-pipelines.yml",
+                    "repository": {"id": "repo-id", "type": "azureReposGit"},
+                },
+            })
+            self.assertEqual(events[0][0], "http")
+            self.assertEqual(events[-1][0], "http")
+            pushes = [event[1] for event in events if event[0] == "run" and "push" in event[1]]
+            self.assertEqual(len(pushes), 1)
+            self.assertIn("http.extraheader=AUTHORIZATION: bearer test-token", pushes[0])
+
+    def test_import_app_uses_exported_version_without_package(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            package = root / "package"
+            export_dir = root / "export"
+            export_dir.mkdir()
+            exported_conf = CONF.replace("1.4.9", "2.0.1")
+            write_tgz(export_dir / "my_ta.tgz", {
+                "my_ta/default/app.conf": exported_conf,
+                "my_ta/default/props.conf": "[stanza]\nvalue = exported\n",
+            })
+            manifest = package / "app.manifest"
+
+            def write_manifest():
+                manifest.write_text("generated manifest\n", encoding="utf-8")
+
+            environment = {
+                "BUILD_BUILDID": "8421",
+                "BUILD_REPOSITORY_ID": "<repo-id>",
+                "BUILD_REPOSITORY_NAME": "<app-id>",
+                "SYSTEM_ACCESSTOKEN": "test-token",
+                "SYSTEM_COLLECTIONURI": "https://dev.azure.com/<org>/",
+                "SYSTEM_TEAMPROJECT": "<project>",
+                "SYSTEM_TEAMPROJECTID": "<project-id>",
+            }
+            with (
+                patch("splunk_release.import_app.SRC", package),
+                patch("splunk_release.import_app.CONF", package / "default/app.conf"),
+                patch("splunk_release.import_app.APP", "my_ta"),
+                patch("splunk_release.import_app.generate_manifest", side_effect=write_manifest),
+                patch("splunk_release.import_app.git") as git,
+                patch("splunk_release.import_app.feed_versions", return_value=["1.4.20"]),
+                patch("splunk_release.import_app.http", return_value=b'{"pullRequestId": 34, "createdBy": {"id": "build-id"}}'),
+                patch("splunk_release.package.run") as package_run,
+                patch.dict(os.environ, environment),
+                chdir(root),
+                redirect_stdout(io.StringIO()),
+            ):
+                package_run.return_value.returncode = 0
+                import_app.import_app("nonprod", export_dir)
+
+            self.assertEqual((package / "default/app.conf").read_text().count("version = 2.0.2"), 2)
+            self.assertEqual(git.call_args_list[1].args, ("add", "--all", str(package)))
+            self.assertEqual(git.call_args_list[2].args, ("commit", "-m", "Import my_ta 2.0.2 from nonprod"))
 
 
 if __name__ == "__main__":
