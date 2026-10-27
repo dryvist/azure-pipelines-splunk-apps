@@ -19,6 +19,7 @@ Choose a pipeline for its inputs, run path, and outputs.
 | [Splunk ACS Bulk Delete](/Getting-started/Bulk-pipelines) | Delete indexes, HEC tokens, or apps. |
 | [Repair pipeline](/Pipelines/Repair-pipeline) | Replace local copies of app objects with the app's default. |
 | [Smoke-test pipeline](/Pipelines/Smoke-test-pipeline) | Check read-only access. |
+| [Onboard an installed app](/Getting-started/Onboard-app) | Create a repository and pipeline from an installed app. |
 
 ## Related
 
