@@ -64,13 +64,15 @@ def http(url, headers, data=None, timeout=900, method=None, missing_ok=False):
     log("command", f"{req.get_method()} {url}", flush=True)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
+            print(f"HTTP {resp.status}", flush=True)
             return resp.read()
     except urllib.error.HTTPError as e:
+        print(f"HTTP {e.code}", flush=True)
         if missing_ok and e.code == 404:
             return None
         sys.exit(f"HTTP {e.code} from {url}: {e.read().decode(errors='replace')}")
-    except urllib.error.URLError as e:
-        sys.exit(f"HTTP request failed: {e.reason}")
+    except (urllib.error.URLError, TimeoutError) as e:
+        sys.exit(f"HTTP request failed with no HTTP status: {getattr(e, 'reason', e)}")
 
 
 def plan():
