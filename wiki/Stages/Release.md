@@ -1,8 +1,6 @@
 # Release stage
 
-[Home](/Home) > [Stages](/Stages) > Release stage
-
-[[_TOC_]]
+This page lists the release stage inputs, outputs, and steps.
 
 ## Stage `release`
 
@@ -39,14 +37,3 @@ Steps, in order:
   Publishes the package. Skipped when `PACKAGE_PUBLISHED` is `true`.
   **Inputs:** `dist/`, `APP_ID`, `APP_VERSION`, and feed permissions.
   **Outputs:** Universal Package in the feed.
-
-## Related
-
-- [Proddiff stage](/Stages/Proddiff)
-- [Prod stage](/Stages/Prod)
-- [release.py commands](/Reference/Release.py-commands)
-
----
-
-[< Previous: Proddiff stage](/Stages/Proddiff) |
-[Next: Prod stage >](/Stages/Prod)

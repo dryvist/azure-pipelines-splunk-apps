@@ -1,8 +1,6 @@
 # Code layout
 
-[Home](/Home) > [Reference](/Reference) > Code layout
-
-[[_TOC_]]
+Use this table to find the main release command and module files.
 
 | File | Contents |
 | --- | --- |
@@ -27,12 +25,3 @@
 
 The app id comes from `[id] name` in `package/default/app.conf`. If absent,
 `release.py` uses `BUILD_REPOSITORY_NAME`, then the working directory name.
-
-## Related
-
-- [release.py commands](/Reference/Release.py-commands)
-
----
-
-[< Previous: release.py commands](/Reference/Release.py-commands) |
-[Next: Variable groups >](/Reference/Variable-groups)

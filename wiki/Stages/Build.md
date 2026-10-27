@@ -1,8 +1,6 @@
 # Build stage
 
-[Home](/Home) > [Stages](/Stages) > Build stage
-
-[[_TOC_]]
+This page lists the build stage inputs, outputs, and steps.
 
 ## Stage `build`
 
@@ -69,13 +67,3 @@ Steps, in order:
 - **Publish artifact (`publish: dist`):** Publishes the package directory.
   **Inputs:** `$(Pipeline.Workspace)/app/dist`. **Outputs:** `dist` pipeline
   artifact.
-
-## Related
-
-- [App pipeline](/Pipelines/App-pipeline)
-- [Artifacts](/Reference/Artifacts)
-- [Import from nonprod or prod](/Pipelines/App-import)
-
----
-
-[Next: AppInspect stage >](/Stages/AppInspect)

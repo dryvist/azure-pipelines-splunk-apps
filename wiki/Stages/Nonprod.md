@@ -1,8 +1,6 @@
 # Nonprod stage
 
-[Home](/Home) > [Stages](/Stages) > Nonprod stage
-
-[[_TOC_]]
+This page lists the nonprod deployment stage inputs and outputs.
 
 ## Stage `nonprod`
 
@@ -24,14 +22,3 @@
 
 The job checks stack status before and after deployment. The shared deploy
 template can uninstall the app before installation when enabled.
-
-## Related
-
-- [Nonproddiff stage](/Stages/Nonproddiff)
-- [Deploy pipeline](/Pipelines/Deploy-pipeline)
-- [Troubleshooting](/Troubleshooting/Nonprod)
-
----
-
-[< Previous: Nonproddiff stage](/Stages/Nonproddiff) |
-[Next: Proddiff stage >](/Stages/Proddiff)

@@ -1,8 +1,6 @@
 # Nonproddiff stage
 
-[Home](/Home) > [Stages](/Stages) > Nonproddiff stage
-
-[[_TOC_]]
+This page lists the nonprod comparison stage inputs, jobs, and reports.
 
 ## Stage `nonproddiff`
 
@@ -37,14 +35,3 @@ steps:
   patch.
 
 Each job publishes `<side>-diff-<app-id>-<attempt>` with its reports.
-
-## Related
-
-- [App pipeline](/Pipelines/App-pipeline)
-- [Nonprod stage](/Stages/Nonprod)
-- [Artifacts](/Reference/Artifacts)
-
----
-
-[< Previous: AppInspect stage](/Stages/AppInspect) |
-[Next: Nonprod stage >](/Stages/Nonprod)

@@ -1,8 +1,6 @@
 # Proddiff stage
 
-[Home](/Home) > [Stages](/Stages) > Proddiff stage
-
-[[_TOC_]]
+This page lists the production comparison stage inputs, jobs, and reports.
 
 ## Stage `proddiff`
 
@@ -37,13 +35,3 @@ app. It runs four compare steps:
   patch.
 
 Each job publishes `<side>-diff-<app-id>-<attempt>` with its reports.
-
-## Related
-
-- [Nonprod stage](/Stages/Nonprod)
-- [Artifacts](/Reference/Artifacts)
-
----
-
-[< Previous: Nonprod stage](/Stages/Nonprod) |
-[Next: Release stage >](/Stages/Release)
