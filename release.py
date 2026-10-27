@@ -20,7 +20,7 @@
   feed-check <app-id>
   tag
   import <env> <export-dir> [flags]
-  onboard <app> <repo> [--permissions]
+  onboard <app> [--permissions]
   repair-packages <dir> <out-dir> <conf> <stanzas>
   delete-local <dir> <conf> <stanzas>
   repair-check <dir> <conf> <stanzas>

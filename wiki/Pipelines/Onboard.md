@@ -1,7 +1,7 @@
 # Onboard pipeline
 
-The Onboard pipeline creates a repository and an app pipeline for an app that is installed on a stack but
-has no repository.
+The Onboard pipeline creates a repository and an app pipeline for each app that is installed on a stack but
+has no repository. Both are named exactly the app ID.
 
 Before the first run, grant the one-time permissions in [Build Service](/Setup/Build-service). Create the
 pipeline from [Manual pipelines](/Setup/Manual-pipelines), with YAML path `/onboard/azure-pipelines.yml`.
@@ -11,22 +11,20 @@ pipeline from [Manual pipelines](/Setup/Manual-pipelines), with YAML path `/onbo
 | Parameter | Values | Default | Effect |
 | --- | --- | --- | --- |
 | `environment` | `nonprod`, `prod` | `nonprod` | Stack to export the app from. Uses `splunk-<environment>`. |
-| `app` | App ID | none | App to export and onboard. |
-| `repository` | Repository name | empty | Name of the new repository. Empty uses the app ID. |
+| `apps` | App IDs separated by `;` | none | Apps to export and onboard. Each app runs in its own job. |
 | `permissions` | on, off | on | Grants the project Build Service Contribute, Contribute to pull requests, and Create tag. |
 
 ## Run it
 
 1. Open the Onboard pipeline and select **Run pipeline**.
 2. Select `nonprod` or `prod` for **environment**.
-3. Enter the app ID for **app**.
-4. Enter a **repository** name, or leave it empty to use the app ID.
-5. Keep **Grant app repository permissions** on. To grant them by hand, turn it off and follow
+3. Enter the app IDs for **App IDs**, such as `my_app;other_app`.
+4. Keep **Grant app repository permissions** on. To grant them by hand, turn it off and follow
    [Build Service: App repository](/Setup/Build-service#app-repository).
-6. Select **Run**.
-7. Permit each requested resource. See [Permissions](/Troubleshooting/Permissions).
+5. Select **Run**.
+6. Permit each requested resource. See [Permissions](/Troubleshooting/Permissions).
 
-The run exports the app, creates the repository, and writes the export to `package/`. It copies the app's
+Each job exports its app, creates the repository, and writes the export to `package/`. It copies the app's
 `azure-pipelines.yml`, pushes the initial commit to `main`, and creates the app pipeline.
 
 ## After onboarding
