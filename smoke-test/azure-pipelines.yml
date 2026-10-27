@@ -44,18 +44,33 @@ jobs:
               SPLUNK_REST_URL: $(SPLUNK_REST_URL)
               ACS_TOKEN: $(ACS_TOKEN)
 
+  - job: azuredevops
+    displayName: Check Azure DevOps rights
+    workspace:
+      clean: all
+    steps:
+      - template: ../templates/python.yml
+      - script: python smoke-test/smoke_test.py azuredevops
+        displayName: Check onboard resources, feed and repository rights
+        env:
+          SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          SYSTEM_COLLECTIONURI: $(System.CollectionUri)
+          SYSTEM_TEAMPROJECTID: $(System.TeamProjectId)
+          BUILD_REPOSITORY_ID: $(Build.Repository.ID)
+
   - job: result
     displayName: Report the smoke-test result
     workspace:
       clean: all
-    dependsOn: [appinspect, nonprod, prod]
+    dependsOn: [appinspect, nonprod, prod, azuredevops]
     condition: always()
     variables:
       appinspectResult: $[ dependencies.appinspect.result ]
       nonprodResult: $[ dependencies.nonprod.result ]
       prodResult: $[ dependencies.prod.result ]
+      azuredevopsResult: $[ dependencies.azuredevops.result ]
     steps:
       - checkout: self
       - template: ../templates/python.yml
-      - script: python smoke-test/smoke_test.py result $(appinspectResult) $(nonprodResult) $(prodResult)
+      - script: python smoke-test/smoke_test.py result $(appinspectResult) $(nonprodResult) $(prodResult) $(azuredevopsResult)
         displayName: Result

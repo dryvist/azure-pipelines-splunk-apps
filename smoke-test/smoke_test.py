@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check AppInspect login and Splunk Cloud ACS access."""
+"""Check AppInspect login, Splunk Cloud ACS access and Azure DevOps rights."""
 
 import json
 import os
@@ -12,7 +12,9 @@ from splunk_release.acs import (
     acs_env, configured_value, installed_version, listed_apps, rest, restart_required, stack_ready, stack_status,
 )
 from splunk_release.appinspect import appinspect_token
-from splunk_release.azure import print_colored_patch, run, run_cli
+from splunk_release.azure import http, print_colored_patch, run, run_cli
+from splunk_release.import_app import ONBOARD_RESOURCES
+from splunk_release.version import feed_versions
 
 
 def require(group, *names):
@@ -66,9 +68,35 @@ def stack_reads(group, env):
     print_colored_patch(f"PASS {group} search head REST: token accepted, launcher stanza {found}")
 
 
+def azure_devops():
+    """Check the job token can read the onboard resources and the splunk-apps feed, and has the repository rights."""
+    require("azure-devops", "SYSTEM_ACCESSTOKEN", "SYSTEM_COLLECTIONURI", "SYSTEM_TEAMPROJECTID", "BUILD_REPOSITORY_ID")
+    headers = {"Authorization": f"Bearer {os.environ['SYSTEM_ACCESSTOKEN']}"}
+    collection = os.environ["SYSTEM_COLLECTIONURI"].rstrip("/") + "/"
+    project_id = os.environ["SYSTEM_TEAMPROJECTID"]
+    for resource_type, query in ONBOARD_RESOURCES:
+        name = query.split("=", 1)[1]
+        found = json.loads(http(f"{collection}{project_id}/_apis/distributedtask/{query}&api-version=7.1", headers))
+        if not found["value"]:
+            sys.exit(f"FAIL azure-devops: {resource_type} {name} not found")
+        print_colored_patch(f"PASS azure-devops: {resource_type} {name} found")
+    feed_versions("smoke-test")
+    print_colored_patch("PASS azure-devops: splunk-apps feed read")
+    git_repositories = "2e9eb7ed-3c0a-47d4-87c1-0ffdd275fd87"
+    rights = (
+        ("Create repository", 256, f"repoV2/{project_id}"),
+        ("Contribute to pull requests", 16384, f"repoV2/{project_id}/{os.environ['BUILD_REPOSITORY_ID']}"),
+    )
+    for label, bit, token in rights:
+        url = f"{collection}_apis/permissions/{git_repositories}/{bit}?tokens={token}&api-version=7.1"
+        if json.loads(http(url, headers))["value"] != [True]:
+            sys.exit(f"FAIL azure-devops: Build Service lacks {label}")
+        print_colored_patch(f"PASS azure-devops: Build Service has {label}")
+
+
 def result(*results):
     """Print each job result and fail unless all succeeded."""
-    for name, value in zip(("appinspect", "nonprod", "prod"), results):
+    for name, value in zip(("appinspect", "nonprod", "prod", "azuredevops"), results):
         print(f"{name}: {value}")
     if set(results) == {"Succeeded"}:
         print_colored_patch("RESULT: ALL PASS")
@@ -82,6 +110,8 @@ def dispatch(name, *args):
         result(*args)
     elif name == "appinspect":
         appinspect()
+    elif name == "azuredevops":
+        azure_devops()
     else:
         stack(name)
 
