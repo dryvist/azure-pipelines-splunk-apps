@@ -249,6 +249,23 @@ class ImportAppTests(TestCase):
             self.assertEqual(len(pushes), 1)
             self.assertIn("http.extraheader=AUTHORIZATION: bearer test-token", pushes[0])
 
+    def test_app_conf_required(self):
+        from splunk_release.compare import parse
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "default").mkdir()
+            (root / "default" / "app.conf").write_text(
+                "[launcher]\nversion = 1.2.3\n\n[ui]\nlabel = TA\n\n"
+                "[install]\nis_configured = 1\ninstall_source_checksum = abc\n", encoding="utf-8")
+            with redirect_stdout(io.StringIO()):
+                import_app.app_conf_required(root, "my_ta")
+            conf = parse(root / "default" / "app.conf")
+        self.assertEqual(conf["id"], {"name": "my_ta", "version": "1.2.3"})
+        self.assertEqual(conf["launcher"]["version"], "1.2.3")
+        self.assertEqual(conf["package"], {"id": "my_ta", "check_for_updates": "false"})
+        self.assertEqual(conf["ui"]["label"], "my_ta")
+        self.assertEqual(conf["install"], {"is_configured": "false"})
+
     def test_onboard_stops_when_repository_has_commits(self):
         environment = {"SYSTEM_ACCESSTOKEN": "t", "SYSTEM_COLLECTIONURI": "https://dev.azure.com/<org>/",
                        "SYSTEM_TEAMPROJECTID": "<project-id>"}
