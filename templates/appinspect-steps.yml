@@ -1,0 +1,33 @@
+# Run AppInspect on the package in distDirectory, then publish and show its reports.
+parameters:
+  - name: distDirectory
+    type: string
+  - name: artifact
+    type: string
+
+steps:
+  - script: python $(Pipeline.Workspace)/tools/release.py appinspect ${{ parameters.distDirectory }}
+    displayName: Run AppInspect
+    env: # secrets reach scripts only when mapped
+      SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
+  - task: CopyFiles@2
+    displayName: Collect AppInspect reports
+    inputs:
+      SourceFolder: ${{ parameters.distDirectory }}
+      Contents: appinspect-report.*
+      TargetFolder: $(Pipeline.Workspace)/appinspect-report
+    condition: succeededOrFailed()
+  - publish: $(Pipeline.Workspace)/appinspect-report
+    displayName: Publish the AppInspect report artifact
+    artifact: ${{ parameters.artifact }}
+    condition: succeededOrFailed()
+  - script: python -m json.tool $(Pipeline.Workspace)/appinspect-report/appinspect-report.json
+    displayName: Show AppInspect JSON report
+    condition: succeededOrFailed()
+  - script: python $(Pipeline.Workspace)/tools/release.py appinspect-link
+    displayName: Show AppInspect HTML report link
+    env:
+      SYSTEM_COLLECTIONURI: $(System.CollectionUri)
+      SYSTEM_TEAMPROJECTID: $(System.TeamProjectId)
+      BUILD_BUILDID: $(Build.BuildId)
+    condition: succeededOrFailed()

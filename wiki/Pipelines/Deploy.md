@@ -10,7 +10,7 @@ The pipeline is named `deploy-apps` in [Manual pipelines](/Setup/Manual-pipeline
 | Parameter | Values | Default | Effect |
 | --- | --- | --- | --- |
 | `environment` | `nonprod`, `prod` | `nonprod` | Stack to deploy to. Stages use `splunk-<environment>` and wait for its approval. |
-| `apps` | App IDs separated by `;` | empty | Apps to deploy, such as `my_app;other_app`. Each app must be in the splunk-apps feed. |
+| `apps` | App IDs separated by `;` | empty | Apps to deploy, such as `my_app;other_app`. Apps missing from the splunk-apps feed are released first. |
 | `compare` | on, off | on | Compare each app with the environment first. One compare stage per app. |
 | `install` | on, off | on | Install each app with one ACS bulk command. |
 | `uninstall` | on, off | off | DANGER: uninstall each app first. Read [DANGER: uninstall](#danger-uninstall). |
@@ -38,14 +38,22 @@ Verify that the run shows one compare stage per app and one install stage. The i
 
 ## Stages
 
+- **`release_missing`** (Package and upload apps missing from the splunk-apps feed): runs when app IDs are
+  set. Each app gets three jobs:
+  - **Check `<app>` in the splunk-apps feed** runs `release.py feed-missing`.
+  - **Package `<app>` and run AppInspect** runs only when the feed has no version of the app. It checks out the
+    app repository's `main`, packages it, and runs the same AppInspect steps as the app pipeline.
+  - **Upload `<app>` to the splunk-apps feed** runs after the package job passes. It tags the version and
+    uploads the package with the same steps as the app pipeline's Release stage.
 - **`compare_<app>`** (Compare `<app>` with `<environment>`): runs when `compare` is on. It waits for
-  nothing. All compare stages start at once.
+  `release_missing`. All compare stages then start at once.
 - **`uninstall`** (Uninstall apps from `<environment>`): runs when `uninstall` is on and app IDs are set.
-  It waits for every compare stage, when `compare` is on, and for the `splunk-<environment>` approval.
+  It waits for `release_missing`, for every compare stage when `compare` is on, and for the
+  `splunk-<environment>` approval.
 - **`restart_uninstall`** (Restart `<environment>` if required after the uninstalls): runs when `uninstall`
   is on and app IDs are set, whatever `restart` is. It waits for `uninstall`.
 - **`install`** (Install apps on `<environment>`): runs when `install` is on and app IDs are set. It waits
-  for every compare stage, when `compare` is on. It also waits for `restart_uninstall`, when `uninstall` is
+  for `release_missing`, and for every compare stage when `compare` is on. It also waits for `restart_uninstall`, when `uninstall` is
   on, and for the approval.
 - **`restart`** (Restart `<environment>` if required after the installs): runs when `restart` and `install`
   are on and app IDs are set. It waits for `install`.

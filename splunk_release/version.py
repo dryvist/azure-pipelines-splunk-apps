@@ -186,6 +186,13 @@ def feed_check(name):
         sys.exit(f"{name} is not in the splunk-apps feed; run its app pipeline on main to release it")
     print(f"{name} is in the splunk-apps feed")
 
+def feed_missing(name):
+    """Set the MISSING output variable to true when the splunk-apps feed holds no version of this app."""
+    name = name.lower()
+    missing = not feed_versions(name)
+    print(f"{name} is {'not ' if missing else ''}in the splunk-apps feed")
+    print(f"##vso[task.setvariable variable=MISSING;isOutput=true]{str(missing).lower()}")
+
 def feed_versions(name):
     """Return every version the splunk-apps feed holds for this package name."""
     e = os.environ

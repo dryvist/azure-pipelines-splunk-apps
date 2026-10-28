@@ -1,0 +1,22 @@
+# Tag the release version in $(Pipeline.Workspace)/app, then upload the package to the splunk-apps feed.
+parameters:
+  - name: publishDirectory
+    type: string
+
+steps:
+  - script: python ../tools/release.py tag
+    workingDirectory: $(Pipeline.Workspace)/app
+    displayName: Tag the release version
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+  - task: UniversalPackages@0
+    displayName: Upload the package to the splunk-apps feed
+    condition: and(succeeded(), ne(variables['PACKAGE_PUBLISHED'], 'true'))
+    inputs:
+      command: publish
+      publishDirectory: ${{ parameters.publishDirectory }}
+      feedsToUsePublish: internal
+      vstsFeedPublish: $(System.TeamProject)/splunk-apps
+      vstsFeedPackagePublish: $(APP_ID)
+      versionOption: custom
+      versionPublish: $(APP_VERSION)

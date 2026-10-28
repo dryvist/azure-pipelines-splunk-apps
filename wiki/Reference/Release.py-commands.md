@@ -18,6 +18,8 @@ Every ACS command retries every 30 seconds for up to 15 minutes while ACS return
 - `feed-check <app-id>` prints that the app is in the `splunk-apps` feed. Otherwise it fails with
   `<app-id> is not in the splunk-apps feed; run its app pipeline on main to release it`. It reads
   `SYSTEM_ACCESSTOKEN`.
+- `feed-missing <app-id>` sets the `MISSING` output variable to `true` when the `splunk-apps` feed holds no
+  version of the app, otherwise `false`. It reads `SYSTEM_ACCESSTOKEN`.
 - `appinspect <dir>` uses `SPLUNK_USERNAME` and `SPLUNK_PASSWORD`.
 - `appinspect-link` prints the current build's AppInspect artifact link.
 - `plan` prints each stage the run executes, with the rule behind each one. It reads `BUILD_REASON` and

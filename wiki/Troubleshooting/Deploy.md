@@ -16,14 +16,16 @@ Use this page to fix deploy failures, waits, and version checks.
 
 ## `<app-id> is not in the splunk-apps feed`
 
-**Symptom:** The **Check `<app-id>` is in the splunk-apps feed** step fails. The app pipeline has not finished a
-**Release** stage on `main`.
+**Symptom:** The **Check `<app-id>` is in the splunk-apps feed** step fails. The `release_missing` stage did not
+upload the app.
 
 **Fix:**
 
-1. Open the app's pipeline and select **Run pipeline**.
-2. Select the `main` branch and select **Run**.
-3. Wait for the **Release** stage to finish. See [App: Check a release](/Pipelines/App#check-a-release).
+1. Open the `release_missing` stage and find the app's failed job.
+2. For **Package `<app-id>` and run AppInspect**, open the `appinspect-report-<app-id>-<attempt>` artifact and fix
+   the failures on `main`.
+3. For **Upload `<app-id>` to the splunk-apps feed**, grant the Build Service rights in
+   [Build Service: App repository](/Setup/Build-service#app-repository).
 4. Start a new deploy run with the app ID.
 
 ## `ACS is busy with another deployment task`

@@ -18,6 +18,7 @@
   install-acs
   appinspect-link
   feed-check <app-id>
+  feed-missing <app-id>
   tag
   import <env> <export-dir> [flags]
   onboard <app>
@@ -37,7 +38,7 @@ from splunk_release.azure import appinspect_link, plan, run_cli
 from splunk_release.compare import data_models, diff, local_diff, tree
 from splunk_release.import_app import import_app, onboard
 from splunk_release.package import package
-from splunk_release.version import bump, feed_check, tag
+from splunk_release.version import bump, feed_check, feed_missing, tag
 
 
 def acs_command(*args):
@@ -63,6 +64,7 @@ commands = {
     "install-acs": install_acs,
     "appinspect-link": appinspect_link,
     "feed-check": feed_check,
+    "feed-missing": feed_missing,
     "tag": tag,
     "import": import_app,
     "onboard": onboard,
