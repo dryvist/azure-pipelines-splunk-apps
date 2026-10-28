@@ -12,20 +12,24 @@ repository needs.
 3. Select `<project> Build Service (<organization>)`. Set **Create build pipeline** to **Allow**.
 
 Onboard adds each new app pipeline to the **Pipeline permissions** of every variable group and environment.
-That needs the **Administrator** role. **User** is not enough.
+That needs the **Administrator** role. **User** is not enough. Grant it on nonprod resources only.
 
 1. Open **Pipelines → Environments**, then `splunk-nonprod`.
 2. Select **⋮**, then **Security**.
 3. Under **User permissions**, add `<project> Build Service (<organization>)` with the **Administrator** role.
-4. Repeat steps 1 to 3 for `splunk-prod`.
-5. Open **Pipelines → Library**, then the `splunk-nonprod` variable group.
-6. Select **Security**. Add `<project> Build Service (<organization>)` with the **Administrator** role.
-7. Repeat steps 5 and 6 for `splunk-appinspect`, `splunk-itsi-nonprod`, `splunk-prod`, and `splunk-itsi-prod`.
+4. Open **Pipelines → Library**, then the `splunk-nonprod` variable group.
+5. Select **Security**. Add `<project> Build Service (<organization>)` with the **Administrator** role.
+6. Repeat steps 4 and 5 for `splunk-appinspect` and `splunk-itsi-nonprod`.
 
 Onboard also needs **Administer** on the `tools` repository.
 
-If Onboard warns that it could not authorize a resource, open that resource and add the new app pipeline under
-**Pipeline permissions**.
+Keep the Build Service at **User** or **Reader** on `splunk-prod`, `splunk-prod` (variable group), and
+`splunk-itsi-prod`. An Administrator can change the prod approvals and checks. Onboard warns that it could not
+authorize them. The first time a new app pipeline reaches prod, a person selects **Permit** on the run. Every
+prod deploy still waits for the prod approval. Do not set **Open access** on the prod variable groups.
+
+If Onboard warns that it could not authorize a nonprod resource, open that resource and add the new app
+pipeline under **Pipeline permissions**.
 
 ## App repository
 
