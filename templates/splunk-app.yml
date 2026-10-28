@@ -148,7 +148,7 @@ stages:
         name: proddiff
         displayName: Compare with prod
         environment: prod
-        dependsOn: nonprod
+        dependsOn: appinspect
         condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
         pool: ${{ parameters.pool }}
         packageDirectory: $(Pipeline.Workspace)/dist
@@ -159,7 +159,7 @@ stages:
 
     - stage: release
       displayName: Release
-      dependsOn: proddiff
+      dependsOn: [nonprod, proddiff]
       condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
       jobs:
         - job: release

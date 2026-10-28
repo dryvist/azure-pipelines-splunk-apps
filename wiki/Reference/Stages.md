@@ -9,8 +9,8 @@ stages that other pipelines share.
 | 2 | `appinspect` | AppInspect | After `build`, unless the build pushed a version bump |
 | 3 | `nonproddiff` | Compare with nonprod | Pull request or `main` |
 | 4 | `nonprod` | Deploy to nonprod | Pull request or `main`, after `nonproddiff` |
-| 5 | `proddiff` | Compare with prod | Pull request or `main`, after `nonprod` |
-| 6 | `release` | Release | `main`, after `proddiff` |
+| 5 | `proddiff` | Compare with prod | Pull request or `main`, after `appinspect`, in parallel with `nonprod` |
+| 6 | `release` | Release | `main`, after `nonprod` and `proddiff` |
 | 7 | `prod` | Deploy to prod | `main`, after `release`, after approval |
 
 The import stages, `import_nonprod` and `import_prod`, run only when an import option is selected. See
@@ -120,7 +120,7 @@ template can uninstall the app before installation when that is enabled.
 
 Stage `proddiff`, displayed as **Compare with prod**:
 
-- **Does:** runs after `nonprod` on pull requests and `main` runs.
+- **Does:** runs after `appinspect`, in parallel with `nonprod`, on pull requests and `main` runs.
 - **Inputs:** the `dist` package, the `splunk-prod` group, and the `splunk-itsi-prod` group.
 - **Outputs:** the `prod-diff-<app-id>-<attempt>` and `itsi-prod-diff-<app-id>-<attempt>` artifacts.
 
@@ -133,7 +133,7 @@ tools, sets up the ACS CLI, checks the stack status, and exports the installed a
 
 Stage `release`:
 
-- **Does:** runs after `proddiff` on `refs/heads/main`.
+- **Does:** runs after `nonprod` and `proddiff` on `refs/heads/main`.
 - **Inputs:** `dist`, the app repo checkout, the repository credentials, and the `splunk-apps` package feed.
 - **Outputs:** the version tag, and the Universal Package in the feed.
 

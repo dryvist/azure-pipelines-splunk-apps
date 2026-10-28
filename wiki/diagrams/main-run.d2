@@ -103,7 +103,8 @@ page: "" {
     prod: "08 · Deploy to prod\n(approval on main)" {class: [card; emphasis]; width: 260}
   }
   first.build -> second.inspect: {class: link}
-  second.nonprod -> third.proddiff: {class: link}
+  second.inspect -> third.proddiff: {class: link}
+  second.nonprod -> third.release: {class: link}
   third.release -> fourth.prod: {class: link-emphasis}
 
 }
