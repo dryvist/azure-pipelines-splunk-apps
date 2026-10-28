@@ -24,15 +24,6 @@ parameters:
 variables:
   appIds: ${{ replace(replace(trim(parameters.apps), '; ', ';'), ' ', ';') }}
 
-# One repository resource per app, named after the app.
-resources:
-  repositories:
-    - ${{ each app in split(variables.appIds, ';') }}:
-        - ${{ if ne(app, '') }}:
-            - repository: app_${{ replace(replace(app, '-', '_'), '.', '_') }}
-              type: git
-              name: ${{ app }}
-
 jobs:
   - ${{ each app in split(variables.appIds, ';') }}:
       - ${{ if ne(app, '') }}:
@@ -42,7 +33,7 @@ jobs:
               clean: all
             uses:
               repositories:
-                - app_${{ replace(replace(app, '-', '_'), '.', '_') }}
+                - ${{ app }}
             variables:
               - group: ${{ parameters.target }}-${{ parameters.environment }}
             steps:
