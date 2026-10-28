@@ -109,32 +109,11 @@ stages:
             - template: dist-package.yml
               parameters:
                 setup: ${{ parameters.setup }}
-            - script: python $(Pipeline.Workspace)/tools/release.py appinspect $(Pipeline.Workspace)/dist
-              displayName: Run AppInspect
-              env: # secrets reach scripts only when mapped
-                SPLUNK_PASSWORD: $(SPLUNK_PASSWORD)
-            - task: CopyFiles@2
-              displayName: Collect AppInspect reports
-              inputs:
-                SourceFolder: $(Pipeline.Workspace)/dist
-                Contents: appinspect-report.*
-                TargetFolder: $(Pipeline.Workspace)/appinspect-report
-              condition: succeededOrFailed()
-            # Each job attempt publishes its own artifact.
-            - publish: $(Pipeline.Workspace)/appinspect-report
-              displayName: Publish the AppInspect report artifact
-              artifact: appinspect-report-$(System.JobAttempt)
-              condition: succeededOrFailed()
-            - script: python -m json.tool $(Pipeline.Workspace)/appinspect-report/appinspect-report.json
-              displayName: Show AppInspect JSON report
-              condition: succeededOrFailed()
-            - script: python $(Pipeline.Workspace)/tools/release.py appinspect-link
-              displayName: Show AppInspect HTML report link
-              env:
-                SYSTEM_COLLECTIONURI: $(System.CollectionUri)
-                SYSTEM_TEAMPROJECTID: $(System.TeamProjectId)
-                BUILD_BUILDID: $(Build.BuildId)
-              condition: succeededOrFailed()
+            - template: appinspect-steps.yml
+              parameters:
+                distDirectory: $(Pipeline.Workspace)/dist
+                # Each job attempt publishes its own artifact.
+                artifact: appinspect-report-$(System.JobAttempt)
 
     - template: compare-stage.yml
       parameters:
@@ -195,22 +174,9 @@ stages:
             - template: dist-package.yml
               parameters:
                 setup: ${{ parameters.setup }}
-            - script: python ../tools/release.py tag
-              workingDirectory: $(Pipeline.Workspace)/app
-              displayName: Tag the release version
-              env:
-                SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-            - task: UniversalPackages@0
-              displayName: Publish the package to the splunk-apps feed
-              condition: and(succeeded(), ne(variables['PACKAGE_PUBLISHED'], 'true'))
-              inputs:
-                command: publish
+            - template: feed-publish.yml
+              parameters:
                 publishDirectory: $(Pipeline.Workspace)/dist
-                feedsToUsePublish: internal
-                vstsFeedPublish: $(System.TeamProject)/splunk-apps
-                vstsFeedPackagePublish: $(APP_ID)
-                versionOption: custom
-                versionPublish: $(APP_VERSION)
 
     # Waits for the splunk-prod approval; a timed-out approval skips this stage. The proddiff stage runs the prod compare.
     - template: deploy-stage.yml

@@ -1,0 +1,68 @@
+# One stage that packages, runs AppInspect on, and uploads each app the splunk-apps feed does not hold yet.
+parameters:
+  # App IDs separated by ;.
+  - name: apps
+    type: string
+
+stages:
+  - stage: release_missing
+    displayName: Package and upload apps missing from the splunk-apps feed
+    jobs:
+      - ${{ each app in split(parameters.apps, ';') }}:
+          - ${{ if ne(app, '') }}:
+              - job: check_${{ replace(replace(app, '-', '_'), '.', '_') }}
+                displayName: Check ${{ lower(app) }} in the splunk-apps feed
+                steps:
+                  - checkout: self
+                    path: tools
+                  - template: python.yml
+                  - script: python $(Pipeline.Workspace)/tools/release.py feed-missing ${{ app }}
+                    name: feed
+                    displayName: Check ${{ lower(app) }} in the splunk-apps feed
+                    env:
+                      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+              - job: package_${{ replace(replace(app, '-', '_'), '.', '_') }}
+                displayName: Package ${{ app }} and run AppInspect
+                dependsOn: check_${{ replace(replace(app, '-', '_'), '.', '_') }}
+                condition: and(succeeded(), eq(dependencies.check_${{ replace(replace(app, '-', '_'), '.', '_') }}.outputs['feed.MISSING'], 'true'))
+                workspace:
+                  clean: all
+                variables:
+                  - group: splunk-appinspect
+                steps:
+                  - checkout: self
+                    path: tools
+                  - checkout: git://${{ variables['System.TeamProject'] }}/${{ app }}
+                    path: app
+                  - template: python.yml
+                  - template: diff-tools.yml
+                    parameters:
+                      includePackagingToolkit: true
+                  - script: python ../tools/release.py package
+                    workingDirectory: $(Pipeline.Workspace)/app
+                    displayName: Package ${{ app }}
+                  - publish: $(Pipeline.Workspace)/app/dist
+                    displayName: Publish the package artifact (dist-${{ lower(app) }})
+                    artifact: dist-${{ lower(app) }}
+                  - template: appinspect-steps.yml
+                    parameters:
+                      distDirectory: $(Pipeline.Workspace)/app/dist
+                      artifact: appinspect-report-${{ lower(app) }}-$(System.JobAttempt)
+              - job: upload_${{ replace(replace(app, '-', '_'), '.', '_') }}
+                displayName: Upload ${{ app }} to the splunk-apps feed
+                dependsOn: package_${{ replace(replace(app, '-', '_'), '.', '_') }}
+                workspace:
+                  clean: all
+                steps:
+                  - checkout: self
+                    path: tools
+                  - checkout: git://${{ variables['System.TeamProject'] }}/${{ app }}
+                    path: app
+                    persistCredentials: true
+                  - template: python.yml
+                  - download: current
+                    displayName: Download the package artifact (dist-${{ lower(app) }})
+                    artifact: dist-${{ lower(app) }}
+                  - template: feed-publish.yml
+                    parameters:
+                      publishDirectory: $(Pipeline.Workspace)/dist-${{ lower(app) }}

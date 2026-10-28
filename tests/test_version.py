@@ -67,6 +67,12 @@ def check_version():
             raise AssertionError("an app missing from the feed should exit")
         except SystemExit as error:
             assert "other_ta is not in the splunk-apps feed" in str(error)
+        output = io.StringIO()
+        with redirect_stdout(output):
+            version_module.feed_missing("MY_TA")
+            version_module.feed_missing("other_ta")
+        assert output.getvalue().count("variable=MISSING;isOutput=true]false") == 1
+        assert output.getvalue().count("variable=MISSING;isOutput=true]true") == 1
 
 
 class VersionTests(TestCase):

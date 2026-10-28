@@ -147,7 +147,7 @@ Job `release` tags the app commit and publishes the package. Its steps, in order
 - **Tag the release version:** creates and pushes `v<version>`, and sets `APP_ID` and `APP_VERSION`. When the feed
   already holds that version, it prints `<app-id> <version> is already in the splunk-apps feed, skipping publish`
   and sets `PACKAGE_PUBLISHED`.
-- **Publish the package to the splunk-apps feed (`UniversalPackages@0`):** publishes the package. It is skipped when
+- **Upload the package to the splunk-apps feed (`UniversalPackages@0`):** uploads the package. It is skipped when
   `PACKAGE_PUBLISHED` is `true`.
 
 ## Prod

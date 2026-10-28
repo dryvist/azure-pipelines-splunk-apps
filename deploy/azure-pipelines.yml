@@ -34,6 +34,10 @@ variables:
   appIds: ${{ replace(replace(trim(parameters.apps), '; ', ';'), ' ', ';') }}
 
 stages:
+  - ${{ if ne(trim(parameters.apps), '') }}:
+    - template: ../templates/release-missing-stage.yml
+      parameters:
+        apps: ${{ variables.appIds }}
   - ${{ each app in split(variables.appIds, ';') }}:
       - ${{ if and(ne(app, ''), parameters.compare) }}:
           - template: ../templates/compare-stage.yml
@@ -41,6 +45,8 @@ stages:
               name: compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
               displayName: Compare ${{ app }} with ${{ parameters.environment }}
               environment: ${{ parameters.environment }}
+              dependsOn:
+                - release_missing
               packageDirectory: $(Pipeline.Workspace)/packages/${{ lower(app) }}
               steps:
                 - template: ../templates/feed-package.yml
@@ -53,6 +59,7 @@ stages:
         displayName: Uninstall apps from ${{ parameters.environment }}
         environment: ${{ parameters.environment }}
         dependsOn:
+          - release_missing
           - ${{ if parameters.compare }}:
               - ${{ each app in split(variables.appIds, ';') }}:
                   - ${{ if ne(app, '') }}:
@@ -82,6 +89,7 @@ stages:
         displayName: Install apps on ${{ parameters.environment }}
         environment: ${{ parameters.environment }}
         dependsOn:
+          - release_missing
           - ${{ if parameters.compare }}:
               - ${{ each app in split(variables.appIds, ';') }}:
                   - ${{ if ne(app, '') }}:
