@@ -110,7 +110,7 @@ def check_import_app(environment, *flags):
         skipped = "--skip-lookups" in flags
         assert (package / "lookups" / "keep.csv").read_text() == ("h\nmain\n" if skipped else "h\nexported\n")
         assert (package / "lookups" / "new.csv").exists() != skipped
-        assert (package / "lookups" / "lookup_file_backups").exists() == (not flags)
+        assert not (package / "lookups" / "lookup_file_backups").exists()
         assert not (package / "local" / "props.conf").exists()
         assert not (package / "local" / "data" / "ui" / "views" / "example.xml").exists()
         assert not (package / "users" / "admin" / "local" / "savedsearches.conf").exists()
@@ -134,8 +134,7 @@ def check_import_app(environment, *flags):
 class ImportAppTests(TestCase):
     def test_import_app(self):
         check_import_app("nonprod", "--skip-lookups")
-        check_import_app("prod", "--skip-lookup-backups")
-        check_import_app("nonprod")
+        check_import_app("prod")
 
     def test_onboard(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -310,6 +309,5 @@ class ImportAppTests(TestCase):
 
 if __name__ == "__main__":
     check_import_app("nonprod", "--skip-lookups")
-    check_import_app("prod", "--skip-lookup-backups")
-    check_import_app("nonprod")
+    check_import_app("prod")
     print("ok")

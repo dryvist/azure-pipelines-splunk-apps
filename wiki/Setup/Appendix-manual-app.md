@@ -39,10 +39,6 @@ does the same work.
        displayName: When importing, skip lookups (CSV files) and keep the ones on main
        type: boolean
        default: true
-     - name: skipLookupBackups
-       displayName: When importing, skip Splunk lookup backups (lookups/lookup_file_backups)
-       type: boolean
-       default: true
 
    trigger:
      branches:
@@ -60,7 +56,6 @@ does the same work.
        importFromNonprod: ${{ parameters.importFromNonprod }}
        importFromProd: ${{ parameters.importFromProd }}
        skipLookups: ${{ parameters.skipLookups }}
-       skipLookupBackups: ${{ parameters.skipLookupBackups }}
        pool:
          name: <agent-pool>
    ```

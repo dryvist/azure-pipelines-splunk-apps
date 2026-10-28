@@ -103,6 +103,7 @@ def clean_export(export_dir, destination, app, flags=(), label=None, transform=N
         if "--skip-lookups" in flags and (destination / "lookups").is_dir():
             # Keep the lookups already at destination.
             shutil.copytree(destination / "lookups", imported / "lookups")
+        shutil.rmtree(imported / compare.BACKUPS, ignore_errors=True)
         result = transform(imported) if transform else None
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.rmtree(destination, ignore_errors=True)

@@ -11,6 +11,7 @@ parameters:
   - name: skipLookups
     type: boolean
     default: true
+  # Ignored. Imports and compares always leave out lookups/lookup_file_backups.
   - name: skipLookupBackups
     type: boolean
     default: true
@@ -56,7 +57,7 @@ stages:
                 - template: import-steps.yml
                   parameters:
                     environment: ${{ env }}
-                    flags: ${{ iif(parameters.skipLookups, '--skip-lookups', '') }} ${{ iif(parameters.skipLookupBackups, '--skip-lookup-backups', '') }}
+                    flags: ${{ iif(parameters.skipLookups, '--skip-lookups', '') }}
   - ${{ else }}:
     - stage: build
       displayName: Build

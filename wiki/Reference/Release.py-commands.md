@@ -54,8 +54,8 @@ Every ACS command retries every 30 seconds for up to 15 minutes while ACS return
 - `tree <target-dir> <source-dir> <out-dir>` compares all raw files in each app before merging. It writes
   `<app-id>-tree.txt` with added, removed, and changed paths. Each path shows its line count. A changed path also
   shows the share of lines added or removed, such as `8% (120 -> 135 lines)`. Files that differ only in line
-  endings, trailing spaces, or trailing blank lines count as unchanged. Changes under `users/` and
-  `lookups/lookup_file_backups/` print in one collapsed group per folder. The `diff` summary's user files print in
+  endings, trailing spaces, or trailing blank lines count as unchanged. Changes under `users/` print in
+  one collapsed group. The `diff` summary's user files print in
   a collapsed `User files` group.
 - `local-diff <target-dir> <source-dir> <out-dir>` compares each target local file with the same stanzas in the
   source default file. It writes `<app-id>-local-vs-default.diff`. Lines with `-` are target local settings.
@@ -87,14 +87,14 @@ Every ACS command retries every 30 seconds for up to 15 minutes while ACS return
 
 ## Onboard and import
 
-- `import <env> <export-dir> [--skip-lookups] [--skip-lookup-backups]` merges local app configuration into
+- `import <env> <export-dir> [--skip-lookups]` merges local app configuration into
   default. It removes `local/`, `users/`, and `metadata/local.meta`. It sets both version rows to one patch above
   the highest of `main` and the splunk-apps feed versions. It regenerates `app.manifest`, commits the package,
   pushes a new `<env>-import/` branch, and opens a pull request to `main`. It uses `BUILD_BUILDID`,
   `BUILD_REPOSITORY_ID`, `BUILD_REPOSITORY_NAME`, `SYSTEM_ACCESSTOKEN`, `SYSTEM_COLLECTIONURI`,
   `SYSTEM_TEAMPROJECT`, and `SYSTEM_TEAMPROJECTID`. `--skip-lookups` keeps the `lookups/` folder on `main`.
-  `--skip-lookup-backups` leaves out `lookups/lookup_file_backups/`. The compare commands take the same two options
-  and remove those folders on both sides.
+  The compare commands take the same option and remove `lookups/` on both sides. Import and compare always remove
+  `lookups/lookup_file_backups/`.
 - `onboard <app>` stops unless the repository named after the app is empty. It also stops unless ACS lists the
   app as installed and not from Splunkbase. It then exports the app and writes the sanitized export to
   `package/`. It copies `example/azure-pipelines.yml`, pushes the initial `main` commit, and creates the app

@@ -265,8 +265,9 @@ def local_vs_default(target, source, work, reverse=False):
         report.append((name, status, result.stdout))
     return report
 
-SKIPPED = {"--skip-lookups": "lookups", "--skip-lookup-backups": "lookups/lookup_file_backups"}
-COLLAPSED = ("users", "lookups/lookup_file_backups")
+SKIPPED = {"--skip-lookups": "lookups"}
+BACKUPS = "lookups/lookup_file_backups"
+COLLAPSED = ("users",)
 
 def collapsed(path):
     """The COLLAPSED folder that holds path, or None."""
@@ -290,6 +291,8 @@ def each_app(target_dir, source_dir, out_dir, flags=()):
             target, source = Path(tmp, "target"), Path(tmp, "source")
             extract(targets.get(app), target)
             extract(sources.get(app), source)
+            for root in (target, source):
+                shutil.rmtree(root / BACKUPS, ignore_errors=True)
             for flag, folder in SKIPPED.items():
                 if flag in flags:
                     print(f"{folder}/ skipped on both sides")
