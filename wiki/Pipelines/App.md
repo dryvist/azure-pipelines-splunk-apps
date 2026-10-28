@@ -76,7 +76,15 @@ The stage is named `import_<env>`, where `<env>` is `nonprod` or `prod`.
    `metadata/local.meta`. It sets both app version rows to one patch above the highest version on `main` or
    in the splunk-apps feed. It regenerates `app.manifest`. It sets `acceleration = false` in
    `datamodels.conf` and removes `action.populate_lookup` from `savedsearches.conf`, with one warning per
-   stanza.
+   stanza. In `app.conf`, it sets the settings Splunk Cloud AppInspect requires, with one warning each:
+   - `[id] name` and `[package] id` are the app ID.
+   - `[id] version` and `[launcher] version` match. They default to `1.0.0`.
+   - `[package] check_for_updates = false`.
+   - `[ui] label` is 5 to 80 characters. It defaults to the app ID.
+   - `[install] is_configured = true` becomes `false`. `install_source_checksum`,
+     `install_source_local_checksum`, and `state_change_requires_restart` are removed.
+
+   Onboard does the same cleanup.
 8. The stack keeps its own `local/` values. An acceleration turned on in Splunk Web stays on after a deploy.
 
 ## Check a run
