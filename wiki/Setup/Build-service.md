@@ -11,8 +11,21 @@ repository needs.
 2. Select **Pipelines**, then **More actions**, then **Manage security**.
 3. Select `<project> Build Service (<organization>)`. Set **Create build pipeline** to **Allow**.
 
-The Onboard pipeline also needs the Build Service to have **Administer** or **User** on the variable groups
-and environments. It also needs **Administer** on the `tools` repository.
+Onboard adds each new app pipeline to the **Pipeline permissions** of every variable group and environment.
+That needs the **Administrator** role. **User** is not enough.
+
+1. Open **Pipelines → Environments**, then `splunk-nonprod`.
+2. Select **⋮**, then **Security**.
+3. Under **User permissions**, add `<project> Build Service (<organization>)` with the **Administrator** role.
+4. Repeat steps 1 to 3 for `splunk-prod`.
+5. Open **Pipelines → Library**, then the `splunk-nonprod` variable group.
+6. Select **Security**. Add `<project> Build Service (<organization>)` with the **Administrator** role.
+7. Repeat steps 5 and 6 for `splunk-appinspect`, `splunk-itsi-nonprod`, `splunk-prod`, and `splunk-itsi-prod`.
+
+Onboard also needs **Administer** on the `tools` repository.
+
+If Onboard warns that it could not authorize a resource, open that resource and add the new app pipeline under
+**Pipeline permissions**.
 
 ## App repository
 
