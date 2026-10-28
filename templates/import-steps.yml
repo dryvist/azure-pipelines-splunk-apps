@@ -2,7 +2,7 @@
 parameters:
   - name: environment
     type: string
-  # --skip-lookups and --skip-lookup-backups, used by both the compare and the import.
+  # --skip-lookups, used by both the compare and the import.
   - name: flags
     type: string
     default: ''

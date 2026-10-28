@@ -121,10 +121,6 @@ def check_compare():
             compare.diff(target_dir, source_dir, reverse, "--reverse")
         assert "source-only.conf [removed]" in (reverse / "my_ta-tree.txt").read_text()
         assert "only.csv" not in (reverse / "my_ta-tree.txt").read_text()
-        no_backups = Path(tmp, "no-backups")
-        with redirect_stdout(io.StringIO()):
-            compare.tree(target_dir, source_dir, no_backups, "--skip-lookup-backups")
-        assert "lookup_file_backups" not in (no_backups / "my_ta-tree.txt").read_text()
         assert "+value = local" in (reverse / "my_ta-local-vs-default.diff").read_text()
         assert "-value = package" in (reverse / "my_ta.patch").read_text()
         assert "[new] [added]" in (reverse / "my_ta-stanzas.txt").read_text()
@@ -211,7 +207,7 @@ def check_compare():
         assert head in logs and logs.endswith("User files\n" + users)
         assert "my_ta: target vs source" in logs
         assert "users/ (1 files)\nusers/\n  admin/" in logs
-        assert "lookups/lookup_file_backups/ (1 files)\nlookups/\n  lookup_file_backups/" in logs
+        assert "lookup_file_backups" not in logs and "lookup_file_backups" not in tree_text
         merged_path = out / "my_ta-merged.tar.gz"
         assert merged_path.exists()
         with tarfile.open(merged_path, "r:gz") as archive:

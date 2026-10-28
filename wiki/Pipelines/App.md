@@ -36,10 +36,11 @@ option uses its `splunk-itsi-<env>` variable group.
 | `importFromNonprod` | on, off | off | Adds the `import_nonprod` stage. It exports from nonprod and opens a pull request. |
 | `importFromProd` | on, off | off | Adds the `import_prod` stage. It exports from prod and opens a pull request. |
 | `skipLookups` | on, off | on | Leaves `lookups/` out of both sides. The pull request keeps the lookups on `main`. |
-| `skipLookupBackups` | on, off | on | Leaves `lookups/lookup_file_backups/` out. The pull request does not add the backups. |
 
 An app repository whose `azure-pipelines.yml` has no `skipLookups` parameter always skips lookups. One
-without `importFromProd` shows no prod option. The same rule applies to `skipLookupBackups`.
+without `importFromProd` shows no prod option.
+
+Imports and compares always leave out `lookups/lookup_file_backups/`. An import removes them from the app.
 
 ### Run an import
 
@@ -49,9 +50,8 @@ without `importFromProd` shows no prod option. The same rule applies to `skipLoo
 4. Select **Import this app from nonprod into a new pull request**, **Import this app from prod into a new
    pull request**, or both. Each selected option makes its own import stage and pull request.
 5. To import lookups too, clear **When importing, skip lookups (CSV files) and keep the ones on main**.
-6. To import lookup backups too, clear **When importing, skip Splunk lookup backups (lookups/lookup_file_backups)**.
-7. Select **Run**.
-8. Open the `<env>-diff-<app-id>-<attempt>` artifact and review it. Edit the pull request to choose what to
+6. Select **Run**.
+7. Open the `<env>-diff-<app-id>-<attempt>` artifact and review it. Edit the pull request to choose what to
    keep, or close it to discard the import.
 
 Each run creates a new branch named `<env>-import/<version>-<Build.BuildId>` and a new pull request. The
