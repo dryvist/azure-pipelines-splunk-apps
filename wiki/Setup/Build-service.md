@@ -28,6 +28,14 @@ Keep the Build Service at **User** or **Reader** on `splunk-prod`, `splunk-prod`
 authorize them. The first time a new app pipeline reaches prod, a person selects **Permit** on the run. Every
 prod deploy still waits for the prod approval. Do not set **Open access** on the prod variable groups.
 
+Only the Administrators of the prod environment and prod variable groups can grant prod pipeline permissions
+and approve prod deploys. To see who they are:
+
+1. Open **Pipelines → Environments**, then `splunk-prod`.
+2. Select **⋮**, then **Security**.
+3. Read the names with the **Administrator** role.
+4. Select **⋮**, then **Approvals and checks**, to see the prod approvers.
+
 If Onboard warns that it could not authorize a nonprod resource, open that resource and add the new app
 pipeline under **Pipeline permissions**.
 
