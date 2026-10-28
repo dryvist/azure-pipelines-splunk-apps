@@ -179,7 +179,8 @@ def permission_request(url, headers, body=None, method=None):
         return http(url, headers, body, method=method)
     except SystemExit as error:
         if str(error.code).startswith(("HTTP 401 ", "HTTP 403 ")):
-            log("warning", "Build Service permissions are required; grant them manually")
+            log("warning", f"{str(error.code)[:8]} from {url.split('?')[0]}: give the Build Service the Administrator "
+                           "role on this resource, or add the new pipeline to its Pipeline permissions")
             return None
         raise
 
