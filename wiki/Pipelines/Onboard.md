@@ -17,9 +17,52 @@ pipeline from [Manual pipelines](/Setup/Manual-pipelines), with YAML path `/onbo
 | `target` | `splunk-itsi`, `splunk` | `splunk-itsi` | Search head to export from. Uses `<target>-<environment>`. |
 | `apps` | App IDs separated by `;` | none | Apps to export and onboard. Each app runs in its own job. |
 
-## Create each repository
+## Create the repositories
 
-Do these steps for each app before you run Onboard.
+Create one empty repository per app before you run Onboard. Each repository is named exactly the app ID.
+
+First, grant the Build Service rights once for all repositories. See
+[Build Service: App repository](/Setup/Build-service#app-repository).
+
+### Many at once
+
+Use this for several apps. It needs Python 3 and a personal access token (PAT).
+
+1. In Azure DevOps, open **User settings** (top right), then **Personal access tokens**.
+2. Select **New Token**. Set **Expiration** to 1 day.
+3. Under **Scopes**, select **Custom defined**, then **Code: Read, write, & manage**.
+4. Select **Create** and copy the token.
+5. In VS Code, create a file named `create_repos.py` outside any repository.
+6. Paste this code and save:
+
+   ```python
+   import base64, getpass, json, urllib.error, urllib.request
+
+   project = input("Project URL, such as https://dev.azure.com/<org>/<project>: ").strip().rstrip("/")
+   apps = input("App IDs separated by ;: ")
+   auth = base64.b64encode(f":{getpass.getpass('PAT: ')}".encode()).decode()
+   for app in filter(None, (name.strip() for name in apps.split(";"))):
+       request = urllib.request.Request(
+           f"{project}/_apis/git/repositories?api-version=7.1", data=json.dumps({"name": app}).encode(),
+           headers={"Authorization": f"Basic {auth}", "Content-Type": "application/json"})
+       try:
+           urllib.request.urlopen(request)
+           print(f"Created {app}")
+       except urllib.error.HTTPError as error:
+           print(f"FAILED {app}: HTTP {error.code} {error.read().decode()}")
+   ```
+
+7. Open a terminal in VS Code (**Terminal → New Terminal**).
+8. Run `python create_repos.py`. On macOS or Linux, run `python3 create_repos.py`.
+9. Paste the project URL from your browser, the app IDs such as `my_app;other_app`, and the token.
+10. Check that each app prints `Created`. `already exists` means the repository is there; Onboard stops if it
+    has commits.
+11. Delete `create_repos.py`. Revoke the token in **Personal access tokens**.
+
+HTTP 401 means the token is wrong or expired. HTTP 403 means your account lacks **Create repository**; ask a
+project administrator.
+
+### One at a time
 
 1. Open **Repos**.
 2. Open the repository list at the top and select **New repository**.
@@ -27,7 +70,6 @@ Do these steps for each app before you run Onboard.
 4. Enter the app ID as **Repository name**. Match its case exactly.
 5. Clear **Add a README**. Keep **Add a .gitignore** as **None**. The repository must be empty.
 6. Select **Create**.
-7. Grant the rights in [Build Service: App repository](/Setup/Build-service#app-repository).
 
 ## Run it
 
