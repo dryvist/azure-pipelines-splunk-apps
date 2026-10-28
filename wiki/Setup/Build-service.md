@@ -16,9 +16,10 @@ and environments. It also needs **Administer** on the `tools` repository.
 
 ## App repository
 
-Grant these rights on each new app repository before you run Onboard.
+Grant these rights once for all repositories before you run Onboard. New repositories inherit them.
 
-1. Open **Project settings → Repositories**, select the app repository, then select **Security**.
+1. Open **Project settings → Repositories**, then select **Security** at the top. To grant one repository only,
+   select it first.
 2. Find `<project> Build Service (<org>)`.
 3. Allow **Contribute**, **Contribute to pull requests**, and **Create tag**.
 
