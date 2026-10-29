@@ -57,7 +57,7 @@ def bumped(version, level):
     }[level]
 
 def version_rows(lines):
-    """Return {stanza: (line index, match)}; the [launcher] and [id] versions must match."""
+    """Return {stanza: (line index, match)} for the [launcher] and [id] version rows."""
     rows, section = {}, None
     for i, line in enumerate(lines):
         stanza = re.match(r"\s*\[(.+)\]", line)
@@ -69,14 +69,14 @@ def version_rows(lines):
         version = re.match(r"(\s*version\s*=\s*)(\S+)", line)
         if version:
             rows[section] = (i, version)
-    found = {section: match[2] for section, (_, match) in rows.items()}
-    if set(found) != VERSION_STANZAS or len(set(found.values())) != 1:
-        sys.exit(f"{CONF}: [launcher] and [id] need the same `version`, found {found}")
     return rows
 
 def app_conf_version(text):
-    _, match = version_rows(text.splitlines())["id"]
-    return match[2]
+    """The highest of the [launcher] and [id] versions."""
+    found = [match[2] for _, match in version_rows(text.splitlines()).values()]
+    if not found:
+        sys.exit(f"{CONF}: [launcher] and [id] have no `version`")
+    return highest(*found)
 
 def highest(*versions):
     """The highest x.y.z version."""
@@ -90,7 +90,10 @@ def bump_conf(text, level, *others):
 def set_version(text, version):
     """Set both app.conf version rows and preserve all other text."""
     lines = text.splitlines(keepends=True)
-    for i, match in version_rows(lines).values():
+    rows = version_rows(lines)
+    if set(rows) != VERSION_STANZAS:
+        sys.exit(f"{CONF}: [launcher] and [id] both need a `version`")
+    for i, match in rows.values():
         lines[i] = match[1] + version + lines[i][match.end() :]
     return "".join(lines)
 
@@ -113,7 +116,7 @@ def generate_manifest():
     slim("generate-manifest", "--update", str(STAGE), "-o", str(MANIFEST))
 
 def bump():
-    from splunk_release.package import sort_confs
+    from splunk_release.package import app_conf_required, sort_confs
 
     target_ref = os.environ.get("SYSTEM_PULLREQUEST_TARGETBRANCH")
     if not target_ref:
@@ -139,6 +142,7 @@ def bump():
     # Check out the PR source branch before writing the bump commit.
     git("checkout", "-B", source, f"origin/{source}")
     sort_confs(SRC)
+    app_conf_required(SRC, APP)
     target_path = f"origin/{target}:{CONF.as_posix()}"
     if subprocess.run(["git", "cat-file", "-e", target_path], capture_output=True).returncode:
         log("warning", "Target app.conf is missing, skipping bump")
@@ -148,18 +152,22 @@ def bump():
     source_version, target_version = app_conf_version(text), app_conf_version(target_text)
     log("section", "Compare source and target app versions")
     print(f"Source app.conf version {source_version}; target app.conf version {target_version}")
+    message = f"Standardize {APP} app.conf"
     if source_version != target_version:
         print("Source version already differs, skipping bump")
+    else:
+        text, new = bump_conf(
+            text, bump_level(os.environ.get("BUILD_SOURCEVERSIONMESSAGE", "")), *feed_versions(APP.lower())
+        )
+        CONF.write_text(text, **TEXT)
+        message = f"Release {APP} {new}"
+    if not subprocess.run(["git", "status", "--porcelain", "--", str(SRC)], capture_output=True, text=True).stdout:
         return
-    text, new = bump_conf(
-        text, bump_level(os.environ.get("BUILD_SOURCEVERSIONMESSAGE", "")), *feed_versions(APP.lower())
-    )
-    CONF.write_text(text, **TEXT)
     generate_manifest()
     git("add", str(SRC), str(MANIFEST))
-    git("commit", "-m", f"Release {APP} {new}")
+    git("commit", "-m", message)
     git("push", "origin", f"HEAD:{source_ref}")
-    print(f"{APP} bumped to {new}")
+    print(message)
     print("The bump commit starts the next validation run; this run stops here.")
     print("##vso[task.setvariable variable=bumped;isOutput=true]true")
 

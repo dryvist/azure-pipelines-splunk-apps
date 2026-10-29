@@ -30,8 +30,8 @@ prints the skip and runs every stage. This pair of runs is expected.
 
 ## `app.conf` has a version mismatch
 
-1. Set the same `version` in `[launcher]` and `[id]` in `package/default/app.conf`.
-2. Rerun the build.
+A pull request run sets both rows to one above the higher version and commits `app.conf`. On `main`, the package
+uses the higher version. To fix the file on `main`, open any pull request for the app.
 
 ## `ksconf sort` moves comments
 

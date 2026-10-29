@@ -26,6 +26,9 @@ def check_version():
     assert bump_conf(CONF, "minor")[1] == "1.5.0"
     assert bump_conf(CONF, "major")[1] == "2.0.0"
     assert bump_conf(CONF, "patch", "1.4.20", "1.4.3")[1] == "1.4.21"
+    # Mismatched [id] and [launcher] versions bump from the highest, and both match.
+    mismatch = "[id]\nversion = 1.2.3\n\n[launcher]\nversion = 1.3.0\n"
+    assert bump_conf(mismatch, "patch") == ("[id]\nversion = 1.3.1\n\n[launcher]\nversion = 1.3.1\n", "1.3.1")
     # Tagging sets Azure Pipelines variables after pushing the version tag.
     with tempfile.TemporaryDirectory() as tmp:
         app_conf = Path(tmp, "app.conf")
