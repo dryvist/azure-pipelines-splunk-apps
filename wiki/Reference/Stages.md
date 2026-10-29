@@ -10,8 +10,8 @@ stages that other pipelines share.
 | 3 | `nonproddiff` | Compare with nonprod | Pull request or `main` |
 | 4 | `nonprod` | Deploy to nonprod | Pull request or `main`, after `nonproddiff` |
 | 5 | `proddiff` | Compare with prod | Pull request or `main`, after `appinspect`, in parallel with `nonprod` |
-| 6 | `release` | Release | `main`, after `nonprod` and `proddiff` |
-| 7 | `prod` | Deploy to prod | `main`, after `release`, after Run stage and approval |
+| 6 | `release` | Release | `main`, after `nonprod` |
+| 7 | `prod` | Deploy to prod | `main`, after `release` and `proddiff`, after Run stage and approval |
 
 The import stages, `import_nonprod` and `import_prod`, run only when an import option is selected. See
 [App: Import](/Pipelines/App#import).
@@ -133,7 +133,7 @@ tools, sets up the ACS CLI, checks the stack status, and exports the installed a
 
 Stage `release`:
 
-- **Does:** runs after `nonprod` and `proddiff` on `refs/heads/main`.
+- **Does:** runs after `nonprod` on `refs/heads/main`. It does not wait for prod.
 - **Inputs:** `dist`, the app repo checkout, the repository credentials, and the `splunk-apps` package feed.
 - **Outputs:** the version tag, and the Universal Package in the feed.
 
@@ -154,7 +154,7 @@ Job `release` tags the app commit and publishes the package. Its steps, in order
 
 Stage `prod`, displayed as **Deploy to prod**:
 
-- **Does:** runs after **Release**, on successful `refs/heads/main` runs, only when a person selects **Run stage**.
+- **Does:** runs after **Release** and **Compare with prod**, on successful `refs/heads/main` runs, only when a person selects **Run stage**.
 - **Inputs:** `dist`, the groups `splunk-appinspect` and `splunk-prod`, and the `splunk-prod` environment.
 - **Outputs:** the app installed through ACS. The [Proddiff stage](#proddiff) holds the prod compare for the run.
 - **Approval:** waits for the `splunk-prod` Approvals check. Nothing installs without approval. A rejection stops the

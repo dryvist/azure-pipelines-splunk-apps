@@ -159,7 +159,7 @@ stages:
 
     - stage: release
       displayName: Release
-      dependsOn: [nonprod, proddiff]
+      dependsOn: nonprod
       condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
       jobs:
         - job: release
@@ -184,7 +184,7 @@ stages:
         name: prod
         displayName: Deploy to prod
         environment: prod
-        dependsOn: release
+        dependsOn: [release, proddiff]
         condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
         trigger: manual
         pool: ${{ parameters.pool }}

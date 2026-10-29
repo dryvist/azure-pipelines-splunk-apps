@@ -124,7 +124,7 @@ If the tag or package is missing, see [Release troubleshooting](/Troubleshooting
 On a `main` run, **Deploy to prod** does not start by itself. An approval for **Compare with prod** does not
 start it.
 
-1. Wait for **Release** to succeed.
+1. Wait for **Release** and **Compare with prod** to succeed.
 2. Open the run.
 3. On the **Deploy to prod** stage, select **Run stage**.
 4. Approve the `splunk-prod` check as described in [Deploy: Approve a stage](/Pipelines/Deploy#approve-a-stage).
