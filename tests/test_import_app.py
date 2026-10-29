@@ -266,14 +266,21 @@ class ImportAppTests(TestCase):
         self.assertEqual(conf["ui"]["label"], "my_ta")
         self.assertEqual(conf["install"], {"is_configured": "false"})
 
-    def test_onboard_stops_when_repository_has_commits(self):
+    def test_onboard_stops_when_package_has_files(self):
         environment = {"SYSTEM_ACCESSTOKEN": "t", "SYSTEM_COLLECTIONURI": "https://dev.azure.com/<org>/",
                        "SYSTEM_TEAMPROJECTID": "<project-id>"}
+
+        def clone(cmd, **kwargs):
+            (Path(cmd[-1]) / "package/default").mkdir(parents=True)
+            (Path(cmd[-1]) / "package/default/app.conf").write_text("[ui]\n")
+
         with (
             patch.dict(os.environ, environment),
-            patch("splunk_release.import_app.http", return_value=b'{"defaultBranch": "refs/heads/main"}'),
+            patch("splunk_release.import_app.http",
+                  return_value=b'{"defaultBranch": "refs/heads/main", "remoteUrl": "https://example.invalid/my_ta"}'),
+            patch("splunk_release.import_app.run", side_effect=clone),
             patch("splunk_release.import_app.export") as export,
-            self.assertRaisesRegex(SystemExit, "already has commits"),
+            self.assertRaisesRegex(SystemExit, "already has files in package/"),
         ):
             import_app.onboard("my_ta")
         export.assert_not_called()
