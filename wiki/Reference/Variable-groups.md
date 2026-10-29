@@ -7,7 +7,7 @@ the only page that lists the variables. To create the groups, follow [Variable g
 
 | Group | Description | Variables |
 | --- | --- | --- |
-| `splunk-appinspect` | Splunk.com account for AppInspect validation and ACS installs | `SPLUNK_USERNAME`, `SPLUNK_PASSWORD` |
+| `splunk-appinspect` | Splunk.com account for AppInspect validation and ACS installs, and the app agent pool | `SPLUNK_USERNAME`, `SPLUNK_PASSWORD`, `AGENT_POOL` |
 | `splunk-nonprod` | Nonprod Splunk Cloud stack for pull request and main installs | `SPLUNK_STACK`, `ACS_TOKEN` |
 | `splunk-prod` | Production Splunk Cloud stack for compare and manual deploy | `SPLUNK_STACK`, `ACS_TOKEN` |
 | `splunk-itsi-nonprod` | Nonprod ITSI search head on the Splunk Cloud stack | `SPLUNK_STACK`, `SPLUNK_SEARCH_HEAD`, `ACS_TOKEN` |
@@ -19,6 +19,7 @@ the only page that lists the variables. To create the groups, follow [Variable g
 | --- | --- | --- | --- |
 | `splunk-appinspect` | `SPLUNK_USERNAME` | Username of a splunk.com account | Off |
 | `splunk-appinspect` | `SPLUNK_PASSWORD` | Password of the same account | On |
+| `splunk-appinspect` | `AGENT_POOL` | Agent pool that Onboard writes into a new app's `azure-pipelines.yml`. Optional | Off |
 | `splunk-nonprod` | `SPLUNK_STACK` | `<stack>` from `https://<stack>.splunkcloud.com` | Off |
 | `splunk-nonprod` | `ACS_TOKEN` | ACS token for the stack. Empty until the token is created | On |
 | `splunk-prod` | `SPLUNK_STACK` | `<stack>` from `https://<stack>.splunkcloud.com` | Off |
@@ -44,7 +45,7 @@ the only page that lists the variables. To create the groups, follow [Variable g
 | Repair | `splunk-appinspect` and the selected `splunk-<env>` or `splunk-itsi-<env>` |
 | Compare | Source and target groups selected by the `splunk` or `splunk-itsi` prefix |
 | Smoke test | `splunk-appinspect` and the selected target groups |
-| Onboard | The selected `splunk-itsi-<environment>` or `splunk-<environment>` |
+| Onboard | `splunk-appinspect` and the selected `splunk-itsi-<environment>` or `splunk-<environment>` |
 | Import | `splunk-itsi-<environment>` |
 
 Bulk Splunkbase commands read `SPLUNK_USERNAME` and `SPLUNK_PASSWORD` from `splunk-appinspect`. The pipeline
