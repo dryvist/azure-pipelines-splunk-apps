@@ -7,7 +7,7 @@ the only page that lists the variables. To create the groups, follow [Variable g
 
 | Group | Description | Variables |
 | --- | --- | --- |
-| `splunk-appinspect` | Splunk.com account for AppInspect validation and ACS installs, and the app agent pool | `SPLUNK_USERNAME`, `SPLUNK_PASSWORD`, `AGENT_POOL` |
+| `splunk-appinspect` | Splunk.com account for AppInspect and ACS installs, and the app agent pool | `SPLUNK_USERNAME`, `SPLUNK_PASSWORD`, `AGENT_POOL` |
 | `splunk-nonprod` | Nonprod Splunk Cloud stack for pull request and main installs | `SPLUNK_STACK`, `ACS_TOKEN` |
 | `splunk-prod` | Production Splunk Cloud stack for compare and manual deploy | `SPLUNK_STACK`, `ACS_TOKEN` |
 | `splunk-itsi-nonprod` | Nonprod ITSI search head on the Splunk Cloud stack | `SPLUNK_STACK`, `SPLUNK_SEARCH_HEAD`, `ACS_TOKEN` |
