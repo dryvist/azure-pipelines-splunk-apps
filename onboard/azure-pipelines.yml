@@ -17,10 +17,6 @@ parameters:
     values:
       - splunk-itsi
       - splunk
-  - name: pool
-    displayName: Agent pool for a new app pipeline - none uses Microsoft-hosted agents
-    type: string
-    default: none
   - name: apps
     displayName: App IDs separated by ;. Run the Onboard wiki script for each app first
     type: string
@@ -36,6 +32,7 @@ jobs:
             workspace:
               clean: all
             variables:
+              - group: splunk-appinspect
               - group: ${{ parameters.target }}-${{ parameters.environment }}
             steps:
               - checkout: self
@@ -50,7 +47,6 @@ jobs:
                   displayName: Export ${{ app }} from ${{ parameters.target }}-${{ parameters.environment }} into its repository and create its pipeline
                   additionalEnv:
                     SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-                    ONBOARD_POOL: ${{ parameters.pool }}
               # Checks out the app repository after the push to main.
               - checkout: git://${{ variables['System.TeamProject'] }}/${{ app }}
                 path: app

@@ -15,13 +15,12 @@ pipeline from [Manual pipelines](/Setup/Manual-pipelines), with YAML path `/onbo
 | --- | --- | --- | --- |
 | `environment` | `nonprod`, `prod` | `nonprod` | Stack to export the app from. |
 | `target` | `splunk-itsi`, `splunk` | `splunk-itsi` | Search head to export from. Uses `<target>-<environment>`. |
-| `pool` | An agent pool name, or `none` | `none` | Pool written to a new `azure-pipelines.yml`. `none` uses Microsoft-hosted agents. |
 | `apps` | App IDs separated by `;` | none | Apps to export and onboard. Each app runs in its own job. |
 
 ## Create the repositories
 
 A script creates one repository per app, named exactly the app ID. Each repository gets `azure-pipelines.yml`
-with your agent pool and an empty `package/` folder. The script also adds the Onboard and Deploy pipelines to each
+with the `AGENT_POOL` agent pool from `splunk-appinspect` and an empty `package/` folder. The script also adds the Onboard and Deploy pipelines to each
 repository's **Pipeline permissions**. Run it, then [run Onboard](#run-it).
 
 First, grant the Build Service rights once for all repositories. See
@@ -29,8 +28,8 @@ First, grant the Build Service rights once for all repositories. See
 
 1. In Azure DevOps, open **User settings** (top right), then **Personal access tokens**.
 2. Select **New Token**. Set **Expiration** to 1 day.
-3. Under **Scopes**, select **Custom defined**. Select **Code: Read, write, & manage** and
-   **Build: Read & execute**.
+3. Under **Scopes**, select **Custom defined**. Select **Code: Read, write, & manage**,
+   **Build: Read & execute**, and **Variable Groups: Read**.
 4. Select **Create** and copy the token.
 5. In VS Code, open a folder outside any repository.
 6. Optional: create a file named `.env` in that folder with one line, `AZURE_DEVOPS_EXT_PAT=<token>`. The script
@@ -46,7 +45,6 @@ First, grant the Build Service rights once for all repositories. See
                if line.startswith("AZURE_DEVOPS_EXT_PAT=")), "") if env.exists() else ""
    project = input("Project URL, such as https://dev.azure.com/<org>/<project>: ").strip().rstrip("/")
    apps = input("App IDs separated by ;: ")
-   pool = input("Agent pool for the app pipelines (blank uses Microsoft-hosted agents): ").strip()
    pat = pat or getpass.getpass("PAT: ")
    headers = {"Authorization": "Basic " + base64.b64encode(f":{pat}".encode()).decode(),
               "Content-Type": "application/json"}
@@ -56,6 +54,9 @@ First, grant the Build Service rights once for all repositories. See
                                         data=json.dumps(body).encode() if body else None)
        return json.load(urllib.request.urlopen(request))
 
+   groups = call("distributedtask/variablegroups?groupName=splunk-appinspect&api-version=7.1")["value"]
+   pool = next((g["variables"].get("AGENT_POOL", {}).get("value", "") for g in groups), "") or input(
+       "Agent pool for the app pipelines (blank uses Microsoft-hosted agents): ").strip()
    yaml = call("git/repositories/azure-pipelines-splunk-apps/items?path=/example/azure-pipelines.yml"
                "&includeContent=true&$format=json&api-version=7.1")["content"]
    yaml = yaml.replace("<agent-pool>", pool) if pool else yaml.split("    # Remove pool")[0]
@@ -91,7 +92,8 @@ First, grant the Build Service rights once for all repositories. See
 10. Run `python create_repos.py`. On macOS or Linux, run `python3 create_repos.py`.
 11. Paste the project URL from your browser.
 12. Enter the app IDs, such as `my_app;other_app`.
-13. Enter the agent pool name. Leave it blank to use Microsoft-hosted agents.
+13. If `splunk-appinspect` has no `AGENT_POOL`, enter the agent pool name. Leave it blank to use
+    Microsoft-hosted agents.
 14. Enter the token if the script asks for it.
 15. Check that each app prints `Created` and `Onboard and Deploy can use`.
 16. Delete `create_repos.py` and `.env`. Revoke the token in **Personal access tokens**.
@@ -111,7 +113,8 @@ add the pipelines; select **Permit** for that repository when Onboard or Deploy 
 
 Each job exports its app, writes the export to `package/`, pushes the commit to `main`, and creates the app
 pipeline. It works on an empty repository too. If the repository has no `azure-pipelines.yml`, the job adds the
-example file with the `pool` parameter.
+example file with the `AGENT_POOL` pool from `splunk-appinspect`. Without `AGENT_POOL`, it uses Microsoft-hosted
+agents.
 
 ## After onboarding
 

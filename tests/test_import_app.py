@@ -152,7 +152,7 @@ class ImportAppTests(TestCase):
                 "SYSTEM_COLLECTIONURI": "https://dev.azure.com/<org>/",
                 "SYSTEM_TEAMPROJECT": "<project>",
                 "SYSTEM_TEAMPROJECTID": "<project-id>",
-                "ONBOARD_POOL": "my-pool",
+                "AGENT_POOL": "my-pool",
             }
             repo = {"id": "repo-id", "remoteUrl": "https://dev.azure.com/<org>/<project>/_git/my_ta",
                     "webUrl": "https://dev.azure.com/<org>/<project>/_git/my_ta"}
