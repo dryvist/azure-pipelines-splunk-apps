@@ -121,9 +121,14 @@ If the tag or package is missing, see [Release troubleshooting](/Troubleshooting
 
 ## Approve the prod install
 
-On a `main` run, the **Release** stage runs before **Deploy to prod**. The prod install waits for the
-`splunk-prod` approval. Approve or reject it as described in
-[Deploy: Approve a stage](/Pipelines/Deploy#approve-a-stage). To let the stage skip, leave the approval
-pending until its Timeout.
+On a `main` run, **Deploy to prod** does not start by itself. An approval for **Compare with prod** does not
+start it.
+
+1. Wait for **Release** to succeed.
+2. Open the run.
+3. On the **Deploy to prod** stage, select **Run stage**.
+4. Approve the `splunk-prod` check as described in [Deploy: Approve a stage](/Pipelines/Deploy#approve-a-stage).
+
+To skip the prod install, do not select **Run stage**.
 
 If a stage skips or fails, see [Build troubleshooting](/Troubleshooting/Build).
