@@ -219,8 +219,10 @@ def onboard(app):
         shutil.rmtree(root / "package", ignore_errors=True)
         clean_export(Path("export"), root / "package", app)
         if not (root / "azure-pipelines.yml").exists():
-            example = Path(__file__).resolve().parents[1] / "example" / "azure-pipelines.yml"
-            shutil.copyfile(example, root / "azure-pipelines.yml")
+            example = (Path(__file__).resolve().parents[1] / "example" / "azure-pipelines.yml").read_text(encoding="utf-8")
+            pool = os.environ.get("ONBOARD_POOL", "none")
+            text = example.split("    # Remove pool")[0] if pool == "none" else example.replace("<agent-pool>", pool)
+            (root / "azure-pipelines.yml").write_text(text, encoding="utf-8")
         run([*git_in, "add", "package", "azure-pipelines.yml"], check=True)
         run([*git_in, "commit", "-m", f"feat: onboard {app}"], check=True)
         run([*git_in, "-c", auth, "push", "origin", "HEAD:main"], check=True)
