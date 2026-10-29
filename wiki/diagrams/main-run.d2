@@ -95,16 +95,16 @@ page: "" {
     direction: right
     proddiff: "06 · Compare with prod" {class: card; width: 260}
     release: "07 · Release (main only)" {class: [card; emphasis]; width: 260}
-    proddiff -> release: {class: link-emphasis}
   }
   fourth: "" {
     class: columns
     direction: left
-    prod: "08 · Deploy to prod\n(approval on main)" {class: [card; emphasis]; width: 260}
+    prod: "08 · Deploy to prod\n(Run stage and approval on main)" {class: [card; emphasis]; width: 260}
   }
   first.build -> second.inspect: {class: link}
   second.inspect -> third.proddiff: {class: link}
   second.nonprod -> third.release: {class: link}
   third.release -> fourth.prod: {class: link-emphasis}
+  third.proddiff -> fourth.prod: {class: link}
 
 }

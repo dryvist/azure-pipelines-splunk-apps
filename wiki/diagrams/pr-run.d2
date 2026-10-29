@@ -95,7 +95,6 @@ page: "" {
     direction: right
     proddiff: "06 · Compare with prod" {class: [card; emphasis]; width: 320}
     release: "07 · Release stage" {class: [card; ghost]; width: 320}
-    proddiff -> release: "main only" {class: link-planned}
   }
   fourth: "" {
     class: columns
@@ -106,5 +105,6 @@ page: "" {
   second.inspect -> third.proddiff: {class: link-emphasis}
   second.nonprod -> third.release: {class: link-emphasis}
   third.release -> fourth.prod: "main only" {class: link-planned}
+  third.proddiff -> fourth.prod: "main only" {class: link-planned}
 
 }
