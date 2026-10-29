@@ -152,6 +152,7 @@ class ImportAppTests(TestCase):
                 "SYSTEM_COLLECTIONURI": "https://dev.azure.com/<org>/",
                 "SYSTEM_TEAMPROJECT": "<project>",
                 "SYSTEM_TEAMPROJECTID": "<project-id>",
+                "ONBOARD_POOL": "my-pool",
             }
             repo = {"id": "repo-id", "remoteUrl": "https://dev.azure.com/<org>/<project>/_git/my_ta",
                     "webUrl": "https://dev.azure.com/<org>/<project>/_git/my_ta"}
@@ -188,7 +189,7 @@ class ImportAppTests(TestCase):
                     assert (repo_root / "package/default/props.conf").read_text() == "[changed]\nvalue = local\n"
                     assert not (repo_root / "package/app.manifest").exists()
                     example = Path(import_app.__file__).resolve().parents[1] / "example/azure-pipelines.yml"
-                    assert (repo_root / "azure-pipelines.yml").read_bytes() == example.read_bytes()
+                    assert (repo_root / "azure-pipelines.yml").read_text() == example.read_text().replace("<agent-pool>", "my-pool")
                 return SimpleNamespace(returncode=0)
 
             with (

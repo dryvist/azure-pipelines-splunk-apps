@@ -15,6 +15,7 @@ pipeline from [Manual pipelines](/Setup/Manual-pipelines), with YAML path `/onbo
 | --- | --- | --- | --- |
 | `environment` | `nonprod`, `prod` | `nonprod` | Stack to export the app from. |
 | `target` | `splunk-itsi`, `splunk` | `splunk-itsi` | Search head to export from. Uses `<target>-<environment>`. |
+| `pool` | An agent pool name, or `none` | `none` | Pool written to a new `azure-pipelines.yml`. `none` uses Microsoft-hosted agents. |
 | `apps` | App IDs separated by `;` | none | Apps to export and onboard. Each app runs in its own job. |
 
 ## Create the repositories
@@ -109,7 +110,8 @@ add the pipelines; select **Permit** for that repository when Onboard or Deploy 
 6. Select **Permit** for any resource the run asks for. See [Permissions](/Troubleshooting/Permissions).
 
 Each job exports its app, writes the export to `package/`, pushes the commit to `main`, and creates the app
-pipeline. If the repository has no `azure-pipelines.yml`, the job adds the example file.
+pipeline. It works on an empty repository too. If the repository has no `azure-pipelines.yml`, the job adds the
+example file with the `pool` parameter.
 
 ## After onboarding
 
