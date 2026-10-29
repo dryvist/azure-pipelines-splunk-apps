@@ -178,7 +178,7 @@ stages:
               parameters:
                 publishDirectory: $(Pipeline.Workspace)/dist
 
-    # Waits for the splunk-prod approval; a timed-out approval skips this stage. The proddiff stage runs the prod compare.
+    # Runs only when a person selects Run stage, then waits for the splunk-prod approval. The proddiff stage runs the prod compare.
     - template: deploy-stage.yml
       parameters:
         name: prod
@@ -186,6 +186,7 @@ stages:
         environment: prod
         dependsOn: release
         condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        trigger: manual
         pool: ${{ parameters.pool }}
         packageDirectory: $(Pipeline.Workspace)/dist
         steps:

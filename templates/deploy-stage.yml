@@ -13,6 +13,11 @@ parameters:
   - name: condition
     type: string
     default: succeeded()
+  # manual waits for a person to select Run stage.
+  - name: trigger
+    type: string
+    default: automatic
+    values: [automatic, manual]
   # Empty uses the pipeline's default pool.
   - name: pool
     type: object
@@ -39,6 +44,7 @@ stages:
     displayName: ${{ parameters.displayName }}
     dependsOn: ${{ parameters.dependsOn }}
     condition: ${{ parameters.condition }}
+    trigger: ${{ parameters.trigger }}
     lockBehavior: sequential
     jobs:
       - deployment: deploy
