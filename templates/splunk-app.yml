@@ -178,14 +178,14 @@ stages:
               parameters:
                 publishDirectory: $(Pipeline.Workspace)/dist
 
-    # Runs only when a person selects Run stage, then waits for the splunk-prod approval. The proddiff stage runs the prod compare.
+    # Runs only when a person selects Run stage, then waits for the splunk-prod approval. Its first step stops unless
+    # release and proddiff succeeded in this run.
     - template: deploy-stage.yml
       parameters:
         name: prod
         displayName: Deploy to prod
         environment: prod
-        dependsOn: [release, proddiff]
-        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
         trigger: manual
         pool: ${{ parameters.pool }}
         packageDirectory: $(Pipeline.Workspace)/dist
@@ -193,3 +193,7 @@ stages:
           - template: dist-package.yml
             parameters:
               setup: ${{ parameters.setup }}
+          - script: python $(Pipeline.Workspace)/tools/release.py stages-succeeded release proddiff
+            displayName: Check Release and Compare with prod succeeded
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)

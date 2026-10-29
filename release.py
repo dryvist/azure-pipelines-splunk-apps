@@ -18,6 +18,7 @@
   install-acs
   appinspect-link
   feed-check <app-id>
+  stages-succeeded <stage...>
   feed-missing <app-id>
   tag
   import <env> <export-dir> [flags]
@@ -34,7 +35,7 @@ from splunk_release.acs import (
     repair_packages, restart, status, uninstall, wait_version,
 )
 from splunk_release.appinspect import appinspect
-from splunk_release.azure import appinspect_link, plan, run_cli
+from splunk_release.azure import appinspect_link, plan, run_cli, stages_succeeded
 from splunk_release.compare import data_models, diff, local_diff, tree
 from splunk_release.import_app import import_app, onboard
 from splunk_release.package import package
@@ -64,6 +65,7 @@ commands = {
     "install-acs": install_acs,
     "appinspect-link": appinspect_link,
     "feed-check": feed_check,
+    "stages-succeeded": stages_succeeded,
     "feed-missing": feed_missing,
     "tag": tag,
     "import": import_app,

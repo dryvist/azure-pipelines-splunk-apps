@@ -11,7 +11,7 @@ stages that other pipelines share.
 | 4 | `nonprod` | Deploy to nonprod | Pull request or `main`, after `nonproddiff` |
 | 5 | `proddiff` | Compare with prod | Pull request or `main`, after `appinspect`, in parallel with `nonprod` |
 | 6 | `release` | Release | `main`, after `nonprod` |
-| 7 | `prod` | Deploy to prod | `main`, after `release` and `proddiff`, after Run stage and approval |
+| 7 | `prod` | Deploy to prod | `main`, after Run stage and approval; stops unless `release` and `proddiff` succeeded |
 
 The import stages, `import_nonprod` and `import_prod`, run only when an import option is selected. See
 [App: Import](/Pipelines/App#import).
@@ -155,7 +155,8 @@ Job `release` tags the app commit and publishes the package. Its steps, in order
 
 Stage `prod`, displayed as **Deploy to prod**:
 
-- **Does:** runs after **Release** and **Compare with prod**, on successful `refs/heads/main` runs, only when a person selects **Run stage**.
+- **Does:** runs on `refs/heads/main` runs only when a person selects **Run stage**. Its first step,
+  **Check Release and Compare with prod succeeded**, stops the stage unless both succeeded in this run.
 - **Inputs:** `dist`, the groups `splunk-appinspect` and `splunk-prod`, and the `splunk-prod` environment.
 - **Outputs:** the app installed through ACS. The [Proddiff stage](#proddiff) holds the prod compare for the run.
 - **Approval:** waits for the `splunk-prod` Approvals check. Nothing installs without approval. A rejection stops the

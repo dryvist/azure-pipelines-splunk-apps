@@ -15,6 +15,8 @@ Every ACS command retries every 30 seconds for up to 15 minutes while ACS return
 - `package` (no arguments) runs `slim package` and writes `dist/<app-id>-<version>.tar.gz`.
 - `tag` (no arguments) uses no environment variables beyond the app ID fallback above. It writes `APP_ID` and
   `APP_VERSION` as Azure Pipelines variables for the feed publish step.
+- `stages-succeeded <stage...>` fails unless each named stage succeeded in this run. Deploy to prod runs it
+  for `release` and `proddiff`.
 - `feed-check <app-id>` prints that the app is in the `splunk-apps` feed. Otherwise it fails with
   `<app-id> is not in the splunk-apps feed; run its app pipeline on main to release it`. It reads
   `SYSTEM_ACCESSTOKEN`.
