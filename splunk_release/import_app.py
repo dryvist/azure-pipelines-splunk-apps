@@ -194,7 +194,7 @@ ONBOARD_RESOURCES = [
 
 
 def onboard(app):
-    """Export a private app into its empty repository and create its pipeline, both named after the app."""
+    """Export a private app into its repository's empty package/ and create its pipeline, both named after the app."""
     token = os.environ["SYSTEM_ACCESSTOKEN"]
     collection = os.environ["SYSTEM_COLLECTIONURI"].rstrip("/") + "/"
     project_id = os.environ["SYSTEM_TEAMPROJECTID"]
@@ -203,21 +203,27 @@ def onboard(app):
         "Content-Type": "application/json",
     }
     repo = json.loads(http(f"{collection}{project_id}/_apis/git/repositories/{app}?api-version=7.1", headers))
-    if repo.get("defaultBranch"):
-        sys.exit(f"Repository {app} already has commits. Onboard needs an empty repository")
-    require_private(app)
-    export("export", app)
+    auth = f"http.extraheader=AUTHORIZATION: bearer {token}"
     with tempfile.TemporaryDirectory() as temp_dir:
         root = Path(temp_dir)
-        clean_export(Path("export"), root / "package", app)
-        example = Path(__file__).resolve().parents[1] / "example" / "azure-pipelines.yml"
-        shutil.copyfile(example, root / "azure-pipelines.yml")
         git_in = ["git", "-C", str(root), "-c", "user.name=Azure Pipelines", "-c", "user.email=azure-pipelines@localhost"]
-        run([*git_in, "init", "--initial-branch=main"], check=True)
+        if repo.get("defaultBranch"):
+            run(["git", "-c", auth, "clone", "-q", repo["remoteUrl"], str(root)], check=True)
+            if any(path.is_file() and path.name != ".gitkeep" for path in (root / "package").rglob("*")):
+                sys.exit(f"Repository {app} already has files in package/. Onboard needs an empty package/")
+        else:
+            run([*git_in, "init", "--initial-branch=main"], check=True)
+            run([*git_in, "remote", "add", "origin", repo["remoteUrl"]], check=True)
+        require_private(app)
+        export("export", app)
+        shutil.rmtree(root / "package", ignore_errors=True)
+        clean_export(Path("export"), root / "package", app)
+        if not (root / "azure-pipelines.yml").exists():
+            example = Path(__file__).resolve().parents[1] / "example" / "azure-pipelines.yml"
+            shutil.copyfile(example, root / "azure-pipelines.yml")
         run([*git_in, "add", "package", "azure-pipelines.yml"], check=True)
-        run([*git_in, "commit", "-m", "feat: initialize app repository"], check=True)
-        run([*git_in, "remote", "add", "origin", repo["remoteUrl"]], check=True)
-        run([*git_in, "-c", f"http.extraheader=AUTHORIZATION: bearer {token}", "push", "origin", "main"], check=True)
+        run([*git_in, "commit", "-m", f"feat: onboard {app}"], check=True)
+        run([*git_in, "-c", auth, "push", "origin", "HEAD:main"], check=True)
 
     pipeline_body = {
         "name": app,

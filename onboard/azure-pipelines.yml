@@ -1,4 +1,4 @@
-# Export apps installed on the stack into their empty repositories and create their pipelines.
+# Export apps installed on the stack into their repositories' empty package/ and create their pipelines.
 trigger: none
 pr: none
 
@@ -18,7 +18,7 @@ parameters:
       - splunk-itsi
       - splunk
   - name: apps
-    displayName: App IDs separated by ;. Create an empty repository named after each app first
+    displayName: App IDs separated by ;. Run the Onboard wiki script for each app first
     type: string
 
 variables:
