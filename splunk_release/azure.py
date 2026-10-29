@@ -1,5 +1,6 @@
 """Azure Pipelines commands and logging helpers."""
 
+import json
 import os
 import subprocess
 import sys
@@ -90,10 +91,22 @@ def plan():
         ("nonproddiff", compare, "pull request or refs/heads/main"),
         ("nonprod", compare, "pull request or refs/heads/main"),
         ("proddiff", compare, "pull request or refs/heads/main"),
-        ("release", main, "refs/heads/main, after proddiff"),
-        ("prod", main, "refs/heads/main, after release and the splunk-prod approval"),
+        ("release", main, "refs/heads/main, after nonprod"),
+        ("prod", main, "refs/heads/main, Run stage after release and proddiff, then the splunk-prod approval"),
     ):
         print(f"{stage:<12} {'RUNS' if runs else 'SKIPPED':<8} runs when {rule}")
+
+def stages_succeeded(*stages):
+    """Exit unless each named stage of this run succeeded."""
+    e = os.environ
+    url = (f"{e['SYSTEM_COLLECTIONURI']}{e['SYSTEM_TEAMPROJECTID']}/_apis/build/builds/{e['BUILD_BUILDID']}"
+           "/timeline?api-version=7.1")
+    records = json.loads(http(url, {"Authorization": f"Bearer {e['SYSTEM_ACCESSTOKEN']}"}))["records"]
+    done = {r.get("identifier") for r in records if r["type"] == "Stage" and r.get("result") == "succeeded"}
+    missing = [stage for stage in stages if stage not in done]
+    if missing:
+        sys.exit(f"Not succeeded in this run: {';'.join(missing)}. Select Run stage after they succeed")
+    print(f"Succeeded in this run: {';'.join(stages)}")
 
 def appinspect_link():
     """Print the link to this build's published artifacts."""

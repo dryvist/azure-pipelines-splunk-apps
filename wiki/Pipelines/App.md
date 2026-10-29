@@ -129,6 +129,8 @@ start it.
 3. On the **Deploy to prod** stage, select **Run stage**.
 4. Approve the `splunk-prod` check as described in [Deploy: Approve a stage](/Pipelines/Deploy#approve-a-stage).
 
+If you select **Run stage** too early, the first step fails. Select **Rerun stage** after both stages succeed.
+
 To skip the prod install, do not select **Run stage**.
 
 If a stage skips or fails, see [Build troubleshooting](/Troubleshooting/Build).
