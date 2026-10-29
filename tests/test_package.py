@@ -19,9 +19,11 @@ def check_package():
             patch("splunk_release.package.STAGE", stage),
             patch("splunk_release.package.DIST", dist),
             patch("splunk_release.package.stage") as stage_source,
+            patch("splunk_release.package.app_conf_required") as required,
             patch("splunk_release.package.run") as run,
         ):
             package.package()
+        required.assert_called_once_with(package.SRC, package.APP)
         stage_source.assert_called_once_with()
         assert run.call_args.args[0] == [
             "slim",

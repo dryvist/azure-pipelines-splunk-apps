@@ -33,13 +33,14 @@ it also pushes a commit to the pull request source branch.
 
 ### Version bump rules
 
-`release.py bump` changes versions only on pull request runs. It does so only when the source and target version
+`release.py bump` runs only on pull request runs. It first sets the `app.conf` settings that
+[App: import](/Pipelines/App) lists, with `[launcher]` and `[id]` at the higher of their versions. It bumps only when the source and target version
 rows match, and the target branch has not changed the version. `[major]` increments the major version and resets
 minor and patch. `[minor]` increments the minor version and resets patch to zero. Otherwise, the patch number
 increments. The bump starts from the highest of the target version and every version in the splunk-apps feed. It
 therefore always goes above a version that the [Repair pipeline](/Pipelines/Repair) published. The bump updates
 `version` in `[launcher]` and `[id]`, regenerates `app.manifest`, commits both files, and pushes the commit to the
-pull request source branch.
+pull request source branch. Without a bump, it still commits and pushes any `app.conf` change.
 
 Steps, in order:
 

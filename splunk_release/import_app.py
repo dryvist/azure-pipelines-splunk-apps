@@ -10,7 +10,7 @@ from pathlib import Path
 from splunk_release import compare
 from splunk_release.acs import export, require_private
 from splunk_release.azure import http, log, run
-from splunk_release.package import sort_confs
+from splunk_release.package import app_conf_required, sort_confs
 from splunk_release.version import (
     APP,
     CONF,
@@ -49,41 +49,6 @@ def cloud_settings_off(root):
 
 
 # app.conf [install] settings Splunk Cloud AppInspect rejects.
-INSTALL_REMOVED = ("install_source_checksum", "install_source_local_checksum", "state_change_requires_restart")
-
-
-def app_conf_required(root, app):
-    """Set the app.conf settings Splunk Cloud AppInspect requires, with one warning each."""
-    from ksconf.conf.parser import write_conf
-    path = root / "default" / "app.conf"
-    conf = compare.parse(path)
-    versions = [conf[stanza]["version"] for stanza in ("id", "launcher") if conf.get(stanza, {}).get("version")]
-    label = conf.get("ui", {}).get("label", "")
-    required = {
-        ("id", "name"): app,
-        ("id", "version"): highest(*versions) if versions else "1.0.0",
-        ("package", "id"): app,
-        ("package", "check_for_updates"): "false",
-        ("ui", "label"): label if 5 <= len(label) <= 80 else (app if len(app) >= 5 else f"{app} app")[:80],
-    }
-    required["launcher", "version"] = required["id", "version"]
-    if conf.get("install", {}).get("is_configured", "").strip().lower() in ("1", "t", "true", "y", "yes", "on"):
-        required["install", "is_configured"] = "false"
-    changed = False
-    for (stanza, key), value in required.items():
-        if conf.get(stanza, {}).get(key) != value:
-            conf.setdefault(stanza, {})[key] = value
-            log("warning", f"default/app.conf [{stanza}] {key} = {value}: required by Splunk Cloud AppInspect")
-            changed = True
-    for key in INSTALL_REMOVED:
-        if key in conf.get("install", {}):
-            del conf["install"][key]
-            log("warning", f"default/app.conf [install] {key} removed: not allowed in Splunk Cloud apps")
-            changed = True
-    if changed:
-        write_conf(path, conf)
-
-
 def open_pull_request(branch, version, environment):
     """Create the import branch's pull request into main, set to auto-complete and delete the branch."""
     build_id = os.environ["BUILD_BUILDID"]
