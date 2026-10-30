@@ -84,7 +84,8 @@ Steps, in order:
   deployment** lists every other count.
 - **Collect AppInspect reports (`CopyFiles@2`):** copies the reports, even when validation failed.
 - **Publish artifact (`appinspect-report-$(System.JobAttempt)`):** publishes the reports for this job attempt.
-- **Show AppInspect JSON report:** prints the JSON report when the job succeeded or failed.
+- **Show AppInspect JSON report:** prints the JSON report when the job succeeded or failed. `failure` and `error`
+  result lines are red. A list of each check that is not `success` or `not_applicable` follows the report.
 - **Show AppInspect HTML report link:** prints the link to the run's published artifact, even when the job failed.
 
 ## Nonproddiff

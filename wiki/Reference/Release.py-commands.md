@@ -23,6 +23,8 @@ Every ACS command retries every 30 seconds for up to 15 minutes while ACS return
 - `feed-missing <app-id>` sets the `MISSING` output variable to `true` when the `splunk-apps` feed holds no
   version of the app, otherwise `false`. It reads `SYSTEM_ACCESSTOKEN`.
 - `appinspect <dir>` uses `SPLUNK_USERNAME` and `SPLUNK_PASSWORD`.
+- `appinspect-json <report>` prints the JSON report with `failure` and `error` result lines in red. Then it
+  lists each check that is not `success` or `not_applicable`, with its messages.
 - `appinspect-link` prints the current build's AppInspect artifact link.
 - `plan` prints each stage the run executes, with the rule behind each one. It reads `BUILD_REASON` and
   `BUILD_SOURCEBRANCH`. The **Show stage plan** step runs it.

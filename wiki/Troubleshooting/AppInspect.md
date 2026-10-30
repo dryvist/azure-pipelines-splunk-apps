@@ -46,7 +46,8 @@ than `SUCCESS`, or a count above 0.
 
 **Fix:**
 
-1. Open **Show AppInspect JSON report** in the failed job.
+1. Open **Show AppInspect JSON report** in the failed job. Red lines are failures and errors. The list at the
+   end names each check that did not pass.
 2. Open the link from **Show AppInspect HTML report link**.
 3. Open `appinspect-report-<attempt>` for the failed job attempt.
 4. Fix each reported finding in the app.

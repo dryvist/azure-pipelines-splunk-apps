@@ -17,6 +17,7 @@
   data-models <target> <source> <out> [flags]
   install-acs
   appinspect-link
+  appinspect-json <report>
   feed-check <app-id>
   stages-succeeded <stage...>
   feed-missing <app-id>
@@ -34,7 +35,7 @@ from splunk_release.acs import (
     acs, acs_env, delete_local, deploy, export, install_acs, repair_check,
     repair_packages, restart, status, uninstall, wait_version,
 )
-from splunk_release.appinspect import appinspect
+from splunk_release.appinspect import appinspect, show_report
 from splunk_release.azure import appinspect_link, plan, run_cli, stages_succeeded
 from splunk_release.compare import data_models, diff, local_diff, tree
 from splunk_release.import_app import import_app, onboard
@@ -64,6 +65,7 @@ commands = {
     "data-models": data_models,
     "install-acs": install_acs,
     "appinspect-link": appinspect_link,
+    "appinspect-json": show_report,
     "feed-check": feed_check,
     "stages-succeeded": stages_succeeded,
     "feed-missing": feed_missing,
