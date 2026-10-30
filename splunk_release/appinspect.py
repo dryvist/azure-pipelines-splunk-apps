@@ -42,6 +42,23 @@ def print_summary(status, summary):
     other = {k: v for k, v in summary.items() if k not in BLOCKING}
     print(json.dumps(other, indent=2, sort_keys=True))
 
+def show_report(path):
+    """Print the JSON report with failure and error result lines in red, then each check that did not pass."""
+    report = json.loads(Path(path).read_text(encoding="utf-8"))
+    for line in json.dumps(report, indent=2).splitlines():
+        red = line.strip().rstrip(",") in ('"result": "failure"', '"result": "error"')
+        log("error", line) if red else print(line)
+    log("section", "Checks that are not success or not_applicable")
+    for group in (g for r in report.get("reports", []) for g in r.get("groups", [])):
+        for check in group.get("checks", []):
+            result = check.get("result")
+            if result in ("success", "not_applicable"):
+                continue
+            log("error" if result in BLOCKING else "warning", f"{result}: {check.get('name')}")
+            for m in check.get("messages", []):
+                where = ":".join(str(m[k]) for k in ("message_filename", "message_line") if m.get(k))
+                print("    " + " ".join(x for x in (where, m.get("message", "")) if x))
+
 def save_appinspect_report(artifact_dir, html, report):
     Path(artifact_dir, "appinspect-report.html").write_bytes(html)
     Path(artifact_dir, "appinspect-report.json").write_text(

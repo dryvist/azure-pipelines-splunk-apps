@@ -21,7 +21,7 @@ steps:
     displayName: Publish the AppInspect report artifact
     artifact: ${{ parameters.artifact }}
     condition: succeededOrFailed()
-  - script: python -m json.tool $(Pipeline.Workspace)/appinspect-report/appinspect-report.json
+  - script: python $(Pipeline.Workspace)/tools/release.py appinspect-json $(Pipeline.Workspace)/appinspect-report/appinspect-report.json
     displayName: Show AppInspect JSON report
     condition: succeededOrFailed()
   - script: python $(Pipeline.Workspace)/tools/release.py appinspect-link
