@@ -14,6 +14,19 @@ Use this page to fix missing tools, certificate errors, and blocked services on 
 **Docs:** [Use Python version](https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/use-python-version-v0),
 [agents](https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/agents).
 
+## `python is not on PATH on agent <agent>`
+
+**Symptom:** **Use Python 3.13** succeeds, then **Use UTF-8 for Python files and output** fails with this message.
+The agent's tool cache has a Python 3.13 folder without `python.exe`. Self-hosted agents never download Python.
+
+**Fix:**
+
+1. In **Agent pools**, turn off **Enabled** for the named agent.
+2. Rerun the failed job.
+3. On the named agent, delete the Python 3.13 folder in `_work/_tool/Python`.
+4. Copy the `_work/_tool/Python/3.13.x` folder and the `x64.complete` file in it from a working agent.
+5. Turn the agent back on.
+
 ## `Unable to locate executable file: 'bash'`
 
 **Symptom:** A job step reports `Unable to locate executable file: 'bash'`.
