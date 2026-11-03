@@ -8,5 +8,5 @@ steps:
   - script: python -m pip install --quiet ksconf==0.13.10 splunk-sdk==2.1.0
     displayName: Install diff dependencies
   - ${{ if eq(parameters.includePackagingToolkit, true) }}:
-    - script: python -m pip install --quiet splunk-packaging-toolkit
+    - script: python -m pip install --quiet splunk-packaging-toolkit splunk-sdk==2.1.0
       displayName: Install packaging toolkit
