@@ -8,6 +8,10 @@ parameters:
   - name: importFromProd
     type: boolean
     default: false
+  - name: importLookups
+    type: boolean
+    default: false
+  # Older app repos pass skipLookups. false imports lookups.
   - name: skipLookups
     type: boolean
     default: true
@@ -57,7 +61,7 @@ stages:
                 - template: import-steps.yml
                   parameters:
                     environment: ${{ env }}
-                    flags: ${{ iif(parameters.skipLookups, '--skip-lookups', '') }}
+                    flags: ${{ iif(and(parameters.skipLookups, not(parameters.importLookups)), '--skip-lookups', '') }}
   - ${{ else }}:
     - stage: build
       displayName: Build

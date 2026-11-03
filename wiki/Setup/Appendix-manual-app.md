@@ -35,10 +35,10 @@ does the same work.
        displayName: Import this app from prod into a new pull request
        type: boolean
        default: false
-     - name: skipLookups
-       displayName: When importing, skip lookups (CSV files) and keep the ones on main
+     - name: importLookups
+       displayName: When importing, also import lookups (CSV files)
        type: boolean
-       default: true
+       default: false
 
    trigger:
      branches:
@@ -55,7 +55,7 @@ does the same work.
      parameters:
        importFromNonprod: ${{ parameters.importFromNonprod }}
        importFromProd: ${{ parameters.importFromProd }}
-       skipLookups: ${{ parameters.skipLookups }}
+       importLookups: ${{ parameters.importLookups }}
        pool:
          name: <agent-pool>
    ```
