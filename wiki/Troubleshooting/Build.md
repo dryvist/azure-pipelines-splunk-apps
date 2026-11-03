@@ -33,9 +33,14 @@ prints the skip and runs every stage. This pair of runs is expected.
 A pull request run sets both rows to one above the higher version and commits `app.conf`. On `main`, the package
 uses the higher version. To fix the file on `main`, open any pull request for the app.
 
-## `ksconf sort` moves comments
+## Sorting moves comments
 
 Add `KSCONF-NO-SORT` to the file comment, then rerun the build.
+
+## `line N '...' is not a setting; removed`
+
+Sorting removed a line that is not a setting, comment, stanza, or continued value. Splunk ignores these lines too.
+No action is needed.
 
 ## An artifact already exists
 

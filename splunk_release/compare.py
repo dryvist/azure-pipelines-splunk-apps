@@ -85,10 +85,21 @@ def kept(path):
 
 def parse(path):
     """Parse a .conf or .meta file with ksconf; a missing file is empty."""
-    from ksconf.conf.parser import DUP_MERGE, PARSECONF_MID, ConfParserException, parse_conf
+    from ksconf.conf.parser import DUP_MERGE, PARSECONF_MID, ConfParserException, parse_conf_string
+    if not path.exists():
+        return {}
+    lines, continued = [], False
+    for number, line in enumerate(path.read_text(encoding="utf-8-sig", errors="replace").splitlines(), 1):
+        text = line.strip()
+        # Splunk ignores a line that is not a setting, comment, stanza, or continued value.
+        if continued or not text or text[0] in "#;[" or "=" in text:
+            lines.append(line)
+        else:
+            log("warning", f"{path}: line {number} {text!r} is not a setting; removed")
+        continued = line.endswith("\\") and (continued or "=" in text)
     try:
         # Splunk combines a stanza repeated in one file; the ksconf CLI rejects it.
-        return parse_conf(path, profile={**PARSECONF_MID, "dup_stanza": DUP_MERGE}) if path.exists() else {}
+        return parse_conf_string("\n".join(lines) + "\n", profile={**PARSECONF_MID, "dup_stanza": DUP_MERGE})
     except ConfParserException as error:
         raise SystemExit(str(error))
 
