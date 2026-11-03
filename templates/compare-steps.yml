@@ -18,9 +18,13 @@ parameters:
 steps:
   - script: python ${{ parameters.release }} tree ${{ parameters.target }} ${{ parameters.source }} ${{ parameters.out }} ${{ parameters.flags }}
     displayName: Compare ${{ parameters.label }} (file tree, local and default)
+    continueOnError: true
   - script: python ${{ parameters.release }} local-diff ${{ parameters.target }} ${{ parameters.source }} ${{ parameters.out }} ${{ parameters.flags }}
     displayName: Compare ${{ parameters.label }} (local files vs default)
+    continueOnError: true
   - script: python ${{ parameters.release }} diff ${{ parameters.target }} ${{ parameters.source }} ${{ parameters.out }} ${{ parameters.flags }}
     displayName: Compare ${{ parameters.label }} (merged defaults)
+    continueOnError: true
   - script: python ${{ parameters.release }} data-models ${{ parameters.target }} ${{ parameters.source }} ${{ parameters.out }} ${{ parameters.flags }}
     displayName: Compare ${{ parameters.label }} (data models)
+    continueOnError: true

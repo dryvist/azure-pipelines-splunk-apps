@@ -42,6 +42,11 @@ def check_package():
         with redirect_stdout(io.StringIO()):
             package.sort_confs(tmp)
         assert conf.read_text() == "[alpha]\nx = 8\n\n[zeta]\na = 1\nb = 2\n"
+        # Lines that are not a setting are removed; continued values and unknown keys stay.
+        conf.write_text("[ui]\nlabel = X\n\\\\\n\n[launcher]\njunk\nnew_key = 1\nsearch = a \\\nb\n")
+        with redirect_stdout(io.StringIO()):
+            package.sort_confs(tmp)
+        assert conf.read_text() == "[launcher]\nnew_key = 1\nsearch = a \\\nb\n\n[ui]\nlabel = X\n"
         # .meta files put [] first, then stanzas without "/", then stanzas with "/".
         meta = Path(tmp, "metadata", "default.meta")
         meta.parent.mkdir()

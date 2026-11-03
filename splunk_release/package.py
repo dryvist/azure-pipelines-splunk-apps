@@ -2,7 +2,6 @@
 
 import os
 import shutil
-import subprocess
 from pathlib import Path
 
 from splunk_release.azure import log, run
@@ -21,17 +20,15 @@ def sort_meta(path):
     write_conf(path, {name: dict(sorted(conf[name].items())) for name in order}, sort=False)
 
 def sort_confs(root):
-    """Sort stanzas and keys in every .conf and .meta file under root with ksconf, one blank line apart."""
+    """Sort stanzas and keys in every .conf and .meta file under root, one blank line apart."""
+    from ksconf.conf.parser import write_conf
+
+    from splunk_release.compare import parse
     for meta in sorted(Path(root).rglob("*.meta")):
         sort_meta(meta)
-    confs = sorted(str(p) for p in Path(root).rglob("*.conf"))
-    if confs:
-        # ksconf returns 9 when it rewrites a file.
-        result = run(["ksconf", "sort", "--inplace", "--quiet", *confs], check=False)
-        if result.returncode not in (0, 9):
-            raise subprocess.CalledProcessError(
-                result.returncode, result.args, result.stdout, result.stderr
-            )
+    for conf in sorted(Path(root).rglob("*.conf")):
+        if b"KSCONF-NO-SORT" not in conf.read_bytes()[:4096]:
+            write_conf(conf, parse(conf))
 
 INSTALL_REMOVED = ("install_source_checksum", "install_source_local_checksum", "state_change_requires_restart")
 
