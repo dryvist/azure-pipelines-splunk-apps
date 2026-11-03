@@ -3,5 +3,5 @@ steps:
     displayName: Use Python 3.13
     inputs:
       versionSpec: "3.13"
-  - script: python -c "print('##vso[task.setvariable variable=PYTHONUTF8]1')"
+  - script: python -c "print('##vso[task.setvariable variable=PYTHONUTF8]1')" || (echo "##vso[task.logissue type=error]python is not on PATH on agent $(Agent.Name). Check the Python 3.13 folder in $(Agent.ToolsDirectory)." && exit 1)
     displayName: Use UTF-8 for Python files and output
