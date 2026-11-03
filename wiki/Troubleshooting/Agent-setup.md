@@ -17,15 +17,26 @@ Use this page to fix missing tools, certificate errors, and blocked services on 
 ## `python is not on PATH on agent <agent>`
 
 **Symptom:** **Use Python 3.13** succeeds, then **Use UTF-8 for Python files and output** fails with this message.
-The agent's tool cache has a Python 3.13 folder without `python.exe`. Self-hosted agents never download Python.
+Self-hosted agents never download Python.
 
 **Fix:**
 
-1. In **Agent pools**, turn off **Enabled** for the named agent.
+1. On the named agent, restart the Azure Pipelines agent Windows service. The agent reads PATH only when the
+   service starts, so a Python install or upgrade since the last start can leave PATH out of date.
 2. Rerun the failed job.
-3. On the named agent, delete the Python 3.13 folder in `_work/_tool/Python`.
-4. Copy the `_work/_tool/Python/3.13.x` folder and the `x64.complete` file in it from a working agent.
-5. Turn the agent back on.
+3. If it fails again, open **Use Python 3.13** and note the folder it adds to PATH.
+4. On the agent, install Python 3.13 into that tool cache folder. Run this in an elevated PowerShell, with the
+   agent's tool cache path:
+
+   ~~~powershell
+   $v = "3.13.3"; $tc = "<agent folder>\_work\_tool\Python\$v"
+   Invoke-WebRequest "https://www.python.org/ftp/python/$v/python-$v-amd64.exe" -OutFile "$env:TEMP\py.exe"
+   Start-Process "$env:TEMP\py.exe" -Wait -ArgumentList "/quiet InstallAllUsers=1 PrependPath=0 Include_test=0 TargetDir=$tc\x64"
+   New-Item -ItemType File -Force "$tc\x64.complete" | Out-Null
+   & "$tc\x64\python.exe" --version
+   ~~~
+
+5. Rerun the failed job.
 
 ## `Unable to locate executable file: 'bash'`
 
