@@ -122,15 +122,7 @@ def bump():
     if not target_ref:
         print("not a PR validation build, skipping bump")
         return
-    source_ref = os.environ.get("SYSTEM_PULLREQUEST_SOURCEBRANCH")
-    if (
-        not source_ref
-        or not target_ref.startswith("refs/heads/")
-        or not source_ref.startswith("refs/heads/")
-    ):
-        sys.exit(
-            "SYSTEM_PULLREQUEST_TARGETBRANCH and SYSTEM_PULLREQUEST_SOURCEBRANCH must be refs/heads/... values"
-        )
+    source_ref = os.environ["SYSTEM_PULLREQUEST_SOURCEBRANCH"]
     target = target_ref.removeprefix("refs/heads/")
     source = source_ref.removeprefix("refs/heads/")
     git(

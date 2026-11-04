@@ -27,6 +27,17 @@ def check_azure():
         else:
             raise AssertionError("missing proddiff did not stop the run")
 
+    # A missing value is one error line and exit code 1.
+    output = io.StringIO()
+    with redirect_stdout(output):
+        try:
+            azure.run_cli(lambda: {}["apps"])
+        except SystemExit as error:
+            assert error.code == 1
+        else:
+            raise AssertionError("a missing value did not stop the run")
+    assert "KeyError: 'apps'" in output.getvalue()
+
 
 class AzureTests(TestCase):
     def test_azure(self):
