@@ -172,15 +172,13 @@ the stack status. It does not repeat the compare.
 The app compare stages and the deploy compare stages run these four steps. The Compare pipeline's `compare` job runs
 the same four steps, with the target compared against the source.
 
-- **Compare `<side>` with this package (file tree, local and default):** writes `<app-id>-tree.txt`, the raw file
-  changes.
-- **Compare `<side>` with this package (local files vs default):** writes the local-versus-default report.
-- **Compare `<side>` with this package (merged defaults):** writes the patch, the summary, the HTML report, and the
-  merged archive.
-- **Compare `<side>` with this package (data models):** writes the data model patch. It prints each changed data
-  model in its own collapsed group.
+- **Compare `<side>` with this package (file tree, local and default):** prints raw file changes in the log.
+- **Compare `<side>` with this package (local files vs default):** prints the local-versus-default report in the log.
+- **Compare `<side>` with this package (merged defaults):** writes the patch and merged archive; prints the stanza
+  and line reports in the log; and adds the summary to the run summary.
+- **Compare `<side>` with this package (data models):** prints each changed data model in its own collapsed group.
 
-Each compare job publishes `<side>-diff-<app-id>-<attempt>` with its reports. The reports are described in
+Each compare job publishes `<side>-diff-<app-id>-<attempt>` with `<app-id>.patch` and `<app-id>-merged.tar.gz`. See
 [Artifacts](/Reference/Artifacts).
 
 ## Bulk stage

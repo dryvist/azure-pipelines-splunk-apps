@@ -103,29 +103,33 @@ def check_compare():
                 "my_ta/local/added.conf": "[source-local]\n",
             },
         )
+        tree_output = io.StringIO()
+        with redirect_stdout(tree_output):
+            compare.tree(target_dir, source_dir, out)
+        tree_text = tree_output.getvalue()
         output = io.StringIO()
         with redirect_stdout(output):
-            compare.tree(target_dir, source_dir, out)
             compare.local_diff(target_dir, source_dir, out)
             compare.diff(target_dir, source_dir, out)
-        with redirect_stdout(io.StringIO()):
+        summary = (out.parent / "my_ta-summary.md").read_text()
+        model_output = io.StringIO()
+        with redirect_stdout(model_output):
             compare.data_models(target_dir, source_dir, out)
-        models = (out / "my_ta-data-models.patch").read_text()
+        models = model_output.getvalue()
         assert '-  "b": 3\n+  "b": 2\n' in models and "Same.json" not in models
         assert "data/models" not in (out / "my_ta.patch").read_text()
-        tree_text = (out / "my_ta-tree.txt").read_text()
         reverse = Path(tmp, "reverse")
-        with redirect_stdout(io.StringIO()):
+        reverse_output = io.StringIO()
+        with redirect_stdout(reverse_output):
             compare.tree(target_dir, source_dir, reverse, "--reverse", "--skip-lookups")
             compare.local_diff(target_dir, source_dir, reverse, "--reverse")
             compare.diff(target_dir, source_dir, reverse, "--reverse")
-        assert "source-only.conf [removed]" in (reverse / "my_ta-tree.txt").read_text()
-        assert "only.csv" not in (reverse / "my_ta-tree.txt").read_text()
-        assert "+value = local" in (reverse / "my_ta-local-vs-default.diff").read_text()
+        reverse_logs = reverse_output.getvalue()
+        assert "source-only.conf [removed]" in reverse_logs
+        assert "only.csv" not in reverse_logs
+        assert "+value = local" in reverse_logs
         assert "-value = package" in (reverse / "my_ta.patch").read_text()
-        assert "[new] [added]" in (reverse / "my_ta-stanzas.txt").read_text()
-        local_text = (out / "my_ta-local-vs-default.diff").read_text()
-        html_text = (out / "my_ta-diff.html").read_text()
+        assert "[new] [added]" in reverse_logs
         assert "props.conf [changed] 50% (2 -> 2 lines)" in tree_text
         assert "source-only.conf [added]" in tree_text
         assert "only.csv [added]" in tree_text
@@ -139,24 +143,20 @@ def check_compare():
         assert "  local.meta [removed] 2 lines" in tree_lines
         assert "users/" in tree_lines
         assert "      savedsearches.conf [removed] 1 lines" in tree_lines
+        local_text = output.getvalue()
         assert compare.change_tree([], Path(), Path()) == "NO DIFFERENCES"
         assert compare.percent_changed([b"a"] * 200, [b"a"] * 199 + [b"b"]) == "<1%"
         assert "local/props.conf (Changed)\n" in local_text
         assert "-value = local" in local_text and "+value = package" in local_text
         assert "[new]" in local_text
-        assert "my_ta deployed diff" in html_text
-        assert "default/" in html_text and "props.conf [changed]" in html_text
-        assert '<table class="diff"' in html_text
-        assert "Local vs default" not in html_text
-        assert "Added lines:" not in html_text
-        assert "props.conf [changed]" in html_text
         patch_text = (out / "my_ta.patch").read_text()
-        stanza_text = (out / "my_ta-stanzas.txt").read_text()
-        assert "default/props.conf\n  [changed] [changed] 1 settings\n  [new] [removed] 1 settings" in stanza_text
-        assert "metadata/default.meta\n  [] [removed] 2 settings" in stanza_text
         printed = output.getvalue()
+        assert "default/props.conf (Changed, 2 stanzas)" in printed
+        assert "[changed] [changed] 1 settings" in printed
+        assert "[new] [removed] 1 settings" in printed
+        assert "metadata/default.meta" in printed
+        assert "[] [removed] 2 settings" in printed
         assert printed.index("Changed stanzas") < printed.index("Changed lines") < printed.index("--- target/default/props.conf")
-        summary = (out / "my_ta-summary.md").read_text()
         patch_paths = [
             path
             for token in patch_text.split()
@@ -197,7 +197,7 @@ def check_compare():
         assert "users/admin/local/savedsearches.conf" in summary
         assert "## Deployed change tree" not in summary
         assert "  props.conf [changed]" not in summary
-        logs = output.getvalue()
+        logs = tree_text + output.getvalue()
         assert logs.index("local/props.conf (Changed)") < logs.index("--- target/default/props.conf")
         assert "\n\n\n" + "=" * 100 + "\ndefault/props.conf (Changed, " in logs
         assert "--- target/default/props.conf" in logs
@@ -208,6 +208,16 @@ def check_compare():
         assert "my_ta: target vs source" in logs
         assert "users/ (1 files)\nusers/\n  admin/" in logs
         assert "lookup_file_backups" not in logs and "lookup_file_backups" not in tree_text
+        removed = (
+            "my_ta-tree.txt",
+            "my_ta-local-vs-default.diff",
+            "my_ta-stanzas.txt",
+            "my_ta-diff.html",
+            "my_ta-data-models.patch",
+            "my_ta-summary.md",
+        )
+        assert all(not (folder / name).exists() for folder in (out, reverse) for name in removed)
+        assert (out / "my_ta.patch").exists()
         merged_path = out / "my_ta-merged.tar.gz"
         assert merged_path.exists()
         with tarfile.open(merged_path, "r:gz") as archive:

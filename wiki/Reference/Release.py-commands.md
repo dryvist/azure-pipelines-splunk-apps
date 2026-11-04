@@ -52,26 +52,23 @@ Every ACS command retries every 30 seconds for up to 15 minutes while ACS return
 - `export <dir> --custom` pages through `acs apps list` in groups of 100. It removes names returned by
   `acs apps list --splunkbase=true`, then exports the remaining apps.
 - `export <dir> <package-dir>` gets the app ID from the package filename. It exports the app to `<dir>/<app-id>/`.
-- `tree <target-dir> <source-dir> <out-dir>` compares all raw files in each app before merging. It writes
-  `<app-id>-tree.txt` with added, removed, and changed paths. Each path shows its line count. A changed path also
-  shows the share of lines added or removed, such as `8% (120 -> 135 lines)`. Files that differ only in line
-  endings, trailing spaces, or trailing blank lines count as unchanged. Changes under `users/` print in
-  one collapsed group. The `diff` summary's user files print in
-  a collapsed `User files` group.
+- `tree <target-dir> <source-dir> <out-dir>` compares all raw files in each app before merging. It prints added,
+  removed, and changed paths in the log. Each path shows its line count. A changed path also shows the share of
+  lines added or removed, such as `8% (120 -> 135 lines)`. Files that differ only in line endings, trailing
+  spaces, or trailing blank lines count as unchanged. Changes under `users/` print in one collapsed group. The
+  `diff` summary's user files print in a collapsed `User files` group. Open the matching compare step in the log
+  to read the report.
 - `local-diff <target-dir> <source-dir> <out-dir>` compares each target local file with the same stanzas in the
-  source default file. It writes `<app-id>-local-vs-default.diff`. Lines with `-` are target local settings.
-  Lines with `+` are source package defaults. It runs as its own step.
+  source default file. Lines with `-` are target local settings; lines with `+` are source package defaults. It
+  runs as its own step and prints the report in the log. Open the matching compare step in the log to read it.
 - `data-models <target-dir> <source-dir> <out-dir>` merges local into default on both sides. Then it compares
   each `default/data/models/*.json` file. It formats the JSON with one key per line and sorted keys. It skips
-  files that differ only in formatting. It prints each model in its own collapsed group, and writes
-  `<app-id>-data-models.patch`. `diff` leaves data models out of its patch, stanza list, and HTML report. Its
-  summary still lists them.
+  files that differ only in formatting. It prints each model in its own collapsed group. Open the matching compare
+  step in the log to read the report. `diff` leaves data models out of its patch. Its summary still lists them.
 - `diff <target-dir> <source-dir> <out-dir>` merges local into default on both sides with ksconf, combining
-  repeated stanzas as Splunk does. It compares the archives for each app ID. It writes `<app-id>.patch`,
-  `<app-id>-stanzas.txt`, `<app-id>-diff.html`, `<app-id>-summary.md`, and `<app-id>-merged.tar.gz`. The HTML
-  report includes an indented folder tree and side-by-side file tables. The patch compares deployed defaults as
-  unified diffs. The summary lists deployed changes, local files, and user files, and it is uploaded to the run
-  summary.
+  repeated stanzas as Splunk does. It compares the archives for each app ID. It writes `<app-id>.patch` and
+  `<app-id>-merged.tar.gz`. The patch compares deployed defaults as unified diffs. The summary lists deployed
+  changes, local files, and user files, and it is uploaded to the run summary.
 - `local-diff` and `diff` print each file's diff in a collapsed log group under a separator line. Select the file
   name to expand it. In `diff`, a changed file's name also shows the percent of lines changed. Before the line
   diffs, `diff` prints a `Changed stanzas` section. It has one collapsed group per `.conf` or `.meta` file, which

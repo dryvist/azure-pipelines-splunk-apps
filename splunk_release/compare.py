@@ -3,7 +3,6 @@
 import csv
 import difflib
 import filecmp
-import html
 import json
 import io
 import re
@@ -222,30 +221,6 @@ def summary(changes, target_before, source_before):
         "Source:", *listed(p for p in source_before if p.parts[0] == "users"),
     ]) + "\n"
 
-def write_html_diff(app, target, source, changes, out):
-    tables = "".join(
-        f"<section><h2>{html.escape(path.as_posix())} ({status})</h2>"
-        + difflib.HtmlDiff().make_table(
-            (target / path).read_bytes().decode("utf-8", "replace").splitlines(True)
-            if (target / path).exists() else [],
-            (source / path).read_bytes().decode("utf-8", "replace").splitlines(True)
-            if (source / path).exists() else [],
-            fromdesc=html.escape(f"target/{path.as_posix()}"),
-            todesc=html.escape(f"source/{path.as_posix()}"),
-            context=True,
-            numlines=3,
-        ) + "</section>"
-        for status, path in changes
-    )
-    page = f'<!doctype html><html><head><meta charset="utf-8"><title>{html.escape(app)} diff</title>'
-    page += "<style>body{font-family:Arial;margin:2em}table.diff{border-collapse:collapse;width:100%}"
-    page += "td,th{padding:.2em;vertical-align:top}.diff_add{background:#cfc}"
-    page += ".diff_sub{background:#fcc}.diff_chg{background:#ffc}</style></head><body>"
-    page += f"<h1>{html.escape(app)} deployed diff</h1><pre>{html.escape(change_tree(changes, target, source))}</pre>"
-    page += tables or "<p>No deployed file changes.</p>"
-    page += "</body></html>\n"
-    (out / f"{app}-diff.html").write_text(page, encoding="utf-8")
-
 def ordered(target, source, reverse):
     """The (- side, + side) pair: target first, or source first when reverse is set."""
     return (source, target) if reverse else (target, source)
@@ -313,13 +288,11 @@ def each_app(target_dir, source_dir, out_dir, flags=()):
 
 def local_diff(target_dir, source_dir, out_dir, *flags):
     """Compare each target local file with the same stanzas in the source default file."""
-    for app, target, source, out, _ in each_app(target_dir, source_dir, out_dir, flags):
+    for _, target, source, _, _ in each_app(target_dir, source_dir, out_dir, flags):
         work = target.with_name("local-vs-default")
         work.mkdir()
         reports = local_vs_default(target, source, work, "--reverse" in flags)
         shown = [r for r in reports if r[1] != "Unchanged"]
-        text = "\n\n".join(f"{path} ({status})\n{report.rstrip()}" for path, status, report in shown)
-        (out / f"{app}-local-vs-default.diff").write_text((text or "NO DIFFERENCES") + "\n", encoding="utf-8")
         for path, status, report in shown:
             if status == "Skipped":
                 log("warning", f"{path}: ksconf could not parse a file; skipped")
@@ -340,12 +313,10 @@ def print_file_diff(path, status, patch):
     print_group(f"{path} ({status})", patch)
 
 def tree(target_dir, source_dir, out_dir, *flags):
-    """Write and print the tree of raw target and source app files."""
-    for app, target, source, out, _ in each_app(target_dir, source_dir, out_dir, flags):
+    """Print the tree of raw target and source app files."""
+    for _, target, source, _, _ in each_app(target_dir, source_dir, out_dir, flags):
         old, new = ordered(target, source, "--reverse" in flags)
         changes = file_changes(old, new, lambda _: True)
-        text = change_tree(changes, old, new) + "\n"
-        (out / f"{app}-tree.txt").write_text(text, encoding="utf-8")
         groups = {}
         for change in changes:
             groups.setdefault(collapsed(change[1]), []).append(change)
@@ -365,18 +336,14 @@ def diff(target_dir, source_dir, out_dir, *flags):
         changes = file_changes(old, new, deployed)
         text = summary(changes, target_before, source_before)
         changes = [(status, path) for status, path in changes if not data_model(path)]
-        write_html_diff(app, old, new, changes, out)
         merged_archive(app, target if in_target else source, out / f"{app}-merged.tar.gz")
         confs = [(status, path) for status, path in changes if path.suffix in (".conf", ".meta")]
-        stanzas = []
         log("section", "Changed stanzas")
         for status, path in confs:
             found = stanza_changes(old / path, new / path)
-            stanzas.append("\n".join([path.as_posix(), *("  " + line for line in found)]))
             print_file_diff(path.as_posix(), f"{status}, {len(found)} stanzas", "\n".join(found))
         if not confs:
             print_colored_patch("NO DIFFERENCES")
-        (out / f"{app}-stanzas.txt").write_text("\n\n".join(stanzas or ["NO DIFFERENCES"]) + "\n", encoding="utf-8")
         log("section", "Changed lines")
         patch = []
         for status, path in changes:
@@ -391,8 +358,9 @@ def diff(target_dir, source_dir, out_dir, *flags):
         if not changes:
             print_colored_patch("NO DIFFERENCES")
         (out / f"{app}.patch").write_bytes(b"".join(patch) or b"NO DIFFERENCES\n")
-        (out / f"{app}-summary.md").write_text(text, encoding="utf-8")
-        print(f"##vso[task.uploadsummary]{(out / f'{app}-summary.md').resolve()}")
+        summary_path = out.parent / f"{app}-summary.md"
+        summary_path.write_text(text, encoding="utf-8")
+        print(f"##vso[task.uploadsummary]{summary_path.resolve()}")
         head, users = text.split("## User files\n")
         print(head, end="")
         log("group", "User files")
@@ -400,20 +368,20 @@ def diff(target_dir, source_dir, out_dir, *flags):
         log("endgroup")
 
 def data_models(target_dir, source_dir, out_dir, *flags):
-    """Print and write each changed data model's JSON diff, one collapsed group per model."""
-    for app, target, source, out, _ in each_app(target_dir, source_dir, out_dir, flags):
+    """Print each changed data model's JSON diff, one collapsed group per model."""
+    for _, target, source, _, _ in each_app(target_dir, source_dir, out_dir, flags):
         merge_local(target)
         merge_local(source)
         old, new = ordered(target, source, "--reverse" in flags)
-        patch = []
+        changed = False
         for status, path in file_changes(old, new, lambda p: deployed(p) and data_model(p)):
             a, b = json_lines(old / path), json_lines(new / path)
             if a == b:
                 continue
             name = path.as_posix()
-            patch.append("".join(difflib.unified_diff(a, b, f"target/{name}", f"source/{name}")))
+            patch = "".join(difflib.unified_diff(a, b, f"target/{name}", f"source/{name}"))
             size = f", {percent_changed(a, b)}" if status == "Changed" else ""
-            print_file_diff(name, status + size, patch[-1])
-        if not patch:
+            changed = True
+            print_file_diff(name, status + size, patch)
+        if not changed:
             print_colored_patch("NO DIFFERENCES")
-        (out / f"{app}-data-models.patch").write_text("".join(patch) or "NO DIFFERENCES\n", encoding="utf-8")
