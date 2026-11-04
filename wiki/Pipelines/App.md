@@ -1,24 +1,14 @@
 # App pipeline
 
-The app pipeline builds and checks one app. It deploys the app to nonprod and prod. It can also import
-installed changes into a pull request.
-
-Each app repository has `package/` and an `azure-pipelines.yml`. That file extends the shared template.
-The template defaults to Python 3.13. An app repository can override `setup` and `pool`. `pool` picks the
-agent pool, which defaults to `ubuntu-latest`.
+Each app repository has `package/` and an `azure-pipelines.yml` that extends the shared template. The template uses
+Python 3.13 and `ubuntu-latest` agents unless the app repository overrides `setup` or `pool`. For stages and outputs,
+see [Reference: Stages](/Reference/Stages).
 
 ## Runs
 
-| Run | Starts when | Stages |
-| --- | --- | --- |
-| Pull request | A pull request targets `main` | Build, AppInspect, Compare with nonprod, Deploy to nonprod, Compare with prod |
-| Main | A commit reaches `main` | The same stages as a pull request, then Release and Deploy to prod |
-| Import | You run the pipeline on `main` with an import option | Import from nonprod, Import from prod, or both |
-
-- Pull request runs start from a Build validation policy on `main`. Azure Repos ignores YAML `pr:`
-  triggers. The policy is set up in [Onboard, after onboarding](/Pipelines/Onboard#after-onboarding).
+- Pull request runs start from the Build validation policy on `main`. Azure Repos ignores YAML `pr:`
+  triggers. See [Onboard: After onboarding](/Pipelines/Onboard#after-onboarding).
 - Main runs start from the YAML trigger on `main`.
-- Stage inputs and outputs are in [Reference: Stages](/Reference/Stages).
 
 ![Pull request flow.](../diagrams/pr-run.png)
 
@@ -26,9 +16,8 @@ agent pool, which defaults to `ubuntu-latest`.
 
 ## Import
 
-The import options export the installed app from the nonprod or prod ITSI search head. They compare it
-with the app package on `main`, then open a pull request. Neither option installs the package. Each
-option uses its `splunk-itsi-<env>` variable group.
+The import options export the installed app from the nonprod or prod ITSI search head. They compare it with the
+package on `main`, then open a pull request. They install nothing. Each option uses its `splunk-itsi-<env>` group.
 
 | Parameter | Values | Default | Effect |
 | --- | --- | --- | --- |
@@ -37,54 +26,48 @@ option uses its `splunk-itsi-<env>` variable group.
 | `importLookups` | on, off | off | On imports `lookups/` too. Off leaves `lookups/` out of both sides, and the pull request keeps the lookups on `main`. |
 
 An app repository whose `azure-pipelines.yml` has no `importLookups` parameter never imports lookups. One
-without `importFromProd` shows no prod option.
-
-Imports and compares always leave out `lookups/lookup_file_backups/`. An import removes them from the app.
+without `importFromProd` shows no prod option. Imports and compares always leave out
+`lookups/lookup_file_backups/`, and an import removes it from the app.
 
 ### Run an import
 
-1. Open **Pipelines**, then open the app pipeline.
-2. Select **Run pipeline**.
-3. Select `main` as the branch.
-4. Select **Import this app from nonprod into a new pull request**, **Import this app from prod into a new
-   pull request**, or both. Each selected option makes its own import stage and pull request.
-5. To import lookups too, select **When importing, also import lookups (CSV files)**.
-6. Select **Run**.
-7. Open the `<env>-diff-<app-id>-<attempt>` artifact and review it. Edit the pull request to choose what to
-   keep, or close it to discard the import.
+1. Open **Pipelines**.
+2. Open the app pipeline.
+3. Select **Run pipeline**.
+4. Select `main` as the branch.
+5. Select **Import this app from nonprod into a new pull request** to import from nonprod.
+6. Select **Import this app from prod into a new pull request** to import from prod.
+7. Select **When importing, also import lookups (CSV files)** to import lookups too.
+8. Select **Run**.
+9. Open the [import diff artifact](/Reference/Artifacts).
+10. Review the artifact.
+11. Edit the pull request to choose what to keep, or close it to discard the import.
 
-Each run creates a new branch named `<env>-import/<version>-<Build.BuildId>` and a new pull request. The
-pull request is set to auto-complete and to delete its branch once its policies pass. Its validation run
-skips the automatic version bump, because the imported version differs from `main`.
+Each selected option makes its own stage and pull request, on a new branch named
+`<env>-import/<version>-<Build.BuildId>`. The pull request auto-completes and deletes its branch once its policies
+pass. Its validation run skips the version bump, because the imported version differs from `main`.
 
 ### What the import stage does
 
-The stage is named `import_<env>`, where `<env>` is `nonprod` or `prod`.
+The `import_<env>` stage packages `main`, exports the app to `<env>-export/<app-id>/`, and runs the
+[compare steps](/Reference/Stages#compare-steps) in reverse. Lines with `-` are the package on `main`. Lines with `+`
+are `<env>`, the changes the import brings in. It publishes the diff artifact, then opens the pull request.
 
-1. Gets the app at `main` and the tools repository. Sets up Python, and installs `ksconf`, the Splunk SDK,
-   and `slim`.
-2. Packages the `main` app into `app/dist`.
-3. Sets up the ACS CLI for `<env>`, with the ITSI search head as the target. Reports the stack status.
-4. Exports the app to `<env>-export/<app-id>/` and sets `APP_ID`.
-5. Compares the export with the `main` package in the four compare steps in
-   [Reference: Stages](/Reference/Stages#compare-steps). The steps run in reverse. Lines with `-` are the
-   package on `main`. Lines with `+` are `<env>`, the changes the import brings in. Each data model prints
-   in its own collapsed group.
-6. Publishes `<env>-diff-<app-id>-<attempt>`.
-7. Opens the pull request. It merges local configuration into default and removes `local/`, `users/`, and
-   `metadata/local.meta`. It sets both app version rows to one patch above the highest version on `main` or
-   in the splunk-apps feed. It regenerates `app.manifest`. It sets `acceleration = false` in
-   `datamodels.conf` and removes `action.populate_lookup` from `savedsearches.conf`, with one warning per
-   stanza. In `app.conf`, it sets the settings Splunk Cloud AppInspect requires, with one warning each:
-   - `[id] name` and `[package] id` are the app ID.
-   - `[id] version` and `[launcher] version` match the higher of the two. They default to `1.0.0`.
-   - `[package] check_for_updates = false`.
-   - `[ui] label` is 5 to 80 characters. It defaults to the app ID.
-   - `[install] is_configured = true` becomes `false`. `install_source_checksum`,
-     `install_source_local_checksum`, and `state_change_requires_restart` are removed.
+The pull request changes the export in these ways. Each changed setting prints one warning.
 
-   Onboard, every package step, and every pull request bump set the same `app.conf` settings.
-8. The stack keeps its own `local/` values. An acceleration turned on in Splunk Web stays on after a deploy.
+- Merges local configuration into default, and removes `local/`, `users/` and `metadata/local.meta`.
+- Sets both version rows to one patch above the highest version on `main` or in the splunk-apps feed, and regenerates
+  `app.manifest`.
+- Sets `acceleration = false` in `datamodels.conf`, and removes `action.populate_lookup` from `savedsearches.conf`.
+  Acceleration turned on in Splunk Web stays on after a deploy.
+- Sets the `app.conf` settings Splunk Cloud AppInspect requires. Onboard, every package step and every pull request
+  bump set the same ones:
+  - `[id] name` and `[package] id` are the app ID.
+  - `[id] version` and `[launcher] version` match the higher of the two. They default to `1.0.0`.
+  - `[package] check_for_updates = false`.
+  - `[ui] label` is 5 to 80 characters. It defaults to the app ID.
+  - `[install] is_configured = true` becomes `false`. `install_source_checksum`,
+    `install_source_local_checksum`, and `state_change_requires_restart` are removed.
 
 ## Check a run
 
@@ -96,40 +79,47 @@ The stage is named `import_<env>`, where `<env>` is `nonprod` or `prod`.
 | `nonprod` | Shows **Deploy to nonprod** and installs the package. |
 | `proddiff` | Shows **Compare with prod**. Both jobs finish without installing. |
 
-1. Open the pipeline run and check each row in the table.
-2. In the `appinspect` job, open the **Show AppInspect HTML report link** step and select the link.
-3. Open the `appinspect-report-<attempt>` artifact with the highest attempt number. Download
-   `appinspect-report.html` and open it in a browser.
+1. Open the pipeline run.
+2. Check each row in the table.
+3. Open the `appinspect` job.
+4. Open the **Show AppInspect HTML report link** step.
+5. Select the link.
+6. Open the `appinspect-report-<attempt>` artifact with the highest attempt number.
+7. Download `appinspect-report.html`.
+8. Open the file in a browser.
 
 The **Show AppInspect JSON report** step prints the full report. A `future_failure` count above 0 shows a
 warning. If the app is not in prod yet, the export log shows `NOT INSTALLED <app-id>`, and every package
 file shows as added.
 
-A finished run has the `dist`, `appinspect-report-1`, and `prod-diff-<app-id>-1` artifacts. Their contents
-are in [Reference: Artifacts](/Reference/Artifacts).
-
 ## Check a release
 
 1. Merge the validated pull request into `main`.
-2. Open the main pipeline run. Confirm `build`, `appinspect`, and `release` pass.
-3. Open **Repos → Tags** and find `v<version>`. Confirm the tag points to the release commit.
-4. Open **Artifacts → splunk-apps** and find the package named with the lowercase app ID and the version
-   from `app.conf`. Confirm the feed contains that Universal Package version.
+2. Open the main pipeline run.
+3. Confirm `build`, `appinspect`, and `release` pass.
+4. Open **Repos**.
+5. Open **Tags**.
+6. Confirm `v<version>` points to the release commit.
+7. Open **Artifacts**.
+8. Open **splunk-apps**.
+9. Find the package named with the lowercase app ID.
+10. Confirm the feed has the version from `app.conf`.
 
 If the tag or package is missing, see [Release troubleshooting](/Troubleshooting/Release).
 
 ## Approve the prod install
 
-On a `main` run, **Deploy to prod** does not start by itself. An approval for **Compare with prod** does not
-start it.
+An approval for **Compare with prod** does not start **Deploy to prod**. To skip the prod install, leave **Run stage**
+unselected.
 
 1. Wait for **Release** and **Compare with prod** to succeed.
 2. Open the run.
-3. On the **Deploy to prod** stage, select **Run stage**.
-4. Approve the `splunk-prod` check as described in [Deploy: Approve a stage](/Pipelines/Deploy#approve-a-stage).
+3. Select **Run stage** on **Deploy to prod**.
+4. Approve the `splunk-prod` check. See [Deploy: Approve a stage](/Pipelines/Deploy#approve-a-stage).
 
-If you select **Run stage** too early, the first step fails. Select **Rerun stage** after both stages succeed.
+Selecting **Run stage** too early fails at the first step. Select **Rerun stage** after both stages succeed.
 
-To skip the prod install, do not select **Run stage**.
+A rejection stops the stage. If approval reaches its timeout, Azure marks the stage skipped. The Exclusive Lock check
+runs after the approvals, so waiting for approval does not hold the prod lock.
 
 If a stage skips or fails, see [Build troubleshooting](/Troubleshooting/Build).

@@ -11,9 +11,9 @@ Create each manual pipeline from its name and YAML path.
 | `restart-stack` | `/restart/azure-pipelines.yml` | [Restart](/Pipelines/Restart) |
 | `repair-app-objects` | `/repair/azure-pipelines.yml` | [Repair](/Pipelines/Repair) |
 | `smoke-test` | `/smoke-test/azure-pipelines.yml` | [Smoke test](/Pipelines/Smoke-test) |
-| `Splunk ACS Bulk Install` | `/bulk-install/azure-pipelines.yml` | [Bulk install](/Pipelines/Bulk-Install) |
-| `Splunk ACS Bulk Update` | `/bulk-update/azure-pipelines.yml` | [Bulk update](/Pipelines/Bulk-Update) |
-| `Splunk ACS Bulk Delete` | `/bulk-delete/azure-pipelines.yml` | [Bulk delete](/Pipelines/Bulk-Delete) |
+| `Splunk ACS Bulk Install` | `/bulk-install/azure-pipelines.yml` | [Bulk install](/Pipelines/Bulk) |
+| `Splunk ACS Bulk Update` | `/bulk-update/azure-pipelines.yml` | [Bulk update](/Pipelines/Bulk) |
+| `Splunk ACS Bulk Delete` | `/bulk-delete/azure-pipelines.yml` | [Bulk delete](/Pipelines/Bulk) |
 | Any name you choose | `/onboard/azure-pipelines.yml` | [Onboard](/Pipelines/Onboard) |
 
 Follow these steps for each row.

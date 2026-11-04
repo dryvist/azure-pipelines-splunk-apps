@@ -7,7 +7,7 @@ Onboard takes private apps only. Through ACS, it stops when the app is not insta
 is a Splunkbase app.
 
 Before the first run, grant the one-time permissions in [Build Service](/Setup/Build-service). Create the
-pipeline from [Manual pipelines](/Setup/Manual-pipelines), with YAML path `/onboard/azure-pipelines.yml`.
+pipeline from [Manual pipelines](/Setup/Manual-pipelines).
 
 ## Parameters
 
@@ -19,12 +19,9 @@ pipeline from [Manual pipelines](/Setup/Manual-pipelines), with YAML path `/onbo
 
 ## Create the repositories
 
-A script creates one repository per app, named exactly the app ID. Each repository gets `azure-pipelines.yml`
-with the `AGENT_POOL` agent pool from `splunk-appinspect` and an empty `package/` folder. The script also adds the Onboard and Deploy pipelines to each
+A script creates one repository per app. Each repository gets `azure-pipelines.yml` with the `AGENT_POOL` agent pool
+from `splunk-appinspect` and an empty `package/` folder. The script also adds the Onboard and Deploy pipelines to each
 repository's **Pipeline permissions**. Run it, then [run Onboard](#run-it).
-
-First, grant the Build Service rights once for all repositories. See
-[Build Service: App repository](/Setup/Build-service#app-repository).
 
 1. In Azure DevOps, open **User settings** (top right), then **Personal access tokens**.
 2. Select **New Token**. Set **Expiration** to 1 day.
@@ -104,12 +101,13 @@ add the pipelines; select **Permit** for that repository when Onboard or Deploy 
 
 ## Run it
 
-1. Open the Onboard pipeline and select **Run pipeline**.
-2. Select `nonprod` or `prod` for **environment**.
-3. Keep `splunk-itsi` for **target**, or select `splunk` for the main search head.
-4. Enter the app IDs for **App IDs**, such as `my_app;other_app`.
-5. Select **Run**.
-6. Select **Permit** for any resource the run asks for. See [Permissions](/Troubleshooting/Permissions).
+1. Open the Onboard pipeline.
+2. Select **Run pipeline**.
+3. Select `nonprod` or `prod` for **environment**.
+4. Keep `splunk-itsi` for **target**, or select `splunk` for the main search head.
+5. Enter the app IDs for **App IDs**, such as `my_app;other_app`.
+6. Select **Run**.
+7. Select **Permit** for any resource the run asks for. See [Permissions](/Troubleshooting/Permissions).
 
 Each job exports its app, writes the export to `package/`, pushes the commit to `main`, and creates the app
 pipeline. It works on an empty repository too. If the repository has no `azure-pipelines.yml`, the job adds the
@@ -121,6 +119,10 @@ agents.
 Do these steps once for each new app repository.
 
 1. Run the app pipeline on `main`. That run goes through every stage described in [App](/Pipelines/App).
-2. Add the Build validation policy on `main`. Onboard does not add it. Open **Repos → Branches**, select
-   `main`, and open **Branch policies**. Add a **Build validation** policy, select the app pipeline, set the
-   policy to **Automatic** and **Required**, and save.
+2. Open **Repos → Branches**.
+3. Select `main`.
+4. Open **Branch policies**.
+5. Add a **Build validation** policy. Onboard does not add it.
+6. Select the app pipeline.
+7. Set the policy to **Automatic** and **Required**.
+8. Select **Save**.

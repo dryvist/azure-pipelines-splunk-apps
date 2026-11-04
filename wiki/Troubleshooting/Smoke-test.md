@@ -1,8 +1,6 @@
 # Smoke-test troubleshooting
 
-Use this page to fix smoke-test credential, ACS, REST, Azure DevOps, export, and result failures.
-
-To create and run the pipeline, follow [Smoke test](/Pipelines/Smoke-test).
+Use this page to fix [smoke test](/Pipelines/Smoke-test) failures.
 
 ## Credentials or ACS export fails
 
@@ -84,12 +82,11 @@ The smoke-test export uses `--default=false`, `--local=true`, `--users=true`, an
 
 **Fix:**
 
-1. Open each failed job named in the `Result` step output.
+1. Open each failed job named in the `Result` step output. See
+   [Smoke test: Read the result](/Pipelines/Smoke-test#read-the-result).
 2. Read its first `FAIL` or `Error` line.
 3. Fix that job's credential, network, ACS, REST, or rights issue.
 4. Rerun the smoke-test pipeline.
-
-For how to read the result, see [Smoke test: Read the result](/Pipelines/Smoke-test#read-the-result).
 
 [acs-export]: https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.5.2605/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/export-apps-in-splunk-cloud-platform
 [acs-cli]: https://github.com/splunk/acs-cli
