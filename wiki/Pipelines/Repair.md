@@ -39,8 +39,9 @@ among the splunk-apps feed and the installed app.
 
 ## What happens
 
-1. **Check `<app-id>` is in the splunk-apps feed** and **Download `<app-id>` from the splunk-apps feed** get
-   the latest package. These steps are described in [Deploy: Package steps](/Pipelines/Deploy#package-steps).
+1. **Download `<app-id>` from the splunk-apps feed** gets the latest package. If the app is missing, the
+   `UniversalPackages@0` task fails. Run the app's pipeline on `main` to release it first. See
+   [Deploy: Package steps](/Pipelines/Deploy#package-steps).
 2. **Set up ACS CLI** prepares the ACS session for the selected group.
 3. **Check the stanzas, then build the temporary and real packages** fails before any install when a stanza
    is not on the search head, or not in the package's `default/<conf>.conf`. It prints the installed,

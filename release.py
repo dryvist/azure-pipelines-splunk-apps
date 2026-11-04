@@ -17,7 +17,6 @@
   install-acs
   appinspect-link
   appinspect-json <report>
-  feed-check <app-id>
   stages-succeeded <stage...>
   feed-missing <app-id>
   tag
@@ -39,7 +38,7 @@ from splunk_release.azure import appinspect_link, run_cli, stages_succeeded
 from splunk_release.compare import data_models, diff, local_diff, tree
 from splunk_release.import_app import import_app, onboard
 from splunk_release.package import package
-from splunk_release.version import bump, feed_check, feed_missing, tag
+from splunk_release.version import bump, feed_missing, tag
 
 
 def acs_command(*args):
@@ -64,7 +63,6 @@ commands = {
     "install-acs": install_acs,
     "appinspect-link": appinspect_link,
     "appinspect-json": show_report,
-    "feed-check": feed_check,
     "stages-succeeded": stages_succeeded,
     "feed-missing": feed_missing,
     "tag": tag,

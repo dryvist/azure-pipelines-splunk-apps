@@ -187,13 +187,6 @@ def published(name, version):
     """Return whether the splunk-apps feed already holds this package version."""
     return version in feed_versions(name)
 
-def feed_check(name):
-    """Exit with an error when the splunk-apps feed holds no version of this app."""
-    name = name.lower()
-    if not feed_versions(name):
-        sys.exit(f"{name} is not in the splunk-apps feed; run its app pipeline on main to release it")
-    print(f"{name} is in the splunk-apps feed")
-
 def feed_missing(name):
     """Set the MISSING output variable to true when the splunk-apps feed holds no version of this app."""
     name = name.lower()

@@ -77,7 +77,6 @@ The uninstall and install stages run these steps for each selected app. They dow
 directory. The compare stages run the first two steps.
 
 - **Use Python 3.13:** prepares the agent.
-- **Check `<app-id>` is in the splunk-apps feed:** fails when the feed has no version of the app.
 - **Download `<app-id>` from the splunk-apps feed:** gets the latest package.
 - **Uninstall from `<environment>`:** when `uninstall` is on, removes every selected app from all search
   heads, including ITSI. Then it confirms each app is gone. It waits up to 15 minutes for the stack.
