@@ -9,7 +9,6 @@
   status
   wait-version <dir>
   restart
-  plan
   export <out-dir> [app-id...]
   tree <target> <source> <out> [flags]
   local-diff <target> <source> <out> [flags]
@@ -36,7 +35,7 @@ from splunk_release.acs import (
     repair_packages, restart, status, uninstall, wait_version,
 )
 from splunk_release.appinspect import appinspect, show_report
-from splunk_release.azure import appinspect_link, plan, run_cli, stages_succeeded
+from splunk_release.azure import appinspect_link, run_cli, stages_succeeded
 from splunk_release.compare import data_models, diff, local_diff, tree
 from splunk_release.import_app import import_app, onboard
 from splunk_release.package import package
@@ -57,7 +56,6 @@ commands = {
     "status": status,
     "wait-version": wait_version,
     "restart": restart,
-    "plan": plan,
     "export": export,
     "tree": tree,
     "local-diff": local_diff,

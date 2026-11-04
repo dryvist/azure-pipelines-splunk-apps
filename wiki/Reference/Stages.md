@@ -48,7 +48,6 @@ Steps, in order:
 - **Checkout tools (`checkout: tools`, default `setup`):** gets the shared scripts.
 - **UsePythonVersion@0 (default `setup`):** selects Python 3.13.
 - **Use UTF-8 for Python files and output (default `setup`):** sets `PYTHONUTF8=1` for later steps.
-- **Show stage plan:** prints each stage and its run condition, from the build reason and source branch.
 - **Install diff dependencies:** installs pinned `ksconf` and Splunk SDK packages from `templates/diff-tools.yml`.
 - **Install packaging toolkit:** the shared dependency template adds the packaging toolkit, `slim`, for build and
   import jobs.

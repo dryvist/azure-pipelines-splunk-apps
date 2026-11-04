@@ -76,8 +76,6 @@ stages:
               path: app
               persistCredentials: true
             - ${{ parameters.setup }}
-            - script: python $(Pipeline.Workspace)/tools/release.py plan
-              displayName: Show stage plan
             - template: diff-tools.yml
               parameters:
                 includePackagingToolkit: true

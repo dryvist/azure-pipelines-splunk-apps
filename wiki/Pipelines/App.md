@@ -18,7 +18,6 @@ agent pool, which defaults to `ubuntu-latest`.
 - Pull request runs start from a Build validation policy on `main`. Azure Repos ignores YAML `pr:`
   triggers. The policy is set up in [Onboard, after onboarding](/Pipelines/Onboard#after-onboarding).
 - Main runs start from the YAML trigger on `main`.
-- **Show stage plan** in the build job prints the run reason and the condition of each stage.
 - Stage inputs and outputs are in [Reference: Stages](/Reference/Stages).
 
 ![Pull request flow.](../diagrams/pr-run.png)

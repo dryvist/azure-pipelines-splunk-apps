@@ -76,26 +76,6 @@ def http(url, headers, data=None, timeout=900, method=None, missing_ok=False):
         sys.exit(f"HTTP request failed with no HTTP status: {getattr(e, 'reason', e)}")
 
 
-def plan():
-    """Print which stages this run executes and the rule behind each."""
-    reason = os.environ.get("BUILD_REASON", "")
-    branch = os.environ.get("BUILD_SOURCEBRANCH", "")
-    pull_request, main = reason == "PullRequest", branch == "refs/heads/main"
-    compare = pull_request or main
-    log("section", "Stage plan")
-    print(f"Build.Reason = {reason}")
-    print(f"Build.SourceBranch = {branch}")
-    for stage, runs, rule in (
-        ("build", True, "every run"),
-        ("appinspect", True, "after build, unless the build pushed a version bump"),
-        ("nonproddiff", compare, "pull request or refs/heads/main"),
-        ("nonprod", compare, "pull request or refs/heads/main"),
-        ("proddiff", compare, "pull request or refs/heads/main"),
-        ("release", main, "refs/heads/main, after nonprod"),
-        ("prod", main, "refs/heads/main, Run stage after release and proddiff, then the splunk-prod approval"),
-    ):
-        print(f"{stage:<12} {'RUNS' if runs else 'SKIPPED':<8} runs when {rule}")
-
 def stages_succeeded(*stages):
     """Exit unless each named stage of this run succeeded."""
     e = os.environ
