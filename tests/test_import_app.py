@@ -8,7 +8,6 @@ import os
 import tempfile
 from contextlib import chdir, redirect_stdout
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import patch
 
 from _common import CONF, write_tgz
@@ -179,24 +178,23 @@ class ImportAppTests(TestCase):
                         return json.dumps({"value": [{"id": resource_id}]}).encode()
                 return b"{}"
 
-            def command(cmd, **kwargs):
-                events.append(("run", cmd))
-                if "package" in cmd:
-                    repo_root = Path(cmd[cmd.index("-C") + 1])
+            def command(*args):
+                events.append(("git", args))
+                if "package" in args:
+                    repo_root = Path(args[args.index("-C") + 1])
                     package_roots.append(repo_root)
-                    self.assertEqual(cmd[-3:], ["add", "package", "azure-pipelines.yml"])
+                    self.assertEqual(args[-3:], ("add", "package", "azure-pipelines.yml"))
                     assert (repo_root / "package/default/app.conf").is_file()
                     assert (repo_root / "package/default/props.conf").read_text() == "[changed]\nvalue = local\n"
                     assert not (repo_root / "package/app.manifest").exists()
                     example = Path(import_app.__file__).resolve().parents[1] / "example/azure-pipelines.yml"
                     assert (repo_root / "azure-pipelines.yml").read_text() == example.read_text().replace("<agent-pool>", "my-pool")
-                return SimpleNamespace(returncode=0)
 
             with (
                 chdir(root),
                 patch.dict(os.environ, environment),
                 patch("splunk_release.import_app.http", side_effect=request) as http,
-                patch("splunk_release.import_app.run", side_effect=command),
+                patch("splunk_release.import_app.git", side_effect=command),
                 patch("splunk_release.import_app.APP", "my_ta"),
                 patch("splunk_release.import_app.require_private") as require_private,
                 patch("splunk_release.import_app.export") as export,
@@ -207,6 +205,15 @@ class ImportAppTests(TestCase):
             export.assert_called_once_with("export", "my_ta")
 
             self.assertEqual(len(package_roots), 1)
+            repo_root = str(package_roots[0])
+            self.assertEqual([event[1] for event in events if event[0] == "git"], [
+                ("-C", repo_root, "init", "--initial-branch=main"),
+                ("-C", repo_root, "remote", "add", "origin", repo["remoteUrl"]),
+                ("-C", repo_root, "add", "package", "azure-pipelines.yml"),
+                ("-C", repo_root, "commit", "-m", "feat: onboard my_ta"),
+                ("-C", repo_root, "-c", "http.extraheader=AUTHORIZATION: bearer test-token",
+                 "push", "origin", "HEAD:main"),
+            ])
             self.assertEqual([call.args[0] for call in http.call_args_list[:2]], [
                 "https://dev.azure.com/<org>/<project-id>/_apis/git/repositories/my_ta?api-version=7.1",
                 "https://dev.azure.com/<org>/<project-id>/_apis/pipelines?api-version=7.1",
@@ -246,7 +253,7 @@ class ImportAppTests(TestCase):
             self.assertEqual(actual_patches, expected_patches)
             self.assertEqual(events[0][0], "http")
             self.assertEqual(events[-1][0], "http")
-            pushes = [event[1] for event in events if event[0] == "run" and "push" in event[1]]
+            pushes = [event[1] for event in events if event[0] == "git" and "push" in event[1]]
             self.assertEqual(len(pushes), 1)
             self.assertIn("http.extraheader=AUTHORIZATION: bearer test-token", pushes[0])
 
@@ -271,15 +278,15 @@ class ImportAppTests(TestCase):
         environment = {"SYSTEM_ACCESSTOKEN": "t", "SYSTEM_COLLECTIONURI": "https://dev.azure.com/<org>/",
                        "SYSTEM_TEAMPROJECTID": "<project-id>"}
 
-        def clone(cmd, **kwargs):
-            (Path(cmd[-1]) / "package/default").mkdir(parents=True)
-            (Path(cmd[-1]) / "package/default/app.conf").write_text("[ui]\n")
+        def clone(*args):
+            (Path(args[-1]) / "package/default").mkdir(parents=True)
+            (Path(args[-1]) / "package/default/app.conf").write_text("[ui]\n")
 
         with (
             patch.dict(os.environ, environment),
             patch("splunk_release.import_app.http",
                   return_value=b'{"defaultBranch": "refs/heads/main", "remoteUrl": "https://example.invalid/my_ta"}'),
-            patch("splunk_release.import_app.run", side_effect=clone),
+            patch("splunk_release.import_app.git", side_effect=clone),
             patch("splunk_release.import_app.export") as export,
             self.assertRaisesRegex(SystemExit, "already has files in package/"),
         ):

@@ -46,7 +46,7 @@ def report_system_exit(error):
 
 
 def run_cli(command, *args):
-    """Run a CLI command and report its process or message failure once."""
+    """Run a CLI command and report its failure as one error line."""
     try:
         return command(*args)
     except subprocess.CalledProcessError as error:
@@ -55,6 +55,9 @@ def run_cli(command, *args):
     except SystemExit as error:
         report_system_exit(error)
         raise
+    except (KeyError, AttributeError, TypeError) as error:
+        log("error", f"{type(error).__name__}: {error}")
+        sys.exit(1)
 
 
 def http(url, headers, data=None, timeout=900, method=None, missing_ok=False):

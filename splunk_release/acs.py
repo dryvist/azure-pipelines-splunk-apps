@@ -1,7 +1,6 @@
 """Configure and operate the Splunk Cloud ACS CLI."""
 
 import hashlib
-import inspect
 import json
 import os
 import shutil
@@ -30,15 +29,7 @@ def install_acs():
     actual = hashlib.sha256(archive.read_bytes()).hexdigest()
     if actual != sha256:
         sys.exit(f"ACS CLI checksum mismatch: expected {sha256}, got {actual}")
-    unpack_options = {}
-    if (
-        archive.suffix == ".gz"
-        and "filter" in inspect.signature(shutil.unpack_archive).parameters
-    ):
-        unpack_options["filter"] = (
-            "data" if sys.version_info >= (3, 14) else "fully_trusted"
-        )
-    shutil.unpack_archive(archive, directory, **unpack_options)
+    shutil.unpack_archive(archive, directory, **({"filter": "data"} if archive.suffix == ".gz" else {}))
     print(f"##vso[task.prependpath]{directory}", flush=True)
     os.environ["PATH"] = f"{directory}{os.pathsep}{os.environ['PATH']}"
     env = acs_env()
@@ -100,10 +91,7 @@ def acs_env():
 def structured_response(env, *args):
     """Run an acs command with -f structured and return the decoded "response" object it prints."""
     try:
-        response = json.loads(json.loads(acs(env, *args, "-f", "structured"))[0]["response"])
-        if not isinstance(response, dict):
-            raise ValueError("response must be an object")
-        return response
+        return json.loads(json.loads(acs(env, *args, "-f", "structured"))[0]["response"])
     except (ValueError, IndexError, KeyError, TypeError):
         log("error", f'acs {" ".join(args)} output has no JSON "response" object')
         raise SystemExit(1)
@@ -232,11 +220,7 @@ def listed_apps(env, splunkbase=False):
         args = ["apps", "list", "--count", "100", "--offset", str(offset)]
         if splunkbase:
             args.append("--splunkbase=true")
-        rows = structured_response(env, *args).get("apps")
-        if not isinstance(rows, list) or any(not isinstance(item, dict) or not isinstance(item.get("name"), str)
-                                             for item in rows):
-            log("error", "Missing apps in ACS output")
-            raise SystemExit(1)
+        rows = structured_response(env, *args)["apps"]
         apps.extend(item["name"] for item in rows)
         if len(rows) < 100:
             return apps

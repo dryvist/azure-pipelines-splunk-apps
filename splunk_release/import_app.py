@@ -9,7 +9,7 @@ from pathlib import Path
 
 from splunk_release import compare
 from splunk_release.acs import export, require_private
-from splunk_release.azure import http, log, run
+from splunk_release.azure import http, log
 from splunk_release.package import app_conf_required, sort_confs
 from splunk_release.version import (
     APP,
@@ -171,14 +171,13 @@ def onboard(app):
     auth = f"http.extraheader=AUTHORIZATION: bearer {token}"
     with tempfile.TemporaryDirectory() as temp_dir:
         root = Path(temp_dir)
-        git_in = ["git", "-C", str(root), "-c", "user.name=Azure Pipelines", "-c", "user.email=azure-pipelines@localhost"]
         if repo.get("defaultBranch"):
-            run(["git", "-c", auth, "clone", "-q", repo["remoteUrl"], str(root)], check=True)
+            git("-c", auth, "clone", "-q", repo["remoteUrl"], str(root))
             if any(path.is_file() and path.name != ".gitkeep" for path in (root / "package").rglob("*")):
                 sys.exit(f"Repository {app} already has files in package/. Onboard needs an empty package/")
         else:
-            run([*git_in, "init", "--initial-branch=main"], check=True)
-            run([*git_in, "remote", "add", "origin", repo["remoteUrl"]], check=True)
+            git("-C", str(root), "init", "--initial-branch=main")
+            git("-C", str(root), "remote", "add", "origin", repo["remoteUrl"])
         require_private(app)
         export("export", app)
         shutil.rmtree(root / "package", ignore_errors=True)
@@ -188,9 +187,9 @@ def onboard(app):
             pool = os.environ.get("AGENT_POOL")
             text = example.replace("<agent-pool>", pool) if pool else example.split("    # Remove pool")[0]
             (root / "azure-pipelines.yml").write_text(text, encoding="utf-8")
-        run([*git_in, "add", "package", "azure-pipelines.yml"], check=True)
-        run([*git_in, "commit", "-m", f"feat: onboard {app}"], check=True)
-        run([*git_in, "-c", auth, "push", "origin", "HEAD:main"], check=True)
+        git("-C", str(root), "add", "package", "azure-pipelines.yml")
+        git("-C", str(root), "commit", "-m", f"feat: onboard {app}")
+        git("-C", str(root), "-c", auth, "push", "origin", "HEAD:main")
 
     pipeline_body = {
         "name": app,
