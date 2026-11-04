@@ -34,5 +34,5 @@ removed files.
 
 ![Production comparison stage.](../diagrams/proddiff-stage.png)
 
-For compare job order, see [Reference: Stages](/Reference/Stages#proddiff). For report contents, see
+For compare job order, see [Reference: Stages](/Reference/Stages#app-pipeline-stages). For report contents, see
 [Artifacts](/Reference/Artifacts).

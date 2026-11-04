@@ -14,7 +14,7 @@ Find your task in the first column. Set the parameters in the third column. Then
 | Compare two environments | Compare | `source`, `target`, `groupPrefix`, `apps` | [Compare](/Pipelines/Compare) |
 | Restore app objects to the app's defaults | Repair | `environment`, `target`, `app`, `conf`, `stanzas` | [Repair](/Pipelines/Repair) |
 | Restart a stack that needs it | Restart | `environment`, `target` | [Restart](/Pipelines/Restart) |
-| Bulk install indexes, HEC tokens, or apps | Bulk install | `environment`, `type`, `file`, `restart` | [Bulk install](/Pipelines/Bulk-Install) |
-| Bulk update indexes, HEC, apps, or permissions | Bulk update | `environment`, `type`, `file`, `restart` | [Bulk update](/Pipelines/Bulk-Update) |
-| Bulk delete indexes, HEC tokens, or apps | Bulk delete | `environment`, `type`, `file`, `restart` | [Bulk delete](/Pipelines/Bulk-Delete) |
+| Bulk install indexes, HEC tokens, or apps | Bulk install | `environment`, `type`, `file`, `restart` | [Bulk install](/Pipelines/Bulk) |
+| Bulk update indexes, HEC, apps, or permissions | Bulk update | `environment`, `type`, `file`, `restart` | [Bulk update](/Pipelines/Bulk) |
+| Bulk delete indexes, HEC tokens, or apps | Bulk delete | `environment`, `type`, `file`, `restart` | [Bulk delete](/Pipelines/Bulk) |
 | Check access without changing a stack | Smoke test | none; `target` checks one stack only | [Smoke test](/Pipelines/Smoke-test) |

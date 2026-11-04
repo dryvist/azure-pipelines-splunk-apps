@@ -53,5 +53,5 @@ than `SUCCESS`, or a count above 0.
 4. Fix each reported finding in the app.
 5. Rerun validation after fixing the findings.
 
-For the pass criteria, see [Reference: Stages](/Reference/Stages#appinspect). For report names, see
+For the pass criteria, see [App: Check a run](/Pipelines/App#check-a-run). For report names, see
 [Artifacts](/Reference/Artifacts).

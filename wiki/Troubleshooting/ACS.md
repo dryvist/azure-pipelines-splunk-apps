@@ -45,7 +45,7 @@ missing.
 3. Confirm the export step writes `<app-id>.tgz` under `nonprod-export/<app-id>/`.
 4. Run the import option again.
 
-For the stage flow, see [Reference: Stages](/Reference/Stages#nonprod). For import behavior, see
+For the stage flow, see [Reference: Stages](/Reference/Stages#app-pipeline-stages). For import behavior, see
 [App: Import](/Pipelines/App#import).
 
 [acs-export]: https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.5.2605/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/export-apps-in-splunk-cloud-platform

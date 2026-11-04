@@ -27,4 +27,4 @@ Use this page to fix release tags and package publication failures.
 2. Merge the version change to `main`.
 3. Rerun the release pipeline.
 
-For the release job steps, see [Reference: Stages](/Reference/Stages#release).
+For the release stage, see [Reference: Stages](/Reference/Stages#app-pipeline-stages).
