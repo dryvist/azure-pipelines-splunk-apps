@@ -17,9 +17,6 @@ Every ACS command retries every 30 seconds for up to 15 minutes while ACS return
   `APP_VERSION` as Azure Pipelines variables for the feed publish step.
 - `stages-succeeded <stage...>` fails unless each named stage succeeded in this run. Deploy to prod runs it
   for `release` and `proddiff`.
-- `feed-check <app-id>` prints that the app is in the `splunk-apps` feed. Otherwise it fails with
-  `<app-id> is not in the splunk-apps feed; run its app pipeline on main to release it`. It reads
-  `SYSTEM_ACCESSTOKEN`.
 - `feed-missing <app-id>` sets the `MISSING` output variable to `true` when the `splunk-apps` feed holds no
   version of the app, otherwise `false`. It reads `SYSTEM_ACCESSTOKEN`.
 - `appinspect <dir>` uses `SPLUNK_USERNAME` and `SPLUNK_PASSWORD`.

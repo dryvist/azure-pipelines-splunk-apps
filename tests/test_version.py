@@ -52,7 +52,7 @@ def check_version():
             "##vso[task.setvariable variable=APP_VERSION]1.4.9",
         ]
 
-    # The feed check maps the collection URL to the feeds host and matches the exact name and version.
+    # The feed URL maps to the feeds host and matches the exact package name and version.
     env = {"SYSTEM_COLLECTIONURI": "https://dev.azure.com/org/", "SYSTEM_TEAMPROJECTID": "p1",
            "SYSTEM_ACCESSTOKEN": "t"}
     body = b'{"value": [{"name": "my_ta_extra", "versions": [{"version": "1.4.9"}]}, ' \
@@ -64,12 +64,6 @@ def check_version():
                                       "&includeAllVersions=true&api-version=7.1")
     with patch.dict(os.environ, env), patch("splunk_release.version.http", return_value=body):
         assert version_module.published("my_ta", "1.4.8")
-        version_module.feed_check("MY_TA")
-        try:
-            version_module.feed_check("other_ta")
-            raise AssertionError("an app missing from the feed should exit")
-        except SystemExit as error:
-            assert "other_ta is not in the splunk-apps feed" in str(error)
         output = io.StringIO()
         with redirect_stdout(output):
             version_module.feed_missing("MY_TA")

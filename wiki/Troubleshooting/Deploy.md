@@ -14,19 +14,20 @@ Use this page to fix deploy failures, waits, and version checks.
    [Permissions](/Troubleshooting/Permissions).
 4. Complete any approval check on the selected environment.
 
-## `<app-id> is not in the splunk-apps feed`
+## The feed download step fails
 
-**Symptom:** The **Check `<app-id>` is in the splunk-apps feed** step fails. The `release_missing` stage did not
-upload the app.
+**Symptom:** The **Download `<app-id>` from the splunk-apps feed** step fails with a `UniversalPackages@0`
+error because the feed has no package for the app.
 
 **Fix:**
 
-1. Open the `release_missing` stage and find the app's failed job.
+1. If the run has a `release_missing` stage, open it and find the app's failed job.
 2. For **Package `<app-id>` and run AppInspect**, open the `appinspect-report-<app-id>-<attempt>` artifact and fix
    the failures on `main`.
 3. For **Upload `<app-id>` to the splunk-apps feed**, grant the Build Service rights in
    [Build Service: App repository](/Setup/Build-service#app-repository).
-4. Start a new deploy run with the app ID.
+4. If the run has no `release_missing` stage, run the app's pipeline on `main` to release it.
+5. Start a new run with the app ID.
 
 ## `ACS is busy with another deployment task`
 
