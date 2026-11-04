@@ -4,11 +4,10 @@ Use this page to fix skipped stages, version bumps, package sorting, and artifac
 
 ## A stage after AppInspect is skipped
 
-1. Open the build job and read **Show stage plan**.
-2. Check the trigger and stage conditions in [App](/Pipelines/App).
-3. For pull request validation, confirm that the Build validation policy exists on `main`. See
+1. Check the trigger and stage conditions in [App](/Pipelines/App).
+2. For pull request validation, confirm that the Build validation policy exists on `main`. See
    [Onboard: After onboarding](/Pipelines/Onboard#after-onboarding), step 5.
-4. For a skipped `release` stage, run the pipeline from `main`.
+3. For a skipped `release` stage, run the pipeline from `main`.
 
 ## The version bump step prints a skip reason
 

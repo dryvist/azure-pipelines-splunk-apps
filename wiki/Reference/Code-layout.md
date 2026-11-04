@@ -6,7 +6,7 @@ Use this table to find the main release command, the module files, and the templ
 | --- | --- |
 | `release.py` | Command list and CLI dispatch. |
 | `splunk_release/__init__.py` | Package marker. |
-| `splunk_release/azure.py` | Pipeline plan, HTTP requests, and log helpers. |
+| `splunk_release/azure.py` | HTTP requests and log helpers. |
 | `splunk_release/version.py` | App identity, versions, manifests, and Git. |
 | `splunk_release/import_app.py` | Environment export import, onboarding, and pull request. |
 | `splunk_release/package.py` | Configuration sorting, staging, and packaging. |
