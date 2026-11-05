@@ -1,4 +1,4 @@
-# One stage that packages, runs AppInspect on, and uploads each app the splunk-apps feed does not hold yet.
+# One stage that packages, runs AppInspect on, and uploads each app whose main version the splunk-apps feed does not hold.
 parameters:
   # App IDs separated by ;.
   - name: apps
@@ -6,19 +6,22 @@ parameters:
 
 stages:
   - stage: release_missing
-    displayName: Package and upload apps missing from the splunk-apps feed
+    displayName: Package and upload app versions missing from the splunk-apps feed
     jobs:
       - ${{ each app in split(parameters.apps, ';') }}:
           - ${{ if ne(app, '') }}:
               - job: check_${{ replace(replace(app, '-', '_'), '.', '_') }}
-                displayName: Check ${{ lower(app) }} in the splunk-apps feed
+                displayName: Check the main version of ${{ lower(app) }} in the splunk-apps feed
                 steps:
                   - checkout: self
                     path: tools
+                  - checkout: git://${{ variables['System.TeamProject'] }}/${{ app }}
+                    path: app
                   - template: python.yml
                   - script: python $(Pipeline.Workspace)/tools/release.py feed-missing ${{ app }}
                     name: feed
-                    displayName: Check ${{ lower(app) }} in the splunk-apps feed
+                    displayName: Check the main version of ${{ lower(app) }} in the splunk-apps feed
+                    workingDirectory: $(Pipeline.Workspace)/app
                     env:
                       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
               - job: package_${{ replace(replace(app, '-', '_'), '.', '_') }}
