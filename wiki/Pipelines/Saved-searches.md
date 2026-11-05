@@ -39,19 +39,22 @@ Each search prints one timestamped line: `DISABLE <app>/<search>` in the plan, `
 The same command runs on any Windows machine with Python 3.11 or later. These steps use PowerShell.
 
 1. Run `curl.exe -s https://api.ipify.org` to print your public IP.
-2. Add `<your IP>/32` to the stack's `search-api` IP allow list.
-3. Wait 5 minutes for Splunk Cloud to apply it.
-4. Run `cd <your clone of azure-pipelines-splunk-apps>`.
-5. Run `python -m pip install --quiet splunk-sdk==2.1.0`.
-6. Run `$env:SPLUNK_STACK = "<stack>"`.
-7. Run `$env:SPLUNK_SEARCH_HEAD = ""` for the main search head, or set the ITSI search head name.
-8. Run `$t = Read-Host "ACS token" -AsSecureString`, then paste the token.
-9. Run `$env:STACK_TOKEN = [Net.NetworkCredential]::new('', $t).Password`.
-10. Run `python release.py saved-searches disable "app_one;app_two" all plan.json`.
-11. Confirm the plan lists only the searches you expect.
-12. Run `python release.py saved-searches disable "app_one;app_two" all before-change.json --write`.
-13. Confirm the last line is `Result: <n> disabled`.
-14. Run `Remove-Item Env:STACK_TOKEN`.
-15. Remove `<your IP>/32` from the `search-api` IP allow list.
+2. In Splunk Web of the stack, select **Settings → Server settings → IP allow list**.
+3. Select **Search head API access**.
+4. Add `<your IP>/32`.
+5. Select **Save**.
+6. Wait 5 minutes for Splunk Cloud to apply it.
+7. Run `cd <your clone of azure-pipelines-splunk-apps>`.
+8. Run `python -m pip install --quiet splunk-sdk==2.1.0`.
+9. Run `$env:SPLUNK_STACK = "<stack>"`.
+10. Run `$env:SPLUNK_SEARCH_HEAD = ""` for the main search head, or set the ITSI search head name.
+11. Run `$t = Read-Host "ACS token" -AsSecureString`, then paste the token.
+12. Run `$env:STACK_TOKEN = [Net.NetworkCredential]::new('', $t).Password`.
+13. Run `python release.py saved-searches disable "app_one;app_two" all plan.json`.
+14. Confirm the plan lists only the searches you expect.
+15. Run `python release.py saved-searches disable "app_one;app_two" all before-change.json --write`.
+16. Confirm the last line is `Result: <n> disabled`.
+17. Run `Remove-Item Env:STACK_TOKEN`.
+18. Remove `<your IP>/32` from **Search head API access**, using steps 2 to 5.
 
 Keep `before-change.json`. It lists each search and whether it was disabled before the change.
