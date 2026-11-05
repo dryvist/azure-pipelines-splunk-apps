@@ -1,5 +1,5 @@
 # One stage that restarts the ITSI search head, then the main search head, of an environment when ACS reports
-# a restart is required.
+# a restart is required, or every time with always.
 parameters:
   - name: name
     type: string
@@ -15,6 +15,10 @@ parameters:
     type: string
     default: automatic
     values: [automatic, manual]
+  # true restarts each search head even when ACS reports no pending restart.
+  - name: always
+    type: boolean
+    default: false
 
 stages:
   - stage: ${{ parameters.name }}
@@ -26,7 +30,7 @@ stages:
     jobs:
       - ${{ each target in split('splunk-itsi splunk', ' ') }}:
         - deployment: ${{ replace(target, '-', '_') }}
-          displayName: Restart ${{ iif(eq(target, 'splunk'), '', 'itsi-') }}${{ parameters.environment }} if required
+          displayName: Restart ${{ iif(eq(target, 'splunk'), '', 'itsi-') }}${{ parameters.environment }}${{ iif(parameters.always, '', ' if required') }}
           ${{ if eq(target, 'splunk') }}:
             dependsOn: splunk_itsi
           workspace:
@@ -44,8 +48,8 @@ stages:
                   - template: acs-cli.yml
                   - template: acs-step.yml
                     parameters:
-                      command: '"$(Pipeline.Workspace)/tools/release.py" restart'
-                      displayName: Restart if required
+                      command: '"$(Pipeline.Workspace)/tools/release.py" restart${{ iif(parameters.always, '' --always'', '''') }}'
+                      displayName: ${{ iif(parameters.always, 'Restart', 'Restart if required') }}
                   - template: acs-step.yml
                     parameters:
                       command: '"$(Pipeline.Workspace)/tools/release.py" status'

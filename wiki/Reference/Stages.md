@@ -61,5 +61,6 @@ stage follows.
 
 The [Deploy pipeline](/Pipelines/Deploy#stages) and the [bulk pipelines](/Pipelines/Bulk) use this stage. It restarts
 the ITSI search head first, then the main search head, of one environment. Each job restarts only when ACS reports that
-a restart is required, then checks the stack status. The stage waits for the `splunk-<environment>` approval, and its
-lock is sequential.
+a restart is required. Deploy's restart after an uninstall restarts both every time. After a restart request, each job
+waits 60 seconds, then until the stack is `Ready` with no pending restart. The stage waits for the
+`splunk-<environment>` approval, and its lock is sequential.

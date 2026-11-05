@@ -30,7 +30,7 @@ In the **Needs** column:
 | `uninstall <dir>` | Removes the listed apps from all search heads, with their lookups and local settings, and waits until gone. | ACS |
 | `status` | Prints stack status and warns if a restart is required. | ACS |
 | `wait-version <dir>` | Waits until each app has the package version and the stack is ready. | ACS |
-| `restart` | Restarts the stack only when required, then waits for the status to clear. | ACS |
+| `restart [--always]` | Restarts the search head when required, or always, then waits for the status to clear. | ACS |
 | `acs <args...>` | Runs an ACS CLI command with the job's ACS configuration. | ACS |
 
 ## Export and compare

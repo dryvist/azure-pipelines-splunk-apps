@@ -40,7 +40,7 @@ Verify that the run shows one compare stage per app and one install stage.
 | `release_missing` | App IDs are set. It packages, checks and uploads each app whose `main` version is not in the feed. | Nothing |
 | `compare_<app>` | `compare` is on. | `release_missing` |
 | `uninstall` | `uninstall` is on. | `release_missing`; every compare stage; approval |
-| `restart_uninstall` | `uninstall` is on, whatever `restart` is. A person selects **Run stage**. | `uninstall`; approval |
+| `restart_uninstall` | `uninstall` is on, whatever `restart` is. Started by hand; always restarts both search heads. | `uninstall`; approval |
 | `install` | `install` is on. | `release_missing`; every compare stage; `restart_uninstall`; approval |
 | `restart` | `restart` and `install` are on. | `install` |
 
@@ -84,7 +84,7 @@ If `uninstall` was selected, the install waits for these steps:
 
 1. Approve the uninstall stage.
 2. Wait for it to succeed.
-3. Open **Restart `<environment>` if required after the uninstalls (run by hand)**.
+3. Open **Restart `<environment>` after the uninstalls (run by hand)**.
 4. Select **Run stage**.
 5. Approve it.
 
