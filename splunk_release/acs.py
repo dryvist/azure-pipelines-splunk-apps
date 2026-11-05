@@ -144,8 +144,8 @@ def missing(error):
     """True when a failed acs command reports that the app is not installed."""
     return "code: 404" in f"{error.stdout}{error.stderr}" or "APP_NOT_FOUND" in f"{error.stdout}{error.stderr}"
 
-def wait_done(env, done, what, minutes=15):
-    """Wait up to minutes until the stack is ready and done() is true, checking every 15 seconds."""
+def wait_done(env, done, what, minutes=15, every=15):
+    """Wait up to minutes until the stack is ready and done() is true, checking every `every` seconds."""
     deadline = time.monotonic() + minutes * 60
     while time.monotonic() < deadline:
         try:
@@ -159,7 +159,7 @@ def wait_done(env, done, what, minutes=15):
             log("section", f"{stamp()} {what} ({state})", flush=True)
             return
         print(f"{stamp()} Waiting for {what}: {state}", flush=True)
-        time.sleep(min(15, max(0, deadline - time.monotonic())))
+        time.sleep(min(every, max(0, deadline - time.monotonic())))
     log("error", f"Timed out after {minutes} minutes waiting for {what}")
     raise SystemExit(1)
 
@@ -190,7 +190,7 @@ def restart():
 def deploy(directory):
     packages = package_identity(directory)
     env, stack = acs_env(), os.environ["SPLUNK_STACK"]
-    wait_done(env, lambda: True, f"{stack} ready for the install")
+    wait_done(env, lambda: True, f"{stack} ready for the install", every=5)
     for _, app, version in packages:
         log("section", f"Installing {app} {version} as a private app")
     acs(env, "apps", "bulk-install", "private", "--package-src-dir", str(directory), "--acs-legal-ack=Y", main=True)
@@ -210,7 +210,7 @@ def uninstall(directory):
     with tempfile.TemporaryDirectory() as tmp:
         apps_file = Path(tmp, "apps.json")
         apps_file.write_text(json.dumps({"apps": apps}), encoding="utf-8")
-        wait_done(env, lambda: True, f"{stack} ready for the uninstall")
+        wait_done(env, lambda: True, f"{stack} ready for the uninstall", every=5)
         acs(env, "apps", "bulk-uninstall", "--file", str(apps_file), main=True)
 
         def gone():

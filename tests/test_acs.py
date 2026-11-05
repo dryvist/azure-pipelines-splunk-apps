@@ -193,12 +193,13 @@ def check_acs():
             patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
             patch("splunk_release.acs.acs_env", return_value={}),
             patch("splunk_release.acs.stack_ready", side_effect=[(False, "stack Updating"), (True, "stack Ready")]),
-            patch("splunk_release.acs.time.sleep"),
+            patch("splunk_release.acs.time.sleep") as sleep,
             patch("splunk_release.acs.run") as run,
             redirect_stdout(io.StringIO()) as out,
         ):
             run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
             acs.deploy(package_dir)
+        assert [c.args for c in sleep.call_args_list] == [(5,)]
         assert [call.args[0] for call in run.call_args_list] == [[
             "acs", "apps", "bulk-install", "private", "--package-src-dir", str(package_dir), "--acs-legal-ack=Y"
         ]]
