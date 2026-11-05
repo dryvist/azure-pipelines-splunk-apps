@@ -48,5 +48,6 @@ each app. Report names are in [Reference: Artifacts](/Reference/Artifacts).
   both exports. It runs the four compare steps in [Reference: Stages](/Reference/Stages#compare-steps), with
   the target compared against the source. It adds each app's Markdown summary to the run summary and publishes
   the `compare` artifact.
+- **Cleanup:** after publishing, each job deletes its exports and compare files from the agent.
 
 ![Compare any two environments.](../diagrams/compare-any-environments.png)
