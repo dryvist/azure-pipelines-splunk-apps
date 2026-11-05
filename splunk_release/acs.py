@@ -36,7 +36,7 @@ def install_acs():
     env = acs_env()
     Path(env["HOME"]).mkdir(exist_ok=True)
     stack, search_head = os.environ["SPLUNK_STACK"], configured_value("SPLUNK_SEARCH_HEAD")
-    log("section", f"ACS stack {stack}, search head {search_head or 'not set (all search heads)'}")
+    log("section", f"ACS stack {stack}, search head {search_head or 'not set, so ACS uses the primary search head'}")
     acs(env, "version")
     acs(env, "config", "add-stack", stack, "--use", *([f"--target-sh={search_head}"] if search_head else []))
     acs(env, "login")
