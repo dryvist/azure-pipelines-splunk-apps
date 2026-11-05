@@ -156,9 +156,9 @@ def wait_done(env, done, what, minutes=15):
                 raise
             ready, state = False, "ACS returned 401 Unauthorized, as it does while the search head restarts"
         if ready:
-            log("section", f"{what} ({state})")
+            log("section", f"{stamp()} {what} ({state})", flush=True)
             return
-        print(f"Waiting for {what}: {state}")
+        print(f"{stamp()} Waiting for {what}: {state}", flush=True)
         time.sleep(min(15, max(0, deadline - time.monotonic())))
     log("error", f"Timed out after {minutes} minutes waiting for {what}")
     raise SystemExit(1)
@@ -189,9 +189,10 @@ def restart():
 
 def deploy(directory):
     packages = package_identity(directory)
+    env, stack = acs_env(), os.environ["SPLUNK_STACK"]
+    wait_done(env, lambda: True, f"{stack} ready for the install")
     for _, app, version in packages:
         log("section", f"Installing {app} {version} as a private app")
-    env = acs_env()
     acs(env, "apps", "bulk-install", "private", "--package-src-dir", str(directory), "--acs-legal-ack=Y", main=True)
 
 def uninstall(directory):
@@ -209,6 +210,7 @@ def uninstall(directory):
     with tempfile.TemporaryDirectory() as tmp:
         apps_file = Path(tmp, "apps.json")
         apps_file.write_text(json.dumps({"apps": apps}), encoding="utf-8")
+        wait_done(env, lambda: True, f"{stack} ready for the uninstall")
         acs(env, "apps", "bulk-uninstall", "--file", str(apps_file), main=True)
 
         def gone():
