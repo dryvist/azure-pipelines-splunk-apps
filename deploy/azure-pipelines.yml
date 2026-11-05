@@ -81,8 +81,9 @@ stages:
     - template: ../templates/restart-stage.yml
       parameters:
         name: restart_uninstall
-        displayName: Restart ${{ parameters.environment }} if required after the uninstalls
+        displayName: Restart ${{ parameters.environment }} if required after the uninstalls (run by hand)
         environment: ${{ parameters.environment }}
+        trigger: manual
         dependsOn:
           - uninstall
   - ${{ if and(parameters.install, ne(trim(parameters.apps), '')) }}:

@@ -40,14 +40,14 @@ Verify that the run shows one compare stage per app and one install stage.
 | `release_missing` | App IDs are set. It packages, checks and uploads each app whose `main` version is not in the feed. | Nothing |
 | `compare_<app>` | `compare` is on. | `release_missing` |
 | `uninstall` | `uninstall` is on. | `release_missing`; every compare stage; approval |
-| `restart_uninstall` | `uninstall` is on, whatever `restart` is. | `uninstall` |
+| `restart_uninstall` | `uninstall` is on, whatever `restart` is. A person selects **Run stage**. | `uninstall`; approval |
 | `install` | `install` is on. | `release_missing`; every compare stage; `restart_uninstall`; approval |
 | `restart` | `restart` and `install` are on. | `install` |
 
 - Each compare stage runs one job for the main search head and one for the ITSI search head. They install nothing.
   See [Compare steps](/Reference/Stages#compare-steps).
-- Uninstall removes one app at a time from all search heads, including ITSI. Before each app it checks the stack every
-  5 seconds and starts as soon as ACS reports `Ready`. Then it waits until ACS no longer lists that app.
+- Uninstall checks the stack every 5 seconds and starts as soon as ACS reports `Ready`. One ACS bulk command removes
+  every app from all search heads, including ITSI. Then it checks every 5 seconds until ACS finds none of the apps.
 - Install checks the stack the same way, then uses one ACS bulk command and confirms each app's exact version.
 - Each wait gives up after 15 minutes.
 - The restart stages are on [Restart stage](/Reference/Stages#restart-stage). If `restart` is off,
@@ -80,8 +80,15 @@ The `apps` type of the [bulk delete](/Pipelines/Bulk) pipeline has the same effe
 6. Wait for the job to finish.
 7. Confirm each step is green.
 
-If `uninstall` was selected, approve the uninstall stage and its restart stage first. The install waits for them.
-Restart stages use these same steps.
+If `uninstall` was selected, the install waits for these steps:
+
+1. Approve the uninstall stage.
+2. Wait for it to succeed.
+3. Open **Restart `<environment>` if required after the uninstalls (run by hand)**.
+4. Select **Run stage**.
+5. Approve it.
+
+Restart stages use the same approval steps.
 
 ## Deploy to prod
 
