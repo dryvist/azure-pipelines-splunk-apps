@@ -17,7 +17,9 @@ The pipeline is named `compare-environments` in [Manual pipelines](/Setup/Manual
 Use the app folder names from `[id] name` in `apps`, not display labels. For example: `my_app;other_app`.
 An app installed in only one environment shows every file as added or removed.
 
-Each export holds the app's default, local and user files and its app data. ACS limits some apps:
+Each export holds the app's default, local and user files and its app data. The export calls ACS once per app. Each
+app's log starts with a timestamp and `Export <n> of <total>: <app>`, and the step ends with an `Export result` line.
+Each export job can run for 6 hours. ACS limits some apps:
 
 - The built-in `search` app exports only its local and user files. The log shows `LOCAL AND USERS ONLY search`.
 - ACS does not export other built-in apps, premium apps such as ES and ITSI, or restricted Splunkbase apps. Each

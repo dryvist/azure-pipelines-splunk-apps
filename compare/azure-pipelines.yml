@@ -33,6 +33,7 @@ jobs:
   - ${{ each side in split('source target', ' ') }}:
       - job: ${{ side }}
         displayName: Export apps from ${{ parameters[side] }}
+        timeoutInMinutes: 360
         workspace:
           clean: all
         variables:
@@ -52,6 +53,7 @@ jobs:
 
   - job: compare
     displayName: Compare ${{ parameters.source }} with ${{ parameters.target }}
+    timeoutInMinutes: 360
     workspace:
       clean: all
     dependsOn: [source, target]
