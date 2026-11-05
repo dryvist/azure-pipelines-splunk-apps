@@ -4,8 +4,8 @@
   package
   acs <args...>
   appinspect <dir>
-  deploy <dir>
-  uninstall <dir>
+  deploy <dir> [--local]
+  uninstall <dir> [--local]
   status
   wait-version <dir>
   restart [--always]

@@ -31,6 +31,10 @@ parameters:
   - name: uninstall
     type: boolean
     default: false
+  # true installs and uninstalls on the target's search head alone, one app at a time.
+  - name: local
+    type: boolean
+    default: false
   - name: target
     type: string
     default: splunk
@@ -71,4 +75,5 @@ stages:
                       compare: false
                       install: ${{ not(parameters.uninstall) }}
                       uninstall: ${{ parameters.uninstall }}
+                      local: ${{ parameters.local }}
                 - ${{ parameters.deploySteps }}

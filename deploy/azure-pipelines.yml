@@ -1,5 +1,5 @@
 # The run name shows the options this run started with.
-name: "$(Date:yyyyMMdd).$(Rev:r) ${{ parameters.environment }} ${{ iif(contains(parameters.apps, ';'), format('{0} apps', length(split(parameters.apps, ';'))), parameters.apps) }}${{ iif(parameters.compare, ' compare', '') }}${{ iif(parameters.uninstall, ' UNINSTALL', '') }}${{ iif(parameters.install, ' install', '') }}${{ iif(parameters.restart, ' restart', '') }}"
+name: "$(Date:yyyyMMdd).$(Rev:r) ${{ parameters.environment }} ${{ parameters.target }} ${{ iif(contains(parameters.apps, ';'), format('{0} apps', length(split(parameters.apps, ';'))), parameters.apps) }}${{ iif(parameters.compare, ' compare', '') }}${{ iif(parameters.uninstall, ' UNINSTALL', '') }}${{ iif(parameters.install, ' install', '') }}${{ iif(parameters.restart, ' restart', '') }}"
 
 trigger: none
 pr: none
@@ -24,6 +24,14 @@ parameters:
     type: boolean
     default: false
     displayName: DANGER - Uninstall each app first. PERMANENTLY DELETES ALL of its lookups (CSV files) and local settings
+  - name: target
+    type: string
+    default: all
+    values:
+      - all
+      - core
+      - itsi
+    displayName: Target - all uses one bulk command for every search head; core or itsi goes one app at a time to that search head alone
   - name: install
     type: boolean
     default: true
@@ -61,6 +69,8 @@ stages:
         name: uninstall
         displayName: Uninstall apps from ${{ parameters.environment }}
         environment: ${{ parameters.environment }}
+        target: ${{ iif(eq(parameters.target, 'itsi'), 'splunk-itsi', 'splunk') }}
+        local: ${{ ne(parameters.target, 'all') }}
         dependsOn:
           - release_missing
           - ${{ if parameters.compare }}:
@@ -93,6 +103,8 @@ stages:
         name: install
         displayName: Install apps on ${{ parameters.environment }}
         environment: ${{ parameters.environment }}
+        target: ${{ iif(eq(parameters.target, 'itsi'), 'splunk-itsi', 'splunk') }}
+        local: ${{ ne(parameters.target, 'all') }}
         dependsOn:
           - release_missing
           - ${{ if parameters.compare }}:
