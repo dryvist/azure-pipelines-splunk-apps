@@ -1,0 +1,26 @@
+# Plan or, with write, apply the saved search action on one search head.
+parameters:
+  # App IDs separated by ;.
+  - name: apps
+    type: string
+  - name: action
+    type: string
+  - name: searches
+    type: string
+  - name: write
+    type: boolean
+    default: false
+
+steps:
+  - checkout: self
+    path: tools
+  - template: python.yml
+  - template: diff-tools.yml
+  - template: acs-step.yml
+    parameters:
+      command: '"$(Pipeline.Workspace)/tools/release.py" saved-searches ${{ parameters.action }} "${{ parameters.apps }}" "${{ parameters.searches }}" "$(Pipeline.Workspace)/saved-searches/states.json" ${{ iif(parameters.write, ''--write'', '''') }}'
+      displayName: ${{ iif(parameters.write, format('{0} the shared scheduled searches', parameters.action), format('Plan to {0} the shared scheduled searches (read-only)', parameters.action)) }}
+  - publish: $(Pipeline.Workspace)/saved-searches
+    displayName: Publish each search's state before this ${{ iif(parameters.write, 'change', 'plan') }}
+    artifact: saved-searches-${{ iif(parameters.write, 'before-change', 'plan') }}
+    condition: always()

@@ -1,0 +1,77 @@
+# Disable or enable the shared scheduled saved searches of each app, on one search head.
+# The Plan stage only reads. The Change stage runs only when someone selects Run stage, then waits for the
+# splunk-<environment> approval.
+trigger: none
+pr: none
+
+parameters:
+  - name: environment
+    displayName: Environment
+    type: string
+    default: nonprod
+    values:
+      - nonprod
+      - prod
+  - name: target
+    displayName: Variable groups - splunk uses splunk-<env> (main search head), splunk-itsi uses splunk-itsi-<env>
+    type: string
+    default: splunk
+    values:
+      - splunk
+      - splunk-itsi
+  - name: action
+    displayName: Action
+    type: string
+    default: disable
+    values:
+      - disable
+      - enable
+  - name: apps
+    displayName: App IDs separated by ;
+    type: string
+  - name: searches
+    displayName: Saved search names separated by ;, or all for every shared scheduled search in the apps
+    type: string
+    default: all
+
+stages:
+  - stage: plan
+    displayName: Plan (read-only)
+    jobs:
+      - job: plan
+        displayName: Plan to ${{ parameters.action }} on ${{ parameters.target }}-${{ parameters.environment }}
+        workspace:
+          clean: all
+        variables:
+          - group: ${{ parameters.target }}-${{ parameters.environment }}
+        steps:
+          - template: ../templates/saved-searches-steps.yml
+            parameters:
+              apps: ${{ parameters.apps }}
+              action: ${{ parameters.action }}
+              searches: ${{ parameters.searches }}
+
+  - stage: change
+    displayName: ${{ parameters.action }} on ${{ parameters.target }}-${{ parameters.environment }} (optional, run by hand)
+    dependsOn: plan
+    trigger: manual
+    lockBehavior: sequential
+    jobs:
+      - deployment: change
+        displayName: ${{ parameters.action }} the shared scheduled searches
+        workspace:
+          clean: all
+        environment: splunk-${{ parameters.environment }}
+        variables:
+          - group: ${{ parameters.target }}-${{ parameters.environment }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: none
+                - template: ../templates/saved-searches-steps.yml
+                  parameters:
+                    apps: ${{ parameters.apps }}
+                    action: ${{ parameters.action }}
+                    searches: ${{ parameters.searches }}
+                    write: true

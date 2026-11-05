@@ -10,6 +10,7 @@ Create each manual pipeline from its name and YAML path.
 | `compare-environments` | `/compare/azure-pipelines.yml` | [Compare](/Pipelines/Compare) |
 | `restart-stack` | `/restart/azure-pipelines.yml` | [Restart](/Pipelines/Restart) |
 | `repair-app-objects` | `/repair/azure-pipelines.yml` | [Repair](/Pipelines/Repair) |
+| `saved-searches` | `/saved-searches/azure-pipelines.yml` | [Saved searches](/Pipelines/Saved-searches) |
 | `smoke-test` | `/smoke-test/azure-pipelines.yml` | [Smoke test](/Pipelines/Smoke-test) |
 | `Splunk ACS Bulk Install` | `/bulk-install/azure-pipelines.yml` | [Bulk install](/Pipelines/Bulk) |
 | `Splunk ACS Bulk Update` | `/bulk-update/azure-pipelines.yml` | [Bulk update](/Pipelines/Bulk) |
