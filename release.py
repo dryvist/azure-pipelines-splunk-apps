@@ -8,7 +8,7 @@
   uninstall <dir>
   status
   wait-version <dir>
-  restart
+  restart [--always]
   export <out-dir> [app-id...]
   tree <target> <source> <out> [flags]
   local-diff <target> <source> <out> [flags]

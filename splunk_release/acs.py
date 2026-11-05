@@ -179,13 +179,21 @@ def wait_version(directory):
     expected = ", ".join(f"{app} version {version}" for _, app, version in packages)
     wait_done(env, matches, f"{expected} installed")
 
-def restart():
+def restart(always=""):
+    """Restart the search head when ACS reports a restart is required, or every time with --always.
+
+    After the request, wait 60 seconds for the restart to begin, then until the stack is Ready with no pending restart."""
+    if always not in ("", "--always"):
+        sys.exit(f"Expected an optional --always, got {always}")
     env, stack = acs_env(), os.environ["SPLUNK_STACK"]
-    if not restart_required(stack_status(env)):
-        log("section", f"No restart required on {stack}, skipping restart")
+    where = configured_value("SPLUNK_SEARCH_HEAD") or f"{stack} primary search head"
+    if not always and not restart_required(stack_status(env)):
+        log("section", f"No restart required on {where}, skipping restart")
         return
     acs(env, "restart", "current-stack", main=True)
-    wait_done(env, lambda: not restart_required(stack_status(env)), f"restart of {stack}", 30)
+    print(f"{stamp()} Waiting 60 seconds for the restart of {where} to begin", flush=True)
+    time.sleep(60)
+    wait_done(env, lambda: not restart_required(stack_status(env)), f"restart of {where}", 30)
 
 def deploy(directory):
     packages = package_identity(directory)

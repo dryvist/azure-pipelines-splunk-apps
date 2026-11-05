@@ -146,7 +146,24 @@ def check_acs():
             ["acs", "status", "current-stack", "-f", "structured"],
             ["acs", "status", "current-stack", "-f", "structured"],
         ]
-        assert now == [15]
+        assert now == [75]
+
+    # --always restarts with no pending restart, then waits 60 seconds before checking.
+    with (
+        patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
+        patch("splunk_release.acs.acs_env", return_value={}),
+        patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
+        patch("splunk_release.acs.time.sleep") as sleep,
+        patch("splunk_release.acs.run") as run,
+        redirect_stdout(io.StringIO()),
+    ):
+        run.side_effect = [
+            subprocess.CompletedProcess(["acs"], 0, stdout="", stderr=""),
+            subprocess.CompletedProcess(["acs"], 0, stdout=structured({"messages": {"restartRequired": False}}), stderr=""),
+        ]
+        acs.restart("--always")
+    assert [call.args[0][1:3] for call in run.call_args_list] == [["restart", "current-stack"], ["status", "current-stack"]]
+    assert [c.args for c in sleep.call_args_list] == [(60,)]
 
     # A 401 while the search head restarts is waited out; other ACS errors still fail.
     unauthorized = subprocess.CalledProcessError(2, ["acs"], "", "failed, code: 401 Unauthorized")
