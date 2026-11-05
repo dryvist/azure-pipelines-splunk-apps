@@ -46,10 +46,10 @@ Verify that the run shows one compare stage per app and one install stage.
 
 - Each compare stage runs one job for the main search head and one for the ITSI search head. They install nothing.
   See [Compare steps](/Reference/Stages#compare-steps).
-- Uninstall removes each app from all search heads, including ITSI, and confirms it is gone.
-- Install and uninstall first check the stack every 5 seconds and start as soon as ACS reports `Ready`. Install then
-  uses one ACS bulk command and confirms each app's exact version.
-- Uninstall and the version check each wait up to 15 minutes for the stack.
+- Uninstall removes one app at a time from all search heads, including ITSI. Before each app it checks the stack every
+  5 seconds and starts as soon as ACS reports `Ready`. Then it waits until ACS no longer lists that app.
+- Install checks the stack the same way, then uses one ACS bulk command and confirms each app's exact version.
+- Each wait gives up after 15 minutes.
 - The restart stages are on [Restart stage](/Reference/Stages#restart-stage). If `restart` is off,
   **Check stack status after install** still reports a pending restart.
 - The exclusive lock on `splunk-<environment>` runs deployment jobs one at a time.
