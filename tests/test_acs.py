@@ -275,7 +275,7 @@ def check_acs():
         assert run.call_count == 2 and sleep.call_args.args == (30,)
         assert "ACS is busy" in output.getvalue()
 
-    # Custom export pages in blocks of 100 and excludes Splunkbase names.
+    # --all export pages in blocks of 100 and adds the Splunkbase apps.
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp, "exports")
         pages = []
@@ -297,9 +297,35 @@ def check_acs():
             return subprocess.CompletedProcess(command, 0, "", "")
 
         with patch("splunk_release.acs.acs_env", return_value={}), patch("splunk_release.acs.run", side_effect=fake_acs), redirect_stdout(io.StringIO()):
-            acs.export(out, "--custom")
+            acs.export(out, "--all")
         assert pages == [(False, 0), (False, 100), (True, 0)]
-        assert len(list(out.glob("*.tgz"))) == 100
+        assert len(list(out.glob("*.tgz"))) == 101
+
+    # search exports only local and user files, an app ACS refuses is skipped, and all refused fails.
+    def refusing_acs(command, **kwargs):
+        app = json.loads(Path(command[3].split("=", 1)[1]).read_text())["Apps"][0]
+        if app == "search" and command[4] == "--default=true":
+            return subprocess.CompletedProcess(command, 1, "", "400: WITH SEARCH APPS ONLY LOCAL AND USERS CONFIGS ALLOWED")
+        if app == "premium":
+            return subprocess.CompletedProcess(command, 1, "", "400: export is not supported")
+        (Path(command[-1].split("=", 1)[1]) / f"{app}.tar.gz").write_bytes(b"export")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    for apps, code in ((("search", "premium"), None), (("premium",), 1)):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = io.StringIO()
+            with patch("splunk_release.acs.acs_env", return_value={}), patch(
+                "splunk_release.acs.run", side_effect=refusing_acs
+            ), redirect_stdout(output):
+                try:
+                    acs.export(Path(tmp), *apps)
+                except SystemExit as error:
+                    assert error.code == code
+                else:
+                    assert code is None
+            assert "SKIPPED premium" in output.getvalue()
+            assert sorted(p.name for p in Path(tmp).glob("*.tgz")) == (["search.tgz"] if "search" in apps else [])
+            assert ("LOCAL AND USERS ONLY search" in output.getvalue()) == ("search" in apps)
 
     with tempfile.TemporaryDirectory() as tmp:
         raw = '{"items":[]}'
@@ -308,7 +334,7 @@ def check_acs():
             "splunk_release.acs.run", return_value=subprocess.CompletedProcess([], 0, raw, "")
         ), redirect_stdout(output):
             try:
-                acs.export(Path(tmp), "--custom")
+                acs.export(Path(tmp), "--all")
             except SystemExit as error:
                 assert error.code == 1
             else:

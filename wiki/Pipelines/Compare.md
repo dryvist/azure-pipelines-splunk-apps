@@ -12,10 +12,17 @@ The pipeline is named `compare-environments` in [Manual pipelines](/Setup/Manual
 | `source` | `nonprod`, `prod` | `nonprod` | Environment whose apps are compared. Files only here show as added. |
 | `target` | `nonprod`, `prod` | `prod` | Environment compared against the source. Files only here show as removed. |
 | `groupPrefix` | `splunk`, `splunk-itsi` | `splunk` | `splunk` uses `splunk-<env>`. `splunk-itsi` uses `splunk-itsi-<env>`. |
-| `apps` | `all`, empty, or IDs separated by `;` | `all` | `all` or empty exports every custom app, which is any app not from Splunkbase. |
+| `apps` | `all`, empty, or IDs separated by `;` | `all` | `all` or empty exports every installed app, private and Splunkbase. |
 
 Use the app folder names from `[id] name` in `apps`, not display labels. For example: `my_app;other_app`.
 An app installed in only one environment shows every file as added or removed.
+
+Each export holds the app's default, local and user files and its app data. ACS limits some apps:
+
+- The built-in `search` app exports only its local and user files. The log shows `LOCAL AND USERS ONLY search`.
+- ACS does not export other built-in apps, premium apps such as ES and ITSI, or restricted Splunkbase apps. Each
+  prints `SKIPPED <app>`, and the export goes on. The export fails only when ACS exports no app.
+- User files cover only the users the token's account can access. Use an `sc_admin` account to get them all.
 
 ## Run it
 
@@ -33,7 +40,7 @@ each app. Report names are in [Reference: Artifacts](/Reference/Artifacts).
 
 - **Source and target jobs** run side by side. Each one uses Python 3.13, sets up the ACS CLI for its stack,
   exports the apps, and publishes `<environment>-export`. When `apps` is `all` or empty, the export runs
-  `release.py export --custom`. Otherwise it exports the listed IDs. The ACS setup is in
+  `release.py export --all`. Otherwise it exports the listed IDs. The ACS setup is in
   [release.py commands](/Reference/Release.py-commands).
 - **Compare job** waits for both exports. It sets up Python 3.13, `ksconf`, and the Splunk SDK, then downloads
   both exports. It runs the four compare steps in [Reference: Stages](/Reference/Stages#compare-steps), with

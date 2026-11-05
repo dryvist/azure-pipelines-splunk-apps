@@ -43,7 +43,8 @@ In the **Needs** column:
 | `data-models <target> <source> <out> [flags]` | Compares merged data model JSON, ignoring formatting-only changes. | Nothing |
 | `diff <target> <source> <out> [flags]` | Writes a patch of merged defaults, a merged archive and a summary. | Nothing |
 
-- `export` takes app IDs, `--custom`, or a package directory.
+- `export` takes app IDs, `--all`, or a package directory. See [Compare](/Pipelines/Compare#parameters) for the apps ACS
+  limits.
 - The compare flags are `--reverse`, which swaps the displayed sides, and `--skip-lookups`.
 - Compare commands omit install checksums and lookup backups.
 - Data models appear in the `diff` summary, not its patch.

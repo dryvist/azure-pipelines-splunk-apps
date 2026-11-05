@@ -14,8 +14,8 @@ app folder contains these files:
 
 The summary lists deployed changes; target local files, which stay after deployment and override defaults; source
 local files, which are not deployed; and user files. The nonprod compare adds the summary to the run summary. The
-separate compare pipeline can select two environments. It exports all custom apps when the app list is `all` or
-empty.
+separate compare pipeline can select two environments. It exports every installed app when the app list is `all`
+or empty. Its `<environment>-export` artifacts hold one `<app-id>.tgz` per exported app.
 
 The import run publishes `<env>-diff-<app-id>-<attempt>` before it creates a pull request, where `<env>` is
 `nonprod` or `prod`. Review this artifact with the proposed changes.
