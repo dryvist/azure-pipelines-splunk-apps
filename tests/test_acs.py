@@ -206,35 +206,39 @@ def check_acs():
         assert out.getvalue().index("Waiting for stack ready for the install: stack Updating") < out.getvalue().index(
             "stack ready for the install (stack Ready)")
 
-        # Bulk uninstall polls every package until ACS reports each app missing.
-        installed = {"a": [False], "b": [True, False]}
-        uninstall_files = []
+        # Uninstall goes one app at a time: a ready check, the uninstall, then a wait until the app is gone.
+        installed = {"a": [True, False], "b": [True, False]}
+        events = []
         def fake_uninstall(command, **_):
             if command[1:3] == ["apps", "bulk-uninstall"]:
-                uninstall_files.append(json.loads(Path(command[command.index("--file") + 1]).read_text()))
+                events.append(("uninstall", *json.loads(Path(command[command.index("--file") + 1]).read_text())["apps"]))
                 return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
             app = command[3]
+            events.append(("describe", app))
             missing = not installed[app].pop(0)
             return subprocess.CompletedProcess(
                 command, 1 if missing else 0,
                 stdout="" if missing else structured({"version": "1.0.0"}),
                 stderr="code: 404 Not Found" if missing else "",
             )
+        def ready(env):
+            events.append(("ready",))
+            return True, "ready"
         with (
             patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
             patch("splunk_release.acs.acs_env", return_value={}),
-            patch("splunk_release.acs.stack_ready", return_value=(True, "ready")),
+            patch("splunk_release.acs.stack_ready", side_effect=ready),
             patch("splunk_release.acs.time.sleep"),
-            patch("splunk_release.acs.run", side_effect=fake_uninstall) as run,
+            patch("splunk_release.acs.run", side_effect=fake_uninstall),
             redirect_stdout(io.StringIO()) as out,
         ):
             acs.uninstall(package_dir)
-        commands = [call.args[0] for call in run.call_args_list]
-        assert uninstall_files == [{"apps": ["b"]}]
-        assert [command[1:4] for command in commands] == [
-            ["apps", "describe", "a"], ["apps", "describe", "b"],
-            ["apps", "bulk-uninstall", "--file"], ["apps", "describe", "b"],
+        assert events == [
+            ("describe", "a"), ("describe", "b"),
+            ("ready",), ("uninstall", "a"), ("ready",), ("describe", "a"),
+            ("ready",), ("uninstall", "b"), ("ready",), ("describe", "b"),
         ]
+        assert "stack ready to uninstall b (2 of 2) (ready)" in out.getvalue()
         assert "b gone from stack (ready)" in out.getvalue()
 
         with (
