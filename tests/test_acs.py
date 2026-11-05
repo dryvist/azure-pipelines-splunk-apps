@@ -206,8 +206,8 @@ def check_acs():
         assert out.getvalue().index("Waiting for stack ready for the install: stack Updating") < out.getvalue().index(
             "stack ready for the install (stack Ready)")
 
-        # Uninstall goes one app at a time: a ready check, the uninstall, then a wait until the app is gone.
-        installed = {"a": [True, False], "b": [True, False]}
+        # One bulk uninstall after a ready check, then each app is checked until ACS no longer finds it.
+        installed = {"a": [True, False], "b": [True, True, False]}
         events = []
         def fake_uninstall(command, **_):
             if command[1:3] == ["apps", "bulk-uninstall"]:
@@ -235,11 +235,11 @@ def check_acs():
             acs.uninstall(package_dir)
         assert events == [
             ("describe", "a"), ("describe", "b"),
-            ("ready",), ("uninstall", "a"), ("ready",), ("describe", "a"),
-            ("ready",), ("uninstall", "b"), ("ready",), ("describe", "b"),
+            ("ready",), ("uninstall", "a", "b"),
+            ("ready",), ("describe", "a"), ("describe", "b"),
+            ("ready",), ("describe", "b"),
         ]
-        assert "stack ready to uninstall b (2 of 2) (ready)" in out.getvalue()
-        assert "b gone from stack (ready)" in out.getvalue()
+        assert "a, b gone from stack (ready)" in out.getvalue()
 
         with (
             patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),

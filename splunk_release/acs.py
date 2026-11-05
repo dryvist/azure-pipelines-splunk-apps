@@ -196,9 +196,7 @@ def deploy(directory):
     acs(env, "apps", "bulk-install", "private", "--package-src-dir", str(directory), "--acs-legal-ack=Y", main=True)
 
 def uninstall(directory):
-    """Uninstall the apps from all search heads one at a time.
-
-    Before each app, wait for a Ready stack. After each app, wait until ACS no longer lists it."""
+    """Uninstall the apps from all search heads in one bulk command, then wait until ACS lists none of them."""
     packages = package_identity(directory)
     all_apps = [app for _, app, _ in packages]
     env, stack = acs_env(), os.environ["SPLUNK_STACK"]
@@ -211,11 +209,15 @@ def uninstall(directory):
                        " and local settings")
     with tempfile.TemporaryDirectory() as tmp:
         apps_file = Path(tmp, "apps.json")
-        for number, app in enumerate(apps, 1):
-            wait_done(env, lambda: True, f"{stack} ready to uninstall {app} ({number} of {len(apps)})", every=5)
-            apps_file.write_text(json.dumps({"apps": [app]}), encoding="utf-8")
-            acs(env, "apps", "bulk-uninstall", "--file", str(apps_file), main=True)
-            wait_done(env, lambda: installed_version(env, app) is None, f"{app} gone from {stack}", every=5)
+        apps_file.write_text(json.dumps({"apps": apps}), encoding="utf-8")
+        wait_done(env, lambda: True, f"{stack} ready for the uninstall", every=5)
+        acs(env, "apps", "bulk-uninstall", "--file", str(apps_file), main=True)
+    remaining = list(apps)
+
+    def gone():
+        remaining[:] = [app for app in remaining if installed_version(env, app) is not None]
+        return not remaining
+    wait_done(env, gone, f"{', '.join(apps)} gone from {stack}", every=5)
 
 def listed_apps(env, splunkbase=False):
     apps, offset = [], 0
