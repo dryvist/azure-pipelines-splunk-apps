@@ -226,9 +226,22 @@ def listed_apps(env, splunkbase=False):
             return apps
         offset += 100
 
+def export_app(env, apps_file, out, default):
+    """Run acs apps export for the app in apps_file; return the ACS output on failure, or "" on success."""
+    try:
+        acs(env, "apps", "export", f"--file={apps_file}", f"--default={default}", "--local=true",
+            "--users=true", "--confs-only=false", f"--export-dir={out}", main=True)
+        return ""
+    except subprocess.CalledProcessError as error:
+        return f"{error.stdout}{error.stderr}"
+
 def export(out_dir, *app_ids):
+    """Export each app to <out_dir>/<app>.tgz. --all exports every installed app.
+
+    The built-in search app exports only its local and user files. An app ACS does not export is skipped with a
+    warning, and the export fails only when no app exports."""
     package_dir = len(app_ids) == 1 and Path(app_ids[0]).is_dir()
-    custom = app_ids == ("--custom",)
+    every = app_ids == ("--all",)
     out, apps = Path(out_dir), app_ids or [APP]
     if package_dir:
         _, app, _ = package_identity(app_ids[0])[0]
@@ -240,23 +253,27 @@ def export(out_dir, *app_ids):
     apps_file = out / "apps.json"
     try:
         env = acs_env()
-        if custom:
-            installed = listed_apps(env)
-            splunkbase = {app.casefold() for app in listed_apps(env, True)}
-            apps = sorted({app for app in installed if app.casefold() not in splunkbase})
+        if every:
+            apps = sorted(set(listed_apps(env)) | set(listed_apps(env, True)))
+        skipped = []
         for app in apps:
             apps_file.write_text(json.dumps({"Apps": [app]}))
-            try:
-                acs(env, "apps", "export", f"--file={apps_file}", "--default=true", "--local=true",
-                    "--users=true", "--confs-only=false", f"--export-dir={out}", main=True)
-            except subprocess.CalledProcessError as error:
-                if "APP_NOT_FOUND" not in f"{error.stdout}{error.stderr}":
-                    raise
+            error = export_app(env, apps_file, out, "true")
+            if "ONLY LOCAL AND USERS CONFIGS ALLOWED" in error:
+                log("warning", f"LOCAL AND USERS ONLY {app}: ACS does not export its default files")
+                error = export_app(env, apps_file, out, "false")
             exported = out / f"{app}.tar.gz"
-            if exported.exists():
+            if error and "APP_NOT_FOUND" not in error:
+                skipped.append(app)
+                exported.unlink(missing_ok=True)
+                log("warning", f"SKIPPED {app}: ACS did not export it. See the ACS output above")
+            elif exported.exists():
                 exported.rename(out / f"{app}.tgz")
             else:
                 log("warning", f"NOT INSTALLED {app}")
+        if skipped and len(skipped) == len(apps):
+            log("error", f"ACS exported none of {len(apps)} app(s). Check the token and its export_apps capability")
+            raise SystemExit(1)
     finally:
         apps_file.unlink(missing_ok=True)
 

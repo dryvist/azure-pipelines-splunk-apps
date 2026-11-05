@@ -38,7 +38,7 @@ the check jobs, including when a check fails.
 | `<target>_<env>`: ACS login and app list | `SPLUNK_STACK` and `ACS_TOKEN` reach ACS and list apps. | [Credentials][cred] |
 | `<target>_<env>`: export | The token exports the built-in `search` app's local and user files. | [Credentials][cred] |
 | `<target>_<env>`: stack status | ACS returns the stack status and whether a restart is required. | [ACS][acs] |
-| `<target>_<env>`: app listings | ACS lists installed apps and Splunkbase apps. Compare reads these lists for its custom export. | [ACS][acs] |
+| `<target>_<env>`: app listings | ACS lists installed apps and Splunkbase apps. Compare reads these lists for its `all` export. | [ACS][acs] |
 | `<target>_<env>`: search app version | ACS describes the `search` app. The deploy wait reads the same value. | [ACS][acs] |
 | `<target>_<env>`: Test port 8089 | The token reads the `search` app `launcher` stanza over REST, as Repair does. Failure only warns. | [REST][rest] |
 | `azuredevops`: onboard resources | Each variable group and environment that Onboard authorizes can be found. | [Azure DevOps][ado] |

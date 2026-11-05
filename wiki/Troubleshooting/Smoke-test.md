@@ -62,20 +62,6 @@ Service right. It can also return HTTP 401, 403, or 404.
 4. For the splunk-apps feed, see [Package feed](/Setup/Feed).
 5. Rerun the `azuredevops` job.
 
-## ACS reports `WITH SEARCH APPS ONLY LOCAL AND USERS CONFIGS ALLOWED`
-
-**Symptom:** ACS returns HTTP 400 with `WITH SEARCH APPS ONLY LOCAL AND USERS CONFIGS ALLOWED` while exporting the
-built-in `search` app.
-
-The smoke-test export uses `--default=false`, `--local=true`, `--users=true`, and `--confs-only=true`.
-
-**Fix:**
-
-1. Remove `search` from the compare pipeline app ID list.
-2. Rerun the affected job.
-
-**Docs:** [ACS export apps][acs-export], [ACS CLI][acs-cli].
-
 ## Read the smoke-test result
 
 **Symptom:** The `result` job prints `RESULT: FAILED`.
@@ -87,6 +73,3 @@ The smoke-test export uses `--default=false`, `--local=true`, `--users=true`, an
 2. Read its first `FAIL` or `Error` line.
 3. Fix that job's credential, network, ACS, REST, or rights issue.
 4. Rerun the smoke-test pipeline.
-
-[acs-export]: https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.5.2605/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/export-apps-in-splunk-cloud-platform
-[acs-cli]: https://github.com/splunk/acs-cli
