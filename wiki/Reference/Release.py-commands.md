@@ -69,6 +69,7 @@ Import removes local settings, user files and lookup backups. `--skip-lookups` k
 | `repair-packages <dir> <out-dir> <conf> <stanzas>` | Checks the stanzas, writes `temp/` without and `real/` with them, sets `REPAIR_VERSION`. | ACS, Azure |
 | `delete-local <dir> <conf> <stanzas>` | Deletes each stanza's local copy through the REST API. | ACS |
 | `repair-check <dir> <conf> <stanzas>` | Exports the app and fails if a stanza is missing or still has a local copy. | ACS |
+| `saved-searches <action> <apps> <searches> <file> [--write]` | See [Saved searches](/Pipelines/Saved-searches). | Port 8089 |
 
 ## ACS setup
 

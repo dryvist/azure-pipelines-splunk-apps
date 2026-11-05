@@ -25,13 +25,14 @@
   repair-packages <dir> <out-dir> <conf> <stanzas>
   delete-local <dir> <conf> <stanzas>
   repair-check <dir> <conf> <stanzas>
+  saved-searches <disable|enable> <apps> <searches> <state-file> [--write]
 """
 
 import sys
 
 from splunk_release.acs import (
     acs, acs_env, delete_local, deploy, export, install_acs, repair_check,
-    repair_packages, restart, status, uninstall, wait_version,
+    repair_packages, restart, saved_searches, status, uninstall, wait_version,
 )
 from splunk_release.appinspect import appinspect, show_report
 from splunk_release.azure import appinspect_link, run_cli, stages_succeeded
@@ -71,6 +72,7 @@ commands = {
     "repair-packages": repair_packages,
     "delete-local": delete_local,
     "repair-check": repair_check,
+    "saved-searches": saved_searches,
 }
 
 if __name__ == "__main__":

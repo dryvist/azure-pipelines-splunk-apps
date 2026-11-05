@@ -510,6 +510,33 @@ def check_require_private():
 
 
 class AcsTests(TestCase):
+    def test_saved_searches(self):
+        # Only shared scheduled searches of the named app change; the plan writes nothing.
+        class Search(dict):
+            def __init__(self, name, app, sharing, scheduled, disabled):
+                super().__init__(is_scheduled=scheduled, disabled=disabled)
+                self.name, self.access, self.calls = name, type("Access", (), {"app": app, "sharing": sharing}), []
+
+            def disable(self):
+                self.calls.append("disable")
+
+        searches = [Search("Alert", "my_ta", "app", "1", "0"), Search("Done", "my_ta", "global", "1", "1"),
+                    Search("Report", "my_ta", "app", "0", "0"), Search("Mine", "my_ta", "user", "1", "0"),
+                    Search("Other", "other_ta", "global", "1", "0")]
+        service = type("Service", (), {"saved_searches": type("Collection", (), {"list": lambda self: searches})()})()
+        env = {"SPLUNK_STACK": "stack", "SPLUNK_SEARCH_HEAD": "", "STACK_TOKEN": "token"}
+        for write, calls in (("", []), ("--write", ["disable"])):
+            with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, env), patch(
+                "splunklib.client.connect", return_value=service
+            ) as connect, redirect_stdout(io.StringIO()) as output:
+                acs.saved_searches("disable", "my_ta", "all", f"{tmp}/states.json", write)
+                states = json.loads(Path(tmp, "states.json").read_text())
+            assert connect.call_args.kwargs["host"] == "stack.splunkcloud.com"
+            assert [s["search"] for s in states] == ["Alert", "Done"]
+            assert searches[0].calls == calls and not searches[1].calls
+            assert f"DISABLE{'D' if write else ''} my_ta/Alert" in output.getvalue()
+            assert "ALREADY DISABLED my_ta/Done" in output.getvalue()
+
     def test_acs(self):
         check_acs()
 

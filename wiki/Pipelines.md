@@ -13,6 +13,7 @@ Find your task in the first column. Set the parameters in the third column. Then
 | Pull installed changes into a repo | App | `importFromNonprod`, `importFromProd`, `importLookups` | [App](/Pipelines/App#import) |
 | Compare two environments | Compare | `source`, `target`, `groupPrefix`, `apps` | [Compare](/Pipelines/Compare) |
 | Restore app objects to the app's defaults | Repair | `environment`, `target`, `app`, `conf`, `stanzas` | [Repair](/Pipelines/Repair) |
+| Disable or enable apps' scheduled searches | Saved searches | `environment`, `target`, `action`, `apps` | [Saved searches](/Pipelines/Saved-searches) |
 | Restart a stack that needs it | Restart | `environment`, `target` | [Restart](/Pipelines/Restart) |
 | Bulk install indexes, HEC tokens, or apps | Bulk install | `environment`, `type`, `file`, `restart` | [Bulk install](/Pipelines/Bulk) |
 | Bulk update indexes, HEC, apps, or permissions | Bulk update | `environment`, `type`, `file`, `restart` | [Bulk update](/Pipelines/Bulk) |

@@ -300,6 +300,39 @@ def rest(app, conf, stanza, method="GET"):
     return http(f"https://{host}.splunkcloud.com:8089/servicesNS/nobody/{app}/configs/conf-{conf}/{stanza}?output_mode=json",
                 {"Authorization": f"Bearer {os.environ['STACK_TOKEN']}"}, timeout=60, method=method, missing_ok=True)
 
+def saved_searches(action, apps, searches, state_file, write=""):
+    """Plan, or with --write apply, action (disable or enable) on each app's shared scheduled searches.
+
+    apps and searches are names separated by ;, and searches can be all. Private searches are left alone. A rerun
+    skips searches that are already done. state_file gets each search's disabled state before the run."""
+    import splunklib.client as client
+
+    if action not in ("disable", "enable") or write not in ("", "--write"):
+        sys.exit(f"Expected disable or enable and an optional --write, got {action} {write}".rstrip())
+    wanted = None if searches.strip().lower() in ("", "all") else set(stanza_names(searches))
+    host = ".".join(filter(None, (configured_value("SPLUNK_SEARCH_HEAD"), os.environ["SPLUNK_STACK"])))
+    states, changed = [], 0
+    for app in stanza_names(apps.replace(" ", ";")):
+        service = client.connect(host=f"{host}.splunkcloud.com", port=8089, splunkToken=os.environ["STACK_TOKEN"],
+                                 owner="nobody", app=app)
+        found = [s for s in service.saved_searches.list() if s.access.app == app and s.access.sharing != "user"
+                 and s["is_scheduled"] == "1" and (wanted is None or s.name in wanted)]
+        log("section", f"{stamp()} {app}: {len(found)} shared scheduled search(es)", flush=True)
+        for search in found:
+            disabled = search["disabled"] == "1"
+            states.append({"app": app, "search": search.name, "disabled": disabled})
+            if disabled == (action == "disable"):
+                print(f"{stamp()} ALREADY {action.upper()}D {app}/{search.name}", flush=True)
+                continue
+            changed += 1
+            if write:
+                getattr(search, action)()
+            print(f"{stamp()} {action.upper()}{'D' if write else ''} {app}/{search.name}", flush=True)
+    Path(state_file).parent.mkdir(parents=True, exist_ok=True)
+    Path(state_file).write_text(json.dumps(states, indent=1), encoding="utf-8")
+    print(f"{stamp()} Result: {changed} {action}d" if write else f"{stamp()} Result: {changed} to {action}",
+          f"of {len(states)} shared scheduled search(es)", flush=True)
+
 def require_private(app):
     """Exit unless ACS lists the app as installed and not from Splunkbase."""
     env = acs_env()
