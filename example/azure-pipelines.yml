@@ -15,6 +15,9 @@ parameters:
     type: boolean
     default: false
 
+# The run name shows the options this run started with.
+name: "$(Date:yyyyMMdd).$(Rev:r)${{ iif(parameters.importFromNonprod, ' import nonprod', '') }}${{ iif(parameters.importFromProd, ' import prod', '') }}${{ iif(parameters.importLookups, ' with lookups', '') }}"
+
 trigger:
   branches:
     include: [main]

@@ -1,3 +1,6 @@
+# The run name shows the options this run started with.
+name: "$(Date:yyyyMMdd).$(Rev:r) ${{ parameters.target }}"
+
 trigger: none
 pr: none
 

@@ -1,6 +1,9 @@
 # Disable or enable the shared scheduled saved searches of each app, on one search head.
 # The Plan stage only reads. The Change stage runs only when someone selects Run stage, then waits for the
 # splunk-<environment> approval.
+# The run name shows the options this run started with.
+name: "$(Date:yyyyMMdd).$(Rev:r) ${{ parameters.environment }} ${{ parameters.target }} ${{ parameters.action }} ${{ iif(contains(parameters.apps, ';'), format('{0} apps', length(split(parameters.apps, ';'))), parameters.apps) }} ${{ iif(eq(lower(trim(parameters.searches)), 'all'), 'all searches', format('{0} searches', length(split(parameters.searches, ';')))) }}"
+
 trigger: none
 pr: none
 

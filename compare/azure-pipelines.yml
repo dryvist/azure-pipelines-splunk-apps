@@ -1,4 +1,7 @@
 # Manually export apps from one environment and compare them with another.
+# The run name shows the options this run started with.
+name: "$(Date:yyyyMMdd).$(Rev:r) ${{ parameters.source }} to ${{ parameters.target }} ${{ parameters.groupPrefix }} ${{ iif(contains(parameters.apps, ';'), format('{0} apps', length(split(parameters.apps, ';'))), parameters.apps) }}"
+
 trigger: none
 pr: none
 

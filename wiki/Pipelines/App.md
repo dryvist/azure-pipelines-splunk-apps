@@ -9,6 +9,8 @@ see [Reference: Stages](/Reference/Stages).
 - Pull request runs start from the Build validation policy on `main`. Azure Repos ignores YAML `pr:`
   triggers. See [Onboard: After onboarding](/Pipelines/Onboard#after-onboarding).
 - Main runs start from the YAML trigger on `main`.
+- The run name shows the import options. An app repository whose `azure-pipelines.yml` has no `name` line shows
+  plain run numbers.
 
 ![Pull request flow.](../diagrams/pr-run.png)
 
