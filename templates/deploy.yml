@@ -13,6 +13,10 @@ parameters:
   - name: uninstall
     type: boolean
     default: false
+  # true installs and uninstalls on the targeted search head alone, one app at a time.
+  - name: local
+    type: boolean
+    default: false
   - name: compareFlags
     type: string
     default: ''
@@ -41,12 +45,12 @@ steps:
   - ${{ if eq(parameters.uninstall, true) }}:
       - template: acs-step.yml
         parameters:
-          command: '"$(Pipeline.Workspace)/tools/release.py" uninstall "${{ parameters.packageDirectory }}"'
+          command: '"$(Pipeline.Workspace)/tools/release.py" uninstall "${{ parameters.packageDirectory }}"${{ iif(parameters.local, '' --local'', '''') }}'
           displayName: Uninstall from ${{ parameters.environment }}
   - ${{ if eq(parameters.install, true) }}:
       - template: acs-step.yml
         parameters:
-          command: '"$(Pipeline.Workspace)/tools/release.py" deploy "${{ parameters.packageDirectory }}"'
+          command: '"$(Pipeline.Workspace)/tools/release.py" deploy "${{ parameters.packageDirectory }}"${{ iif(parameters.local, '' --local'', '''') }}'
           displayName: Install on ${{ parameters.environment }}
           additionalEnv:
             SPLUNK_USERNAME: $(SPLUNK_USERNAME)

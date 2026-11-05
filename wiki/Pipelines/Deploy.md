@@ -11,7 +11,8 @@ named `deploy-apps` in [Manual pipelines](/Setup/Manual-pipelines).
 | `apps` | App IDs separated by `;` | empty | Apps to deploy. An app whose `main` version is not in the splunk-apps feed is released first. |
 | `compare` | on, off | on | Compare each app with the environment first. |
 | `uninstall` | on, off | off | DANGER: uninstall each app first. Read [DANGER: uninstall](#danger-uninstall). |
-| `install` | on, off | on | Install each app with one ACS bulk command. |
+| `target` | `all`, `core`, `itsi` | `all` | `all`: one bulk command for every search head. `core`, `itsi`: one app at a time, there alone. |
+| `install` | on, off | on | Install each app on `target`. |
 | `restart` | on, off | off | Restart both search heads at the end, if ACS requires it. |
 
 To rerun part of a deployment, clear the parts that already succeeded.
@@ -46,7 +47,10 @@ Verify that the run shows one compare stage per app and one install stage.
 
 - Each compare stage runs one job for the main search head and one for the ITSI search head. They install nothing.
   See [Compare steps](/Reference/Stages#compare-steps).
-- Uninstall checks the stack every 5 seconds and starts as soon as ACS reports `Ready`. One ACS bulk command removes
+- With `target` set to `core` or `itsi`, uninstall and install go one app at a time with `--scope local`. Each app
+  gets a `Ready` check every 5 seconds first, then a check every 5 seconds until it is gone or shows its exact version.
+  That group's `SPLUNK_SEARCH_HEAD` must name the search head.
+- With `target` set to `all`, uninstall checks the stack every 5 seconds and starts as soon as ACS reports `Ready`. One ACS bulk command removes
   every app from all search heads, including ITSI. Then it checks every 5 seconds until ACS finds none of the apps.
 - Install checks the stack the same way, then uses one ACS bulk command and confirms each app's exact version.
 - Each wait gives up after 15 minutes.

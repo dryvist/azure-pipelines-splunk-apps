@@ -258,6 +258,58 @@ def check_acs():
         ]
         assert "a, b gone from stack (ready)" in out.getvalue()
 
+        # --local removes each app from the targeted search head alone, one at a time.
+        installed = {"a": [True, False], "b": [True, False]}
+        events.clear()
+        with (
+            patch.dict(os.environ, {"SPLUNK_STACK": "stack", "SPLUNK_SEARCH_HEAD": "itsi"}),
+            patch("splunk_release.acs.acs_env", return_value={}),
+            patch("splunk_release.acs.stack_ready", side_effect=ready),
+            patch("splunk_release.acs.time.sleep"),
+            patch("splunk_release.acs.run", side_effect=lambda command, **_: (
+                events.append(("uninstall", command[3], *command[4:])) or subprocess.CompletedProcess(command, 0, "", "")
+                if command[1:3] == ["apps", "uninstall"] else fake_uninstall(command))),
+            redirect_stdout(io.StringIO()) as out,
+        ):
+            acs.uninstall(package_dir, "--local")
+        assert events == [
+            ("describe", "a"), ("describe", "b"),
+            ("ready",), ("uninstall", "a", "--scope", "local"), ("ready",), ("describe", "a"),
+            ("ready",), ("uninstall", "b", "--scope", "local"), ("ready",), ("describe", "b"),
+        ]
+        assert "itsi ready to uninstall b (2 of 2) (ready)" in out.getvalue()
+
+        # --local installs each package on the targeted search head alone, then waits for its exact version.
+        versions = {"a": ["1.0.0", "1.4.10"], "b": ["2.0.0"]}
+        events.clear()
+        def fake_install(command, **_):
+            if command[1:4] == ["apps", "install", "private"]:
+                events.append(("install", Path(command[4].split("=", 1)[1]).name, *command[6:]))
+                return subprocess.CompletedProcess(command, 0, "", "")
+            events.append(("describe", command[3]))
+            return subprocess.CompletedProcess(command, 0, structured({"version": versions[command[3]].pop(0)}), "")
+        with (
+            patch.dict(os.environ, {"SPLUNK_STACK": "stack", "SPLUNK_SEARCH_HEAD": "itsi"}),
+            patch("splunk_release.acs.acs_env", return_value={}),
+            patch("splunk_release.acs.stack_ready", side_effect=ready),
+            patch("splunk_release.acs.time.sleep"),
+            patch("splunk_release.acs.run", side_effect=fake_install),
+            redirect_stdout(io.StringIO()) as out,
+        ):
+            acs.deploy(package_dir, "--local")
+        assert events == [
+            ("ready",), ("install", "a-1.4.10.tar.gz", "--scope", "local"), ("ready",), ("describe", "a"),
+            ("ready",), ("describe", "a"),
+            ("ready",), ("install", "b-2.0.0.tar.gz", "--scope", "local"), ("ready",), ("describe", "b"),
+        ]
+        with patch.dict(os.environ, {"SPLUNK_STACK": "stack", "SPLUNK_SEARCH_HEAD": ""}):
+            try:
+                acs.deploy(package_dir, "--local")
+            except SystemExit as error:
+                assert "needs SPLUNK_SEARCH_HEAD" in str(error)
+            else:
+                raise AssertionError("--local without a search head should fail")
+
         with (
             patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
             patch("splunk_release.acs.acs_env", return_value={}),

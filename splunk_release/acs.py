@@ -195,16 +195,41 @@ def restart(always=""):
     time.sleep(60)
     wait_done(env, lambda: not restart_required(stack_status(env)), f"restart of {where}", 30)
 
-def deploy(directory):
+def local_target(local):
+    """The targeted search head name for --local, or None without it."""
+    if local not in ("", "--local"):
+        sys.exit(f"Expected an optional --local, got {local}")
+    where = configured_value("SPLUNK_SEARCH_HEAD")
+    if local and not where:
+        sys.exit("--local needs SPLUNK_SEARCH_HEAD set to the target search head name in this variable group")
+    return where if local else None
+
+def deploy(directory, local=""):
+    """Install the packages in one bulk command on every search head, after a Ready check.
+
+    With --local, install each package on the targeted search head alone, one at a time: a Ready check, the install,
+    then a wait for the exact version."""
+    where = local_target(local)
     packages = package_identity(directory)
     env, stack = acs_env(), os.environ["SPLUNK_STACK"]
+    if where:
+        for number, (package, app, version) in enumerate(packages, 1):
+            wait_done(env, lambda: True, f"{where} ready to install {app} {version} ({number} of {len(packages)})", every=5)
+            acs(env, "apps", "install", "private", f"--app-package={package}", "--acs-legal-ack=Y", "--scope", "local",
+                main=True)
+            wait_done(env, lambda: installed_version(env, app) == version, f"{app} {version} on {where}", every=5)
+        return
     wait_done(env, lambda: True, f"{stack} ready for the install", every=5)
     for _, app, version in packages:
         log("section", f"Installing {app} {version} as a private app")
     acs(env, "apps", "bulk-install", "private", "--package-src-dir", str(directory), "--acs-legal-ack=Y", main=True)
 
-def uninstall(directory):
-    """Uninstall the apps from all search heads in one bulk command, then wait until ACS lists none of them."""
+def uninstall(directory, local=""):
+    """Uninstall the apps, then wait until ACS no longer finds them.
+
+    By default one bulk command removes them from every search head, after a Ready check. With --local, each app is
+    removed from the targeted search head alone, one at a time, after a Ready check."""
+    where = local_target(local)
     packages = package_identity(directory)
     all_apps = [app for _, app, _ in packages]
     env, stack = acs_env(), os.environ["SPLUNK_STACK"]
@@ -215,6 +240,12 @@ def uninstall(directory):
     for app in apps:
         log("warning", f"DANGER: uninstalling {app} from {stack} PERMANENTLY DELETES ALL of its lookups (CSV files)"
                        " and local settings")
+    if where:
+        for number, app in enumerate(apps, 1):
+            wait_done(env, lambda: True, f"{where} ready to uninstall {app} ({number} of {len(apps)})", every=5)
+            acs(env, "apps", "uninstall", app, "--scope", "local", main=True)
+            wait_done(env, lambda: installed_version(env, app) is None, f"{app} gone from {where}", every=5)
+        return
     with tempfile.TemporaryDirectory() as tmp:
         apps_file = Path(tmp, "apps.json")
         apps_file.write_text(json.dumps({"apps": apps}), encoding="utf-8")
