@@ -10,6 +10,7 @@ import tarfile
 import tempfile
 import time
 import urllib.parse
+from datetime import datetime
 from pathlib import Path
 
 from splunk_release.azure import http, log, run
@@ -226,6 +227,10 @@ def listed_apps(env, splunkbase=False):
             return apps
         offset += 100
 
+def stamp():
+    """The local time in ISO 8601 form, with a space in place of the T."""
+    return datetime.now().astimezone().isoformat(sep=" ", timespec="seconds")
+
 def export_app(env, apps_file, out, default):
     """Run acs apps export for the app in apps_file; return the ACS output on failure, or "" on success."""
     try:
@@ -250,32 +255,37 @@ def export(out_dir, *app_ids):
         print(f"##vso[task.setvariable variable=APP_ID]{app}")
 
     out.mkdir(parents=True, exist_ok=True)
-    apps_file = out / "apps.json"
-    try:
-        env = acs_env()
-        if every:
-            apps = sorted(set(listed_apps(env)) | set(listed_apps(env, True)))
-        skipped = []
-        for app in apps:
-            apps_file.write_text(json.dumps({"Apps": [app]}))
+    env = acs_env()
+    if every:
+        apps = sorted(set(listed_apps(env)) | set(listed_apps(env, True)))
+    skipped, missing = [], []
+    with tempfile.TemporaryDirectory() as tmp:
+        for number, app in enumerate(apps, 1):
+            log("section", f"{stamp()} Export {number} of {len(apps)}: {app}", flush=True)
+            # The file name puts the app name in the logged acs command.
+            apps_file = Path(tmp, f"{app}.json")
+            apps_file.write_text(json.dumps({"apps": [app]}))
             error = export_app(env, apps_file, out, "true")
             if "ONLY LOCAL AND USERS CONFIGS ALLOWED" in error:
-                log("warning", f"LOCAL AND USERS ONLY {app}: ACS does not export its default files")
+                log("warning", f"{stamp()} LOCAL AND USERS ONLY {app}: ACS does not export its default files. "
+                               "Exporting its local and user files", flush=True)
                 error = export_app(env, apps_file, out, "false")
             exported = out / f"{app}.tar.gz"
             if error and "APP_NOT_FOUND" not in error:
                 skipped.append(app)
                 exported.unlink(missing_ok=True)
-                log("warning", f"SKIPPED {app}: ACS did not export it. See the ACS output above")
+                log("warning", f"{stamp()} SKIPPED {app}: ACS did not export it. See the ACS output above", flush=True)
             elif exported.exists():
+                print(f"{stamp()} EXPORTED {app}: {exported.stat().st_size:,} bytes", flush=True)
                 exported.rename(out / f"{app}.tgz")
             else:
-                log("warning", f"NOT INSTALLED {app}")
-        if skipped and len(skipped) == len(apps):
-            log("error", f"ACS exported none of {len(apps)} app(s). Check the token and its export_apps capability")
-            raise SystemExit(1)
-    finally:
-        apps_file.unlink(missing_ok=True)
+                missing.append(app)
+                log("warning", f"{stamp()} NOT INSTALLED {app}", flush=True)
+    print(f"{stamp()} Export result: {len(apps) - len(skipped) - len(missing)} exported, {len(skipped)} skipped, "
+          f"{len(missing)} not installed, of {len(apps)} app(s)", flush=True)
+    if skipped and len(skipped) == len(apps):
+        log("error", f"ACS exported none of {len(apps)} app(s). Check the token and its export_apps capability")
+        raise SystemExit(1)
 
 def stanza_names(stanzas):
     names = [name.strip() for name in stanzas.split(";") if name.strip()]

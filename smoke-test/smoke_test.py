@@ -42,7 +42,7 @@ def stack(group):
         run(["acs", "apps", "list"], check=True, env=env, capture_output=True)
         print_colored_patch(f"PASS {group} ACS login and app list")
         apps_file = Path(out, "apps.json")
-        apps_file.write_text(json.dumps({"Apps": ["search"]}))
+        apps_file.write_text(json.dumps({"apps": ["search"]}))
         cmd = ["acs", "apps", "export", f"--file={apps_file}", "--default=false", "--local=true",
                "--users=true", "--confs-only=true", f"--export-dir={out}"]
         print("Exporting the search app local and user configuration files only.")

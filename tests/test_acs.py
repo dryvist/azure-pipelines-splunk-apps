@@ -5,6 +5,7 @@ from unittest import TestCase
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import tarfile
@@ -291,7 +292,7 @@ def check_acs():
                 )
                 return subprocess.CompletedProcess(command, 0, structured({"apps": rows}), "")
             if command[1:3] == ["apps", "export"]:
-                app = json.loads(Path(command[3].split("=", 1)[1]).read_text())["Apps"][0]
+                app = json.loads(Path(command[3].split("=", 1)[1]).read_text())["apps"][0]
                 destination = Path(command[-1].split("=", 1)[1])
                 (destination / f"{app}.tar.gz").write_bytes(b"export")
             return subprocess.CompletedProcess(command, 0, "", "")
@@ -303,7 +304,7 @@ def check_acs():
 
     # search exports only local and user files, an app ACS refuses is skipped, and all refused fails.
     def refusing_acs(command, **kwargs):
-        app = json.loads(Path(command[3].split("=", 1)[1]).read_text())["Apps"][0]
+        app = json.loads(Path(command[3].split("=", 1)[1]).read_text())["apps"][0]
         if app == "search" and command[4] == "--default=true":
             return subprocess.CompletedProcess(command, 1, "", "400: WITH SEARCH APPS ONLY LOCAL AND USERS CONFIGS ALLOWED")
         if app == "premium":
@@ -324,6 +325,9 @@ def check_acs():
                 else:
                     assert code is None
             assert "SKIPPED premium" in output.getvalue()
+            assert re.search(rf"^##\[section\]\d{{4}}-\d\d-\d\d \d\d:\d\d:\d\d[+-]\d\d:\d\d Export 1 of {len(apps)}: {apps[0]}$",
+                             output.getvalue(), re.M)
+            assert f"Export result: {len(apps) - 1} exported, 1 skipped, 0 not installed" in output.getvalue()
             assert sorted(p.name for p in Path(tmp).glob("*.tgz")) == (["search.tgz"] if "search" in apps else [])
             assert ("LOCAL AND USERS ONLY search" in output.getvalue()) == ("search" in apps)
 
@@ -350,7 +354,7 @@ def check_acs():
 
         def fake_export(command, **kwargs):
             if command[1:3] == ["apps", "export"]:
-                app = json.loads(Path(command[3].split("=", 1)[1]).read_text())["Apps"][0]
+                app = json.loads(Path(command[3].split("=", 1)[1]).read_text())["apps"][0]
                 destination = Path(command[-1].split("=", 1)[1])
                 (destination / f"{app}.tar.gz").write_bytes(b"export")
             return subprocess.CompletedProcess(command, 0, "", "")
