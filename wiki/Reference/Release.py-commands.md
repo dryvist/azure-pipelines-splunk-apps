@@ -17,7 +17,7 @@ In the **Needs** column:
 | `package` | Checks and sorts `package/`, then writes `dist/<app-id>-<version>.tar.gz`. | Nothing |
 | `tag` | Pushes a `v<version>` tag and sets `APP_ID` and `APP_VERSION`. | Git push access |
 | `stages-succeeded <stage...>` | Fails unless every named stage succeeded in this build. | Azure |
-| `feed-missing <app-id>` | Sets `MISSING` to `true` if the feed has no version of the app, else `false`. | Azure |
+| `feed-missing <app-id>` | In the app repo, sets `MISSING` to `true` if the feed lacks the `app.conf` version. | Azure |
 | `appinspect <dir>` | Submits the first package, saves HTML and JSON reports, and fails if checks do not pass. | `SPLUNK_USERNAME`, `SPLUNK_PASSWORD` |
 | `appinspect-json <report>` | Prints the report and lists checks that did not pass. | Nothing |
 | `appinspect-link` | Prints this build's artifact link. | Azure |

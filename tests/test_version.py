@@ -64,12 +64,17 @@ def check_version():
                                       "&includeAllVersions=true&api-version=7.1")
     with patch.dict(os.environ, env), patch("splunk_release.version.http", return_value=body):
         assert version_module.published("my_ta", "1.4.8")
+        # MISSING is true when the feed lacks the app.conf version, even with older versions in the feed.
         output = io.StringIO()
-        with redirect_stdout(output):
-            version_module.feed_missing("MY_TA")
-            version_module.feed_missing("other_ta")
+        with tempfile.TemporaryDirectory() as tmp, redirect_stdout(output):
+            conf = Path(tmp, "app.conf")
+            for app, version in (("MY_TA", "1.4.8"), ("my_ta", "1.4.9"), ("other_ta", "1.4.8")):
+                conf.write_text(f"[id]\nversion = {version}\n")
+                with patch.object(version_module, "CONF", conf):
+                    version_module.feed_missing(app)
         assert output.getvalue().count("variable=MISSING;isOutput=true]false") == 1
-        assert output.getvalue().count("variable=MISSING;isOutput=true]true") == 1
+        assert output.getvalue().count("variable=MISSING;isOutput=true]true") == 2
+        assert "my_ta 1.4.9 is not in the splunk-apps feed" in output.getvalue()
 
 
 class VersionTests(TestCase):

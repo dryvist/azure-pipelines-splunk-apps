@@ -8,7 +8,7 @@ named `deploy-apps` in [Manual pipelines](/Setup/Manual-pipelines).
 | Parameter | Values | Default | Effect |
 | --- | --- | --- | --- |
 | `environment` | `nonprod`, `prod` | `nonprod` | Stack to deploy to. Stages wait for the `splunk-<environment>` approval. |
-| `apps` | App IDs separated by `;` | empty | Apps to deploy. Apps missing from the splunk-apps feed are released first. |
+| `apps` | App IDs separated by `;` | empty | Apps to deploy. An app whose `main` version is not in the splunk-apps feed is released first. |
 | `compare` | on, off | on | Compare each app with the environment first. |
 | `uninstall` | on, off | off | DANGER: uninstall each app first. Read [DANGER: uninstall](#danger-uninstall). |
 | `install` | on, off | on | Install each app with one ACS bulk command. |
@@ -37,7 +37,7 @@ Verify that the run shows one compare stage per app and one install stage.
 
 | Stage | Runs when | Waits for |
 | --- | --- | --- |
-| `release_missing` | App IDs are set. It packages, checks and uploads only apps with no version in the feed. | Nothing |
+| `release_missing` | App IDs are set. It packages, checks and uploads each app whose `main` version is not in the feed. | Nothing |
 | `compare_<app>` | `compare` is on. | `release_missing` |
 | `uninstall` | `uninstall` is on. | `release_missing`; every compare stage; approval |
 | `restart_uninstall` | `uninstall` is on, whatever `restart` is. | `uninstall` |

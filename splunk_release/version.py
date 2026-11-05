@@ -180,10 +180,11 @@ def published(name, version):
     return version in feed_versions(name)
 
 def feed_missing(name):
-    """Set the MISSING output variable to true when the splunk-apps feed holds no version of this app."""
+    """Set the MISSING output variable to true when the splunk-apps feed does not hold the version in app.conf."""
     name = name.lower()
-    missing = not feed_versions(name)
-    print(f"{name} is {'not ' if missing else ''}in the splunk-apps feed")
+    version = app_conf_version(CONF.read_text(**TEXT))
+    missing = not published(name, version)
+    print(f"{name} {version} is {'not ' if missing else ''}in the splunk-apps feed")
     print(f"##vso[task.setvariable variable=MISSING;isOutput=true]{str(missing).lower()}")
 
 def feed_versions(name):
