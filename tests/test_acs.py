@@ -188,16 +188,22 @@ def check_acs():
         assert [(app, version) for _, app, version in acs.package_identity(package_dir)] == [
             ("a", "1.4.10"), ("b", "2.0.0")
         ]
+        # The install waits until the stack is Ready, then runs one bulk install.
         with (
+            patch.dict(os.environ, {"SPLUNK_STACK": "stack"}),
             patch("splunk_release.acs.acs_env", return_value={}),
+            patch("splunk_release.acs.stack_ready", side_effect=[(False, "stack Updating"), (True, "stack Ready")]),
+            patch("splunk_release.acs.time.sleep"),
             patch("splunk_release.acs.run") as run,
-            redirect_stdout(io.StringIO()),
+            redirect_stdout(io.StringIO()) as out,
         ):
             run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
             acs.deploy(package_dir)
         assert [call.args[0] for call in run.call_args_list] == [[
             "acs", "apps", "bulk-install", "private", "--package-src-dir", str(package_dir), "--acs-legal-ack=Y"
         ]]
+        assert out.getvalue().index("Waiting for stack ready for the install: stack Updating") < out.getvalue().index(
+            "stack ready for the install (stack Ready)")
 
         # Bulk uninstall polls every package until ACS reports each app missing.
         installed = {"a": [False], "b": [True, False]}
