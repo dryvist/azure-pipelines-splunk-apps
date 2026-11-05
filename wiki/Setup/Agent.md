@@ -31,3 +31,19 @@ Add the agents' outbound addresses to both lists below.
 3. Repeat step 2 in Splunk Web of the prod stack.
 
 Verify that both stacks list the agent's address under **Search head API access**.
+
+## Agent maintenance
+
+The agent pool's maintenance job deletes old work folders on each agent, so the agent disks do not fill up.
+
+1. Open **Organization settings**.
+2. Select **Agent pools**.
+3. Select the pool that runs these pipelines.
+4. Select **Settings**.
+5. Turn on **Enable agent maintenance**.
+6. Set **Run maintenance job every** to `1` day.
+7. Set **Delete working directories and repositories that haven't been used in** to `1` day.
+8. Set **Delete release working directories that haven't been used in** to `1` day.
+9. Select **Save**.
+
+To check that it ran, select **Maintenance History** on the same pool.
