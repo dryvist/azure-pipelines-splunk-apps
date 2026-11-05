@@ -2,6 +2,14 @@
 
 Find your task in the first column. Set the parameters in the third column. Then open the page in the last column.
 
+Each run's name in the Runs list shows the options it started with, such as `20261105.3 prod 12 apps compare install`.
+A list shows as a count. To see every option of recent runs, including full lists, run this in PowerShell:
+
+```powershell
+az pipelines runs list --organization https://dev.azure.com/<org> --project <project> --top 30 `
+  --query "[].{pipeline:definition.name, run:buildNumber, options:to_string(templateParameters)}" -o table
+```
+
 | Task | Pipeline | Parameters to set | Page |
 | --- | --- | --- | --- |
 | Release a change to one app | App | Open a pull request to `main`, merge it, then approve the prod install | [App](/Pipelines/App) |

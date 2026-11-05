@@ -1,4 +1,7 @@
 # Export apps installed on the stack into their repositories' empty package/ and create their pipelines.
+# The run name shows the options this run started with.
+name: "$(Date:yyyyMMdd).$(Rev:r) ${{ parameters.environment }} ${{ parameters.target }} ${{ iif(contains(parameters.apps, ';'), format('{0} apps', length(split(parameters.apps, ';'))), parameters.apps) }}"
+
 trigger: none
 pr: none
 

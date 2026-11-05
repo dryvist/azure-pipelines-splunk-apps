@@ -1,4 +1,7 @@
 # Manually restart the selected stack.
+# The run name shows the options this run started with.
+name: "$(Date:yyyyMMdd).$(Rev:r) ${{ parameters.environment }} ${{ parameters.target }}"
+
 trigger: none
 pr: none
 

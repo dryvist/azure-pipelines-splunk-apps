@@ -1,4 +1,7 @@
 # Replace local copies of app objects on one stack with the app's default copies.
+# The run name shows the options this run started with.
+name: "$(Date:yyyyMMdd).$(Rev:r) ${{ parameters.environment }} ${{ parameters.target }} ${{ parameters.app }} ${{ parameters.conf }} ${{ format('{0} stanzas', length(split(parameters.stanzas, ';'))) }}"
+
 trigger: none
 pr: none
 

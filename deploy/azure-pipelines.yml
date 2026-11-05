@@ -1,3 +1,6 @@
+# The run name shows the options this run started with.
+name: "$(Date:yyyyMMdd).$(Rev:r) ${{ parameters.environment }} ${{ iif(contains(parameters.apps, ';'), format('{0} apps', length(split(parameters.apps, ';'))), parameters.apps) }}${{ iif(parameters.compare, ' compare', '') }}${{ iif(parameters.uninstall, ' UNINSTALL', '') }}${{ iif(parameters.install, ' install', '') }}${{ iif(parameters.restart, ' restart', '') }}"
+
 trigger: none
 pr: none
 
