@@ -3,17 +3,13 @@
 Find your task in the first column. Set the parameters in the third column. Then open the page in the last column.
 
 Each run's name in the Runs list shows the options it started with, such as `20261105.3 prod 12 apps compare install`.
-A list shows as a count. To see every option of recent runs, including full lists, run this in PowerShell:
-
-```powershell
-az pipelines runs list --organization https://dev.azure.com/<org> --project <project> --top 30 `
-  --query "[].{pipeline:definition.name, run:buildNumber, options:to_string(templateParameters)}" -o table
-```
+A list shows as a count. To see every option of recent runs, including full lists, run `Get-RecentRuns` from
+[Azure CLI](/Pipelines/Azure-CLI).
 
 | Task | Pipeline | Parameters to set | Page |
 | --- | --- | --- | --- |
 | Release a change to one app | App | Open a pull request to `main`, merge it, then approve the prod install | [App](/Pipelines/App) |
-| Import every app from prod | App, one run per app | `importFromProd`, from one `az` command | [App](/Pipelines/App#import-every-app-at-once) |
+| Import every app from prod | App, one run per app | `Import-AllApps` | [Azure CLI](/Pipelines/Azure-CLI#import-every-app-from-prod) |
 | Deploy one app to nonprod or prod | Deploy | `environment`, `apps` (one ID), `compare`, `install`, `restart` | [Deploy](/Pipelines/Deploy) |
 | Deploy several apps | Deploy | `apps` as IDs separated by `;`, such as `app_one;app_two`, plus the options above | [Deploy](/Pipelines/Deploy) |
 | Deploy to prod with compare review | Deploy | `environment` = `prod`; approve each compare, then the install | [Deploy](/Pipelines/Deploy#deploy-to-prod) |
