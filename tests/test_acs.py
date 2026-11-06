@@ -460,8 +460,9 @@ def check_acs():
     # The smoke result command passes only when every RESULT_ job succeeded.
     result_script = Path(__file__).resolve().parents[1] / "smoke-test" / "smoke_test.py"
 
-    def smoke_result(second):
-        env = {**os.environ, "RESULT_APPINSPECT": "Succeeded", "RESULT_SPLUNK_ITSI_PROD": second}
+    def smoke_result(second, warning=""):
+        env = {**os.environ, "RESULT_APPINSPECT": "Succeeded", "RESULT_SPLUNK_ITSI_PROD": second,
+               "WARN_SPLUNK_ITSI_PROD": warning}
         return subprocess.run([sys.executable, str(result_script), "result"], capture_output=True, text=True,
                               check=False, env=env)
 
@@ -473,6 +474,10 @@ def check_acs():
     assert failed.returncode == 1
     assert "RESULT: ALL PASS" not in failed.stdout
     assert "RESULT: FAILED - open each failed job for its FAIL or Error line" in failed.stdout
+    warned = smoke_result("SucceededWithIssues", "WARN splunk-itsi-prod port 8089: 1. Agent public IP: 192.0.2.1.")
+    assert warned.returncode == 0
+    assert "##vso[task.logissue type=warning]WARN splunk-itsi-prod port 8089: 1. Agent public IP: 192.0.2.1." in warned.stdout
+    assert "RESULT: PASS WITH 1 WARNING(S) - see the warnings above" in warned.stdout
 
 def check_stack_ready():
     response = {"infrastructure": {"status": "Ready"}}
