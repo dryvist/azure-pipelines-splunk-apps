@@ -33,14 +33,14 @@ error names `acs status current-stack`, `acs apps list`, or `acs apps describe s
 ## Search head REST read fails
 
 **Symptom:** The **Test port 8089** step shows a `WARN ... port 8089` warning with HTTP 401 or 403, or no HTTP
-status. The warning shows the agent public IP, the host, the addresses the host resolves to, and whether port 443
-on that host is open. The `result` job repeats it. Repair and saved searches need port 8089.
+status. The warning shows the agent public IP, the host and the host's IP addresses. The `result` job repeats it.
+Repair and saved searches need port 8089.
 
 | Warning shows | Cause |
 | --- | --- |
 | HTTP 401 | The token is not valid on that search head. |
-| HTTP 403, or no status with port 443 open | Port 8089 alone is blocked: the `search-api` IP allow list or a firewall. |
-| No status with port 443 failed | The host is not reachable from the agent network at all. |
+| HTTP 403 | The agent public IP is not on the `search-api` IP allow list. |
+| No HTTP status, timed out | Nothing answered: the `search-api` IP allow list, or a firewall between the agents and that host's IP addresses. |
 | `not resolved` | `SPLUNK_STACK` or `SPLUNK_SEARCH_HEAD` is wrong. |
 
 **Fix:**

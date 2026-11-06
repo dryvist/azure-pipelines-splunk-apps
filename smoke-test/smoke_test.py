@@ -82,14 +82,8 @@ def search_head_rest(group):
             addresses = ", ".join(sorted({info[4][0] for info in socket.getaddrinfo(host, 8089)}))
         except OSError as dns:
             addresses = f"not resolved ({dns})"
-        try:
-            socket.create_connection((host, 443), timeout=10).close()
-            https = "open"
-        except OSError as other:
-            https = f"failed ({other})"
-        message = (f"WARN {group} port 8089: {error.code}. Agent public IP: {ip}. Host {host} resolves to {addresses}; "
-                   f"port 443 on it: {https}. Port 443 open means port 8089 alone is blocked, by a firewall or the "
-                   "search-api IP allow list. Repair and saved searches need port 8089")
+        message = (f"WARN {group} port 8089 failed: {error.code}. Agent public IP: {ip}. Host: {host}, "
+                   f"IP addresses: {addresses}")
         print(f"##vso[task.logissue type=warning]{message}")
         # The result job reads this output variable; the job shows as succeeded with issues.
         print(f"##vso[task.setvariable variable=WARNING;isOutput=true]{message}")
