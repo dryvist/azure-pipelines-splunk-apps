@@ -24,8 +24,9 @@ Verify that the `appinspect`, `azuredevops`, `result`, and each `<target>_<env>`
 
 1. Open the run and then the `result` job.
 2. Select the **Result** step.
-3. Read its last line. It is `RESULT: ALL PASS`, or `RESULT: FAILED - open each failed job for its FAIL or
-   Error line`.
+3. Read its last line. It is `RESULT: ALL PASS`, `RESULT: PASS WITH <n> WARNING(S)`, or `RESULT: FAILED - open
+   each failed job for its FAIL or Error line`.
+4. For a warning, read the `WARN ... port 8089` lines above it. Each one shows the agent public IP.
 
 ## Checks
 

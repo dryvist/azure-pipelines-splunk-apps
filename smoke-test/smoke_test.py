@@ -75,9 +75,12 @@ def search_head_rest(group):
             ip = http("https://api.ipify.org", {}, timeout=10).decode().strip()
         except SystemExit:
             ip = "unknown: https://api.ipify.org is not reachable"
-        # A warning keeps the job green: only Repair needs port 8089.
-        print(f"##vso[task.logissue type=warning]WARN {group} port 8089: {error.code}. Agent public IP: {ip}. "
-              "Add it as <ip>/32 to the search-api IP allow list. Only Repair needs port 8089")
+        message = (f"WARN {group} port 8089: {error.code}. Agent public IP: {ip}. Add it as <ip>/32 to the "
+                   "search-api IP allow list. Repair and saved searches need port 8089")
+        print(f"##vso[task.logissue type=warning]{message}")
+        # The result job reads this output variable; the job shows as succeeded with issues.
+        print(f"##vso[task.setvariable variable=WARNING;isOutput=true]{message}")
+        print("##vso[task.complete result=SucceededWithIssues;]")
         return
     found = "found" if launcher is not None else "not found"
     print_colored_patch(f"PASS {group} port 8089 search head REST: token accepted, launcher stanza {found}")
@@ -105,11 +108,17 @@ def azure_devops():
 
 
 def result():
-    """Print each RESULT_<job> variable and fail unless all succeeded."""
+    """Print each RESULT_<job> variable and each WARN_<job> warning, and fail unless all succeeded."""
     results = {name[7:].lower(): value for name, value in sorted(os.environ.items()) if name.upper().startswith("RESULT_")}
+    warnings = [value for name, value in sorted(os.environ.items()) if name.upper().startswith("WARN_") and value]
     for name, value in results.items():
         print(f"{name}: {value}")
-    if set(results.values()) == {"Succeeded"}:
+    for warning in warnings:
+        print(f"##vso[task.logissue type=warning]{warning}")
+    if set(results.values()) <= {"Succeeded", "SucceededWithIssues"} and warnings:
+        print_colored_patch(f"RESULT: PASS WITH {len(warnings)} WARNING(S) - see the warnings above")
+        print("##vso[task.complete result=SucceededWithIssues;]")
+    elif set(results.values()) == {"Succeeded"}:
         print_colored_patch("RESULT: ALL PASS")
     else:
         print_colored_patch("RESULT: FAILED - open each failed job for its FAIL or Error line")

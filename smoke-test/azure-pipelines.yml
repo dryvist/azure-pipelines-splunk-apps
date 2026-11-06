@@ -51,6 +51,7 @@ jobs:
                   SPLUNK_SEARCH_HEAD: $(SPLUNK_SEARCH_HEAD)
                   ACS_TOKEN: $(ACS_TOKEN)
               - script: python smoke-test/smoke_test.py rest ${{ target }}-${{ env }}
+                name: rest
                 displayName: Test port 8089 - read the search head REST API
                 env:
                   SPLUNK_STACK: $(SPLUNK_STACK)
@@ -88,6 +89,7 @@ jobs:
       ${{ each target in split(variables.targets, ';') }}:
         ${{ each env in split('nonprod;prod', ';') }}:
           ${{ format('RESULT_{0}_{1}', replace(target, '-', '_'), env) }}: $[ dependencies.${{ replace(target, '-', '_') }}_${{ env }}.result ]
+          ${{ format('WARN_{0}_{1}', replace(target, '-', '_'), env) }}: $[ dependencies.${{ replace(target, '-', '_') }}_${{ env }}.outputs['rest.WARNING'] ]
     steps:
       - checkout: self
       - template: ../templates/python.yml
