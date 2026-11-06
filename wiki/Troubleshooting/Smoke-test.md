@@ -40,7 +40,7 @@ Repair and saved searches need port 8089.
 | --- | --- |
 | HTTP 401 | The token is not valid on that search head. |
 | HTTP 403 | The agent public IP is not on the `search-api` IP allow list. |
-| No HTTP status, timed out | Nothing answered: the `search-api` IP allow list, or a firewall between the agents and that host's IP addresses. |
+| No HTTP status, timed out | Nothing answered. See [One host always times out](/Troubleshooting/Agent-setup#one-host-always-times-out-while-others-work). |
 | `not resolved` | `SPLUNK_STACK` or `SPLUNK_SEARCH_HEAD` is wrong. |
 
 **Fix:**
