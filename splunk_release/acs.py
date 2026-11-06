@@ -336,11 +336,14 @@ def stanza_names(stanzas):
         sys.exit("No stanza names given; separate several with ;")
     return names
 
+def search_head_host():
+    """<SPLUNK_SEARCH_HEAD>.<SPLUNK_STACK>.splunkcloud.com, or <SPLUNK_STACK>.splunkcloud.com for the primary one."""
+    return ".".join(filter(None, (configured_value("SPLUNK_SEARCH_HEAD"), os.environ["SPLUNK_STACK"], "splunkcloud.com")))
+
 def rest(app, conf, stanza, method="GET"):
     """Call the search head REST API for one stanza in the app; return the body, or None when it does not exist."""
     app, conf, stanza = (urllib.parse.quote(value, safe="") for value in (app, conf, stanza))
-    host = ".".join(filter(None, (configured_value("SPLUNK_SEARCH_HEAD"), os.environ["SPLUNK_STACK"])))
-    return http(f"https://{host}.splunkcloud.com:8089/servicesNS/nobody/{app}/configs/conf-{conf}/{stanza}?output_mode=json",
+    return http(f"https://{search_head_host()}:8089/servicesNS/nobody/{app}/configs/conf-{conf}/{stanza}?output_mode=json",
                 {"Authorization": f"Bearer {os.environ['STACK_TOKEN']}"}, timeout=60, method=method, missing_ok=True)
 
 def saved_searches(action, apps, searches, state_file, write=""):
@@ -353,10 +356,10 @@ def saved_searches(action, apps, searches, state_file, write=""):
     if action not in ("disable", "enable") or write not in ("", "--write"):
         sys.exit(f"Expected disable or enable and an optional --write, got {action} {write}".rstrip())
     wanted = None if searches.strip().lower() in ("", "all") else set(stanza_names(searches))
-    host = ".".join(filter(None, (configured_value("SPLUNK_SEARCH_HEAD"), os.environ["SPLUNK_STACK"])))
+    host = search_head_host()
     states, changed = [], 0
     for app in stanza_names(apps.replace(" ", ";")):
-        service = client.connect(host=f"{host}.splunkcloud.com", port=8089, splunkToken=os.environ["STACK_TOKEN"],
+        service = client.connect(host=host, port=8089, splunkToken=os.environ["STACK_TOKEN"],
                                  owner="nobody", app=app)
         found = [s for s in service.saved_searches.list() if s.access.app == app and s.access.sharing != "user"
                  and s["is_scheduled"] == "1" and (wanted is None or s.name in wanted)]

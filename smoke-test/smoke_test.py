@@ -3,13 +3,15 @@
 
 import json
 import os
+import socket
 import sys
 import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from splunk_release.acs import (
-    acs_env, configured_value, installed_version, listed_apps, rest, restart_required, stack_ready, stack_status,
+    acs_env, configured_value, installed_version, listed_apps, rest, restart_required, search_head_host, stack_ready,
+    stack_status,
 )
 from splunk_release.appinspect import appinspect_token
 from splunk_release.azure import http, print_colored_patch, run, run_cli
@@ -75,7 +77,18 @@ def search_head_rest(group):
             ip = http("https://api.ipify.org", {}, timeout=10).decode().strip()
         except SystemExit:
             ip = "unknown: https://api.ipify.org is not reachable"
-        message = (f"WARN {group} port 8089: {error.code}. Agent public IP: {ip}. Add it as <ip>/32 to the "
+        host = search_head_host()
+        try:
+            addresses = ", ".join(sorted({info[4][0] for info in socket.getaddrinfo(host, 8089)}))
+        except OSError as dns:
+            addresses = f"not resolved ({dns})"
+        try:
+            socket.create_connection((host, 443), timeout=10).close()
+            https = "open"
+        except OSError as other:
+            https = f"failed ({other})"
+        message = (f"WARN {group} port 8089: {error.code}. Agent public IP: {ip}. Host {host} resolves to {addresses}; "
+                   f"port 443 on it: {https}. Port 443 open means port 8089 alone is blocked, by a firewall or the "
                    "search-api IP allow list. Repair and saved searches need port 8089")
         print(f"##vso[task.logissue type=warning]{message}")
         # The result job reads this output variable; the job shows as succeeded with issues.
