@@ -33,16 +33,26 @@ error names `acs status current-stack`, `acs apps list`, or `acs apps describe s
 ## Search head REST read fails
 
 **Symptom:** The **Test port 8089** step shows a `WARN ... port 8089` warning with HTTP 401 or 403, or no HTTP
-status. The warning includes the agent public IP, and the `result` job repeats it. Repair and saved searches need port 8089.
+status. The warning shows the agent public IP, the host, the addresses the host resolves to, and whether port 443
+on that host is open. The `result` job repeats it. Repair and saved searches need port 8089.
+
+| Warning shows | Cause |
+| --- | --- |
+| HTTP 401 | The token is not valid on that search head. |
+| HTTP 403, or no status with port 443 open | Port 8089 alone is blocked: the `search-api` IP allow list or a firewall. |
+| No status with port 443 failed | The host is not reachable from the agent network at all. |
+| `not resolved` | `SPLUNK_STACK` or `SPLUNK_SEARCH_HEAD` is wrong. |
 
 **Fix:**
 
 1. Check that `SPLUNK_SEARCH_HEAD` and `SPLUNK_STACK` in the job's group are correct. They set the REST URL. See
    [Reference: Variable groups](/Reference/Variable-groups).
-2. Check that the agents' public IP addresses are in the `search-api` IP allow list. Splunk Cloud blocks port
-   8089 from any other address.
-3. Check that the ACS token is accepted by that search head.
-4. Rerun the failed job.
+2. Check that the agent public IP is in the `search-api` IP allow list. Splunk Cloud blocks port 8089 from any other
+   address.
+3. Check that a firewall between the agents and Splunk Cloud allows port 8089 to the host's addresses. Allow it by
+   host name, because the addresses can change.
+4. Check that the ACS token is accepted by that search head.
+5. Rerun the failed job.
 
 **Verify:** The step prints `PASS ... port 8089 search head REST: token accepted`. The line also says whether the `launcher`
 stanza was found. `not found` still means the token was accepted.
