@@ -51,27 +51,7 @@ pass. Its validation run skips the version bump, because the imported version di
 
 ### Import every app at once
 
-This starts the prod import on every app pipeline in one folder. Each app gets its own pull request in its own repo.
-Merging a pull request runs that app's pipeline on `main`, which deploys it to nonprod.
-
-1. Open PowerShell.
-2. Run `az login`.
-3. Run `az extension add --name azure-devops`, if it is not installed yet.
-4. Run this, with your organization, project and the folder that holds the app pipelines:
-
-   ```powershell
-   az pipelines list --organization https://dev.azure.com/<org> --project <project> --folder-path "<apps folder>" `
-     --query "[].name" -o tsv | ForEach-Object {
-       az pipelines run --organization https://dev.azure.com/<org> --project <project> --name $_ --branch main `
-         --parameters importFromProd=true --query "buildNumber" -o tsv }
-   ```
-
-5. Confirm it prints one run name per app.
-6. Review and merge each pull request, as in [Run an import](#run-an-import) steps 9 to 11.
-
-Use `importFromNonprod=true` to import from nonprod instead. Add `importLookups=true` after it to import lookups too.
-A run fails at once for an app whose `azure-pipelines.yml` has no such parameter; copy the current example file into
-that repository first.
+See [Azure CLI: Import every app from prod](/Pipelines/Azure-CLI#import-every-app-from-prod).
 
 ### What the import stage does
 
