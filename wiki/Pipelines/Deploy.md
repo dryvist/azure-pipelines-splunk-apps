@@ -40,12 +40,13 @@ Verify that the run shows one compare stage per app and one install stage.
 | --- | --- | --- |
 | `release_missing` | App IDs are set. It packages, checks and uploads each app whose `main` version is not in the feed. | Nothing |
 | `compare_<app>` | `compare` is on. | `release_missing` |
-| `uninstall` | `uninstall` is on. | `release_missing`; every compare stage; approval |
+| `uninstall` | `uninstall` is on. | `release_missing`; approval |
 | `restart_uninstall` | `uninstall` is on, whatever `restart` is. Started by hand; always restarts both search heads. | `uninstall`; approval |
-| `install` | `install` is on. | `release_missing`; every compare stage; `restart_uninstall`; approval |
+| `install` | `install` is on. | `release_missing`; `restart_uninstall`; approval |
 | `restart` | `restart` and `install` are on. | `install` |
 
-- Each compare stage runs one job for the main search head and one for the ITSI search head. They install nothing.
+- Each compare stage runs one job for the main search head and one for the ITSI search head. They install nothing,
+  and uninstall and install do not wait for them.
   See [Compare steps](/Reference/Stages#compare-steps).
 - With `target` set to `core` or `itsi`, uninstall and install go one app at a time with `--scope local`. Each app
   gets a `Ready` check every 5 seconds first, then a check every 5 seconds until it is gone or shows its exact version.
@@ -77,7 +78,7 @@ The `apps` type of the [bulk delete](/Pipelines/Bulk) pipeline has the same effe
 ## Approve a stage
 
 1. Open the run.
-2. Wait for every compare stage to succeed.
+2. Optional: read the compare stages first. The stage does not wait for them.
 3. Open the waiting stage, for example **Install apps on prod**.
 4. Select **Review**.
 5. Select **Approve** to continue, or **Reject** to stop the stage.

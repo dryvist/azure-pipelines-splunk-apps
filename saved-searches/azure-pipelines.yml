@@ -56,7 +56,7 @@ stages:
 
   - stage: change
     displayName: ${{ parameters.action }} on ${{ parameters.target }}-${{ parameters.environment }} (optional, run by hand)
-    dependsOn: plan
+    dependsOn: []
     trigger: manual
     lockBehavior: sequential
     jobs:

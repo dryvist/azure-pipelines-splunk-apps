@@ -12,7 +12,7 @@ from splunk_release import azure
 
 
 def check_azure():
-    # Deploy to prod stops unless release and proddiff succeeded in this run.
+    # stages_succeeded stops unless every named stage succeeded in this run.
     env = {"SYSTEM_COLLECTIONURI": "https://dev.azure.com/<org>/", "SYSTEM_TEAMPROJECTID": "<project-id>",
            "BUILD_BUILDID": "7", "SYSTEM_ACCESSTOKEN": "t"}
     timeline = {"records": [{"type": "Stage", "identifier": "release", "result": "succeeded"},

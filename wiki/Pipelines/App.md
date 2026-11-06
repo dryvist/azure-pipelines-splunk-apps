@@ -114,12 +114,12 @@ If the tag or package is missing, see [Release troubleshooting](/Troubleshooting
 An approval for **Compare with prod** does not start **Deploy to prod**. To skip the prod install, leave **Run stage**
 unselected.
 
-1. Wait for **Release** and **Compare with prod** to succeed.
+1. Wait for **Release** to succeed. Optional: read **Compare with prod** first.
 2. Open the run.
 3. Select **Run stage** on **Deploy to prod**.
 4. Approve the `splunk-prod` check. See [Deploy: Approve a stage](/Pipelines/Deploy#approve-a-stage).
 
-Selecting **Run stage** too early fails at the first step. Select **Rerun stage** after both stages succeed.
+Selecting **Run stage** too early fails at the first step. Select **Rerun stage** after **Release** succeeds.
 
 A rejection stops the stage. If approval reaches its timeout, Azure marks the stage skipped. The Exclusive Lock check
 runs after the approvals, so waiting for approval does not hold the prod lock.
