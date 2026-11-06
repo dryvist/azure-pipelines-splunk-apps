@@ -13,6 +13,7 @@ az pipelines runs list --organization https://dev.azure.com/<org> --project <pro
 | Task | Pipeline | Parameters to set | Page |
 | --- | --- | --- | --- |
 | Release a change to one app | App | Open a pull request to `main`, merge it, then approve the prod install | [App](/Pipelines/App) |
+| Import every app from prod | App, one run per app | `importFromProd`, from one `az` command | [App](/Pipelines/App#import-every-app-at-once) |
 | Deploy one app to nonprod or prod | Deploy | `environment`, `apps` (one ID), `compare`, `install`, `restart` | [Deploy](/Pipelines/Deploy) |
 | Deploy several apps | Deploy | `apps` as IDs separated by `;`, such as `app_one;app_two`, plus the options above | [Deploy](/Pipelines/Deploy) |
 | Deploy to prod with compare review | Deploy | `environment` = `prod`; approve each compare, then the install | [Deploy](/Pipelines/Deploy#deploy-to-prod) |
