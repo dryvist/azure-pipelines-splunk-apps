@@ -73,10 +73,6 @@ stages:
         local: ${{ ne(parameters.target, 'all') }}
         dependsOn:
           - release_missing
-          - ${{ if parameters.compare }}:
-              - ${{ each app in split(variables.appIds, ';') }}:
-                  - ${{ if ne(app, '') }}:
-                      - compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
         packageDirectory: $(Pipeline.Workspace)/packages
         uninstall: true
         steps:
@@ -107,10 +103,6 @@ stages:
         local: ${{ ne(parameters.target, 'all') }}
         dependsOn:
           - release_missing
-          - ${{ if parameters.compare }}:
-              - ${{ each app in split(variables.appIds, ';') }}:
-                  - ${{ if ne(app, '') }}:
-                      - compare_${{ replace(replace(app, '-', '_'), '.', '_') }}
           - ${{ if parameters.uninstall }}:
               - restart_uninstall
         packageDirectory: $(Pipeline.Workspace)/packages

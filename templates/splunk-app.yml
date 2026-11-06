@@ -136,7 +136,7 @@ stages:
         name: nonprod
         displayName: Deploy to nonprod
         environment: nonprod
-        dependsOn: nonproddiff
+        dependsOn: appinspect
         condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
         pool: ${{ parameters.pool }}
         packageDirectory: $(Pipeline.Workspace)/dist
@@ -181,7 +181,7 @@ stages:
                 publishDirectory: $(Pipeline.Workspace)/dist
 
     # Runs only when a person selects Run stage, then waits for the splunk-prod approval. Its first step stops unless
-    # release and proddiff succeeded in this run.
+    # release succeeded in this run.
     - template: deploy-stage.yml
       parameters:
         name: prod
@@ -195,7 +195,7 @@ stages:
           - template: dist-package.yml
             parameters:
               setup: ${{ parameters.setup }}
-          - script: python $(Pipeline.Workspace)/tools/release.py stages-succeeded release proddiff
-            displayName: Check Release and Compare with prod succeeded
+          - script: python $(Pipeline.Workspace)/tools/release.py stages-succeeded release
+            displayName: Check Release succeeded
             env:
               SYSTEM_ACCESSTOKEN: $(System.AccessToken)

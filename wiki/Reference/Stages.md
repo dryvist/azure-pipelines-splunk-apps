@@ -10,7 +10,7 @@ and stages other pipelines share.
 | 1 | `build` | Every run with no import option selected | `dist` package artifact, or a pushed version bump. |
 | 2 | `appinspect` | After `build`, unless it pushed a bump | AppInspect result and `appinspect-report-<attempt>` artifact. |
 | 3 | `nonproddiff` | Pull request or `main`, after `appinspect` | Nonprod and ITSI compare artifacts. |
-| 4 | `nonprod` | Pull request or `main`, after `nonproddiff` | App installed through ACS. |
+| 4 | `nonprod` | Pull request or `main`, after `appinspect`; parallel with the compares | App installed through ACS. |
 | 5 | `proddiff` | Pull request or `main`, after `appinspect`; parallel with `nonprod` | Prod and ITSI compare artifacts. |
 | 6 | `release` | `main`, after `nonprod` | Version tag and package in the feed. |
 | 7 | `prod` | `main`, after **Run stage** and approval | App installed through ACS. |
@@ -18,7 +18,7 @@ and stages other pipelines share.
 
 - `appinspect` checks the `private_victoria` and `future` tags. Only a pass allows later stages.
 - `release` skips the upload when the feed already has that version.
-- `prod` stops unless `release` and `proddiff` succeeded. See
+- `prod` stops unless `release` succeeded. See
   [Approve the prod install](/Pipelines/App#approve-the-prod-install).
 - For the import stages, see [App: Import](/Pipelines/App#import).
 
