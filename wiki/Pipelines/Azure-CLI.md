@@ -6,14 +6,30 @@ and approve their waiting stages. It reads your organization and project from yo
 ## Set up once
 
 1. Open PowerShell.
-2. Run `winget install --exact --id Microsoft.AzureCLI`.
+2. Run `winget install --exact --id Microsoft.AzureCLI`. If `winget` is blocked, follow
+   [Install the ZIP version](#install-the-zip-version) instead.
 3. Close PowerShell and open a new window.
 4. Run `az login`.
 5. Run `az extension add --name azure-devops`.
 6. Run `az devops configure --defaults organization=https://dev.azure.com/<org> "project=<project>"`.
 7. Run `az devops configure --list` and confirm both values.
 
-If step 2 is blocked, install the ZIP version of the Azure CLI, then add its folder to your user `Path`.
+### Install the ZIP version
+
+This needs no admin rights.
+
+1. Run `iwr https://aka.ms/installazurecliwindowszipx64 -OutFile $HOME\azcli.zip`.
+2. Run `Expand-Archive $HOME\azcli.zip $HOME\AzureCLI`.
+3. Run this to add its `bin` folder to your user `Path`:
+
+   ```powershell
+   [Environment]::SetEnvironmentVariable("Path", [Environment]::GetEnvironmentVariable("Path","User") + ";$HOME\AzureCLI\bin", "User")
+   ```
+
+4. Close every PowerShell and VS Code window, then open a new one.
+5. Run `az version` from any folder.
+
+If `az` is not found, run `dir $HOME\AzureCLI -Recurse -Filter az.cmd` and use the folder it shows in step 3.
 
 ## Load the commands
 
