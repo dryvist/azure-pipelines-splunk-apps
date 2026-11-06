@@ -7,35 +7,23 @@ if (-not $AzProject) { Write-Warning "No default project. Run: az devops configu
 function azq { az @args --only-show-errors }
 $AzTemp = [IO.Path]::GetTempPath()
 
-# Pipeline IDs in the \apps folder.
-function Get-AppPipelineIds { azq pipelines list --folder-path \apps --query "[].id" -o tsv }
+# Every pipeline ID. Pipelines without the parameter a command sends refuse the run before it starts.
+function Get-PipelineIds { azq pipelines list --query "[].id" -o tsv }
 
-# Moves every pipeline whose repository has a package folder on main into \apps. Run once, and after adding apps.
-function Move-AppPipelines {
-  azq pipelines folder create --path \apps -o none 2>$null
-  azq pipelines list --query "[?path!='\\apps'].id" -o tsv | ForEach-Object {
-    $repo = azq pipelines show --id $_ --query repository.id -o tsv
-    azq devops invoke --area git --resource items --api-version 7.1 -o none `
-      --route-parameters "project=$AzProject" repositoryId=$repo `
-      --query-parameters path=/package versionDescriptor.version=main 2>$null
-    if ($LASTEXITCODE -eq 0) { azq pipelines update --id $_ --new-folder-path \apps --query name -o tsv }
-  }
-}
-
-# Lets every app pipeline use one variable group, such as splunk-itsi-prod. The ID is in its Library page address.
-function Grant-AppPipelines([Parameter(Mandatory)][int]$GroupId) {
-  $pipelines = @(Get-AppPipelineIds | ForEach-Object { @{ id = [int]$_; authorized = $true } })
+# Lets every pipeline use one variable group, such as splunk-itsi-prod. The ID is in its Library page address.
+function Grant-Pipelines([Parameter(Mandatory)][int]$GroupId) {
+  $pipelines = @(Get-PipelineIds | ForEach-Object { @{ id = [int]$_; authorized = $true } })
   ConvertTo-Json @{ pipelines = $pipelines } -Depth 3 | Set-Content "$AzTemp/az-permissions.json"
   azq devops invoke --area pipelinePermissions --resource pipelinePermissions --http-method PATCH `
     --route-parameters "project=$AzProject" resourceType=variablegroup resourceId=$GroupId `
     --in-file "$AzTemp/az-permissions.json" --api-version 7.1-preview -o none
 }
 
-# Starts the import on every app pipeline. Each opens its own pull request.
+# Starts the import on every app pipeline; each opens its own pull request. Other pipelines print one error each.
 function Import-AllApps([ValidateSet("prod", "nonprod")]$From = "prod", [switch]$Lookups) {
   $params = @(@{ prod = "importFromProd=true"; nonprod = "importFromNonprod=true" }[$From])
   if ($Lookups) { $params += "importLookups=true" }
-  Get-AppPipelineIds | ForEach-Object { azq pipelines run --id $_ --branch main --parameters @params --query buildNumber -o tsv }
+  Get-PipelineIds | ForEach-Object { azq pipelines run --id $_ --branch main --parameters @params --query buildNumber -o tsv }
 }
 
 # Approval IDs waiting for you.

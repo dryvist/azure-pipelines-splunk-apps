@@ -5,7 +5,7 @@ Use this table to find the main release command, the module files, and the templ
 | File | Contents |
 | --- | --- |
 | `release.py` | Command list and CLI dispatch. |
-| `az-helpers.ps1` | PowerShell shortcuts that start app pipelines in bulk and approve stages. See [Azure CLI](/Pipelines/Azure-CLI). |
+| `az-helpers.ps1` | PowerShell shortcuts that start the app imports in bulk and approve stages. See [Azure CLI](/Pipelines/Azure-CLI). |
 | `splunk_release/__init__.py` | Package marker. |
 | `splunk_release/azure.py` | HTTP requests and log helpers. |
 | `splunk_release/version.py` | App identity, versions, manifests, and Git. |
