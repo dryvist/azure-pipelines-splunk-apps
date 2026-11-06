@@ -26,27 +26,25 @@ To load them in every new window, add that line with the full path to the file t
 
 | Command | What it does |
 | --- | --- |
-| `Move-AppPipelines` | Moves every pipeline whose repository has `package/` on `main` into the `\apps` folder. Run it once, and again after adding apps. |
-| `Get-AppPipelineIds` | Lists the pipeline IDs in `\apps`. |
-| `Grant-AppPipelines -GroupId <id>` | Lets every app pipeline use one variable group. The ID is in the group's Library page address. |
-| `Import-AllApps` | Starts the prod import on every app pipeline. Add `-From nonprod` or `-Lookups`. |
+| `Get-PipelineIds` | Lists every pipeline ID. |
+| `Grant-Pipelines -GroupId <id>` | Lets every pipeline use one variable group. The ID is in the group's Library page address. |
+| `Import-AllApps` | Starts the prod import on every app pipeline. Add `-From nonprod` or `-Lookups`. Other pipelines print one error each and do not start. |
 | `Get-PendingApprovals` | Lists the approvals waiting for you. |
 | `Approve-All` | Approves every approval waiting for you, in every pipeline. |
 | `Get-RecentRuns` | Shows the last 30 runs and the options each started with. Add `-Top <n>` for more. |
 
 ## Import every app from prod
 
-1. Run `Move-AppPipelines`.
-2. Run `Get-AppPipelineIds` and confirm the count matches your app repositories.
-3. Run `Grant-AppPipelines -GroupId <splunk-itsi-prod id>`.
-4. Run `Import-AllApps`.
-5. Confirm it prints one run name per app.
-6. Review each pull request, as in [App: Run an import](/Pipelines/App#run-an-import) steps 9 to 11.
-7. Run `Get-PendingApprovals` when the merged pull requests reach their nonprod approval.
-8. Run `Approve-All`.
+1. Run `Grant-Pipelines -GroupId <splunk-itsi-prod id>`.
+2. Run `Import-AllApps`.
+3. Confirm it prints one run name per app. Each other pipeline prints one `Unexpected parameter` error and does not
+   start.
+4. Review each pull request, as in [App: Run an import](/Pipelines/App#run-an-import) steps 9 to 11.
+5. Run `Get-PendingApprovals` when the merged pull requests reach their nonprod approval.
+6. Run `Approve-All`.
 
-A run fails at once for an app whose `azure-pipelines.yml` has no import parameter. Copy the current example file into
-that repository, then run `Import-AllApps` again or start that app from the web page.
+An app whose `azure-pipelines.yml` has no import parameter also prints the error. Copy the current example file into
+that repository, then start that app from the web page.
 
 For settings outside the apps, run the ACS settings pipeline with `action` set to `pull`, `write` selected and
 `environment` set to `prod`.
