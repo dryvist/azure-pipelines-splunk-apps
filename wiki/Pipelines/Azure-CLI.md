@@ -44,20 +44,24 @@ To load them in every new window, add that line with the full path to the file t
 | --- | --- |
 | `Get-PipelineIds` | Lists every pipeline ID. |
 | `Grant-Pipelines -GroupId <id>` | Lets every pipeline use one variable group. The ID is in the group's Library page address. |
-| `Import-AllApps` | Starts the prod import on every app pipeline. Add `-From nonprod` or `-Lookups`. Other pipelines print one error each and do not start. |
-| `Get-PendingApprovals` | Lists the approvals waiting for you. |
-| `Approve-All` | Approves every approval waiting for you, in every pipeline. |
+| `Import-AllApps` | Starts the prod import on every app pipeline, one `STARTED` or `SKIPPED` line each. Add `-From nonprod` or `-Lookups`. |
+| `Get-PendingApprovals` | Lists the approvals waiting for you, with their pipeline and run. |
+| `Approve-All` | Approves the waiting approvals except stages whose name says prod, such as **Deploy to prod**. |
 | `Get-RecentRuns` | Shows the last 30 runs and the options each started with. Add `-Top <n>` for more. |
 
 ## Import every app from prod
 
+The import runs only read prod and open pull requests. The pull requests' runs deploy to nonprod after the
+`splunk-nonprod` approval. Prod changes only when someone starts **Deploy to prod** and approves it in the web page.
+
 1. Run `Grant-Pipelines -GroupId <splunk-itsi-prod id>`.
 2. Run `Import-AllApps`.
-3. Confirm it prints one run name per app. Each other pipeline prints one `Unexpected parameter` error and does not
-   start.
+3. Confirm the last line, `Result: <n> import runs started`. Each app prints `STARTED`. Each other pipeline prints
+   `SKIPPED` and does not start.
 4. Review each pull request, as in [App: Run an import](/Pipelines/App#run-an-import) steps 9 to 11.
 5. Run `Get-PendingApprovals` when the merged pull requests reach their nonprod approval.
-6. Run `Approve-All`.
+6. Run `Approve-All`. It approves the nonprod deploys and prints `SKIPPED` for prod stages; approve those in the
+   web page.
 
 An app whose `azure-pipelines.yml` has no import parameter also prints the error. Copy the current example file into
 that repository, then start that app from the web page.
