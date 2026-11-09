@@ -26,29 +26,36 @@ from splunk_release.version import (
 )
 
 
-# Settings Splunk Cloud AppInspect rejects: the value an import writes, or None to remove the setting.
-CLOUD_OFF = {"datamodels.conf": ("acceleration", "false"), "savedsearches.conf": ("action.populate_lookup", None)}
+# What an import leaves out of the package. Add a row to leave out more.
+# File names, matched anywhere in the app.
+SKIP_FILES = ("viewstates.conf",)
+# Settings in every stanza of a default/ file: the value an import writes, or None to remove the setting.
+# A value row is for a true/false setting: a value that already means false is kept.
+SETTINGS_OFF = {
+    "datamodels.conf": {"acceleration": "false"},
+    "savedsearches.conf": {"action.populate_lookup": None, "vsid": None},
+}
+FALSE = ("0", "f", "false", "n", "no", "off")
 
 
-def cloud_settings_off(root):
-    """Turn off or remove settings in default/ that Splunk Cloud AppInspect rejects, with one warning each."""
+def settings_off(root):
+    """Set or remove the SETTINGS_OFF settings in default/, with one warning each."""
     from ksconf.conf.parser import write_conf
-    for name, (key, off) in CLOUD_OFF.items():
+    for name, settings in SETTINGS_OFF.items():
         path = root / "default" / name
         conf = compare.parse(path)
-        changed = [s for s, keys in conf.items()
-                   if key in keys and (off is None or keys[key].strip().lower() not in ("0", "f", "false", "n", "no", "off"))]
-        for stanza in changed:
+        changes = [(stanza, key, off) for stanza, keys in conf.items() for key, off in settings.items()
+                   if key in keys and (off is None or keys[key].strip().lower() not in FALSE)]
+        for stanza, key, off in changes:
             if off is None:
                 del conf[stanza][key]
             else:
                 conf[stanza][key] = off
-            log("warning", f"default/{name} [{stanza}] {key} {'removed' if off is None else '= ' + off}: not allowed in Splunk Cloud apps")
-        if changed:
+            log("warning", f"default/{name} [{stanza}] {key} {'removed' if off is None else '= ' + off}")
+        if changes:
             write_conf(path, conf)
 
 
-# app.conf [install] settings Splunk Cloud AppInspect rejects.
 def open_pull_request(branch, version, environment):
     """Create the import branch's pull request into main, set to auto-complete and delete the branch."""
     build_id = os.environ["BUILD_BUILDID"]
@@ -93,13 +100,14 @@ def clean_export(export_dir, destination, app, flags=(), label=None, transform=N
     with tempfile.TemporaryDirectory() as temp_dir:
         imported = Path(temp_dir, app)
         compare.extract(archive, imported)
-        for path in imported.rglob("viewstates.conf"):
-            path.unlink()
+        for path in compare.files(imported):
+            if path.name in SKIP_FILES:
+                (imported / path).unlink()
         compare.merge_local(imported)
         for path in compare.files(imported):
             if compare.kept(path):
                 (imported / path).unlink()
-        cloud_settings_off(imported)
+        settings_off(imported)
         app_conf_required(imported, app)
         for flag, folder in compare.SKIPPED.items():
             if flag in flags:
