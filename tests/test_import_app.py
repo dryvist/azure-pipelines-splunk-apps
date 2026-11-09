@@ -38,7 +38,7 @@ def check_import_app(environment, *flags):
                 "my_ta/lookups/lookup_file_backups/my_ta/nobody/new.csv/1700000000": "h\n1\n",
                 "my_ta/default/datamodels.conf": "[Fast]\nacceleration = 0\n\n[Slow]\nacceleration = false\n",
                 "my_ta/local/datamodels.conf": "[Fast]\nacceleration = 1\n",
-                "my_ta/local/savedsearches.conf": "[fill]\naction.populate_lookup = 1\nsearch = x\n",
+                "my_ta/local/savedsearches.conf": "[fill]\naction.populate_lookup = 1\nsearch = x\nvsid = *:abc\n",
                 "my_ta/local/data/ui/views/example.xml": "<view/>\n",
                 "my_ta/local/viewstates.conf": "[view]\nstate = local\n",
                 "my_ta/default/viewstates.conf": "[view]\nstate = default\n",
@@ -120,8 +120,10 @@ def check_import_app(environment, *flags):
         datamodels = (package / "default" / "datamodels.conf").read_text(encoding="utf-8")
         assert "[Fast]\nacceleration = false" in datamodels and "acceleration = 1" not in datamodels
         saved = (package / "default" / "savedsearches.conf").read_text(encoding="utf-8")
-        assert "populate_lookup" not in saved and "search = x" in saved
-        assert output.getvalue().count("not allowed in Splunk Cloud apps") == 2
+        assert "populate_lookup" not in saved and "vsid" not in saved and "search = x" in saved
+        for warning in ("datamodels.conf [Fast] acceleration = false", "savedsearches.conf [fill] action.populate_lookup removed",
+                        "savedsearches.conf [fill] vsid removed"):
+            assert warning in output.getvalue()
         props = (package / "default" / "props.conf").read_text(encoding="utf-8")
         assert "value = local" in props
         assert (package / "default" / "data" / "ui" / "views" / "example.xml").exists()

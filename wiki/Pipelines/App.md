@@ -65,7 +65,7 @@ The pull request changes the export in these ways. Each changed setting prints o
 - Removes every `viewstates.conf`. Compare still shows it in the diff.
 - Sets both version rows to one patch above the highest version on `main` or in the splunk-apps feed, and regenerates
   `app.manifest`.
-- Sets `acceleration = false` in `datamodels.conf`, and removes `action.populate_lookup` from `savedsearches.conf`.
+- Sets `acceleration = false` in `datamodels.conf`, and removes `action.populate_lookup` and `vsid` from `savedsearches.conf`.
   Acceleration turned on in Splunk Web stays on after a deploy.
 - Sets the `app.conf` settings Splunk Cloud AppInspect requires. Onboard, every package step and every pull request
   bump set the same ones:
