@@ -62,6 +62,7 @@ are `<env>`, the changes the import brings in. It publishes the diff artifact, t
 The pull request changes the export in these ways. Each changed setting prints one warning.
 
 - Merges local configuration into default, and removes `local/`, `users/` and `metadata/local.meta`.
+- Removes every `viewstates.conf`. Compare still shows it in the diff.
 - Sets both version rows to one patch above the highest version on `main` or in the splunk-apps feed, and regenerates
   `app.manifest`.
 - Sets `acceleration = false` in `datamodels.conf`, and removes `action.populate_lookup` from `savedsearches.conf`.
