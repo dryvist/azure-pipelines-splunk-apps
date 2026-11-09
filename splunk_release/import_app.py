@@ -93,6 +93,8 @@ def clean_export(export_dir, destination, app, flags=(), label=None, transform=N
     with tempfile.TemporaryDirectory() as temp_dir:
         imported = Path(temp_dir, app)
         compare.extract(archive, imported)
+        for path in imported.rglob("viewstates.conf"):
+            path.unlink()
         compare.merge_local(imported)
         for path in compare.files(imported):
             if compare.kept(path):
